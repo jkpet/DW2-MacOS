@@ -278,3 +278,14 @@ target_link_options(gte_test PRIVATE ${DW2_ARCH_FLAG})
 if(NOT WIN32)
     target_link_libraries(gte_test PRIVATE m)
 endif()
+
+# Native 64-bit regression for legacy file-relative dungeon pointers. Compile the real relocation
+# unit and discard its unrelated functions so the test covers the production implementation.
+if(APPLE)
+    add_executable(dungfile_reloc_test ${CMAKE_SOURCE_DIR}/tests/dungfile_reloc_test.c
+        ${CMAKE_SOURCE_DIR}/src/stag4000/dungfile.c)
+    target_compile_options(dungfile_reloc_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(dungfile_reloc_test PRIVATE ${DW2_DEFS})
+    target_include_directories(dungfile_reloc_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(dungfile_reloc_test PRIVATE -Wl,-dead_strip)
+endif()
