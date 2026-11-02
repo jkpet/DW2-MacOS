@@ -832,6 +832,11 @@ typedef struct {
     /* 0x02 */ u16 dir;
 } Stg20Start;
 
+Stg20Start *Stg20_GetMapStartRecs(void);
+Stg20Exit *Stg20_GetMapExits(void);
+u8 *Stg20_GetMapBits(void);
+u8 *Stg20_GetMapStepSndBits(void);
+
 /* Byte pair of the 0xC-byte NPC block (Stg20_StageMain). */
 typedef struct {
     /* 0x00 */ u8 x;

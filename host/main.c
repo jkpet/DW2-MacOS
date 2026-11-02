@@ -24,6 +24,8 @@
 #include "host/settings.h"
 #include "host/ui.h"
 #include "host/update.h"
+#include "main/156C.h"
+#include "psyq/ps1mem.h"
 #include "psyq/psyq_log.h"
 #if DW2_DEV
 #include "host/devedit.h"
@@ -123,6 +125,12 @@ extern void Host_OvlSnapshot(void);
 extern void Snd_NativeInit(void);
 extern u8 Ovl_LoadArea[];
 extern s32 Sys_FlipPending;
+extern MemBlock *Mem_HeapStart;
+#if defined(__APPLE__)
+extern GpuOtBuf *Gpu_OtBufs;
+#else
+extern GpuOtBuf Gpu_OtBufs[];
+#endif
 
 static unsigned int max_vblanks;
 static unsigned int vblanks;
@@ -197,11 +205,8 @@ void Host_DisplayOn(void) {
     }
 }
 
-/* The image (globals, Ps1_Ram with the heap) must sit in one 16 MB window for the 24-bit OT links
- * (psyq/ps1mem.h): linked at a 16 MB-aligned base (CMakeLists.txt) and smaller than 16 MB.
- * The game C also keeps pointers in 32-bit ints (P1.12): every address it can see, the window
- * and the stack it runs on, must be below 2 GB so that the int gives the pointer back (zero or
- * sign extended alike). */
+/* The OT tables and Ps1_Ram heap must share a 16 MB window for 24-bit OT links (psyq/ps1mem.h).
+ * Legacy 32-bit pointer words also require the image and arena to share a 4 GB region (P1.12). */
 static void check_window(void) {
     uintptr_t base = (uintptr_t)Ps1_Ram & ~(uintptr_t)0xFFFFFF;
     const struct {
@@ -209,10 +214,15 @@ static void check_window(void) {
         const void *address;
     } probes[] = { { "Ps1_Ram start", Ps1_Ram },
                    { "Ps1_Ram end", Ps1_Ram + PS1_RAM_SIZE - 1 },
-                   { "Ps1_Scratchpad", Ps1_Scratchpad },
-                   { "Ovl_LoadArea", Ovl_LoadArea },
-                   { "Sys_FlipPending", &Sys_FlipPending },
-                   { "Sys_Main", (const void *)Sys_Main } };
+                   { "Gpu_OtBufs start", Gpu_OtBufs },
+                   { "Gpu_OtBufs end", (const u8 *)(Gpu_OtBufs + 3) - 1 } };
+    const struct {
+        const char *name;
+        const void *address;
+    } region_probes[] = { { "Ps1_Scratchpad", Ps1_Scratchpad },
+                          { "Ovl_LoadArea", Ovl_LoadArea },
+                          { "Sys_FlipPending", &Sys_FlipPending },
+                          { "Sys_Main", (const void *)Sys_Main } };
     volatile int stack_probe = 0;
     size_t i;
 
@@ -220,6 +230,14 @@ static void check_window(void) {
         if (((uintptr_t)probes[i].address & ~(uintptr_t)0xFFFFFF) != base) {
             fprintf(stderr, "[host] %s at %p is outside the 16 MB window at 0x%08lX\n", probes[i].name,
                     probes[i].address, (unsigned long)base);
+            exit(1);
+        }
+    }
+    for (i = 0; i < sizeof(region_probes) / sizeof(region_probes[0]); i++) {
+        if (((uintptr_t)region_probes[i].address & ~(uintptr_t)UINT32_MAX) !=
+            ((uintptr_t)Ps1_Ram & ~(uintptr_t)UINT32_MAX)) {
+            fprintf(stderr, "[host] %s at %p is outside the 4 GB pointer region containing Ps1_Ram at %p\n",
+                    region_probes[i].name, region_probes[i].address, (void *)Ps1_Ram);
             exit(1);
         }
     }
@@ -238,8 +256,9 @@ static void check_window(void) {
         exit(1);
     }
 #endif
-    printf("[host] 16 MB window 0x%08lX: Ps1_Ram %p, heap %p..%p\n", (unsigned long)base, (void *)Ps1_Ram,
-           PS1_RAM(0x80075000), PS1_RAM(0x801FF000));
+    printf("[host] 16 MB window 0x%08lX: Ps1_Ram %p, heap %p..%p, GPU OT %p..%p\n", (unsigned long)base,
+           (void *)Ps1_Ram, PS1_RAM(0x80075000), PS1_RAM(0x801FF000), (void *)Gpu_OtBufs,
+           (void *)(Gpu_OtBufs + 3));
 }
 
 void Host_WaitVBlank(void) {
@@ -330,6 +349,16 @@ void Host_Init(int no_win) {
 
 /* Everything from the layout check on: the game's own call stack. */
 static void game_main(void) {
+#ifdef __APPLE__
+    int rc = Ps1Mem_Init();
+
+    if (rc != 0) {
+        fprintf(stderr, "[host] could not reserve aligned 16 MB PS1/GPU arena (%d)\n", rc);
+        exit(1);
+    }
+    Gpu_OtBufs = (GpuOtBuf *)(Ps1_Ram + PS1_RAM_SIZE);
+    Mem_HeapStart = (MemBlock *)PS1_RAM(0x80075000);
+#endif
     check_window();
     Host_OvlSnapshot();
     Snd_NativeInit();

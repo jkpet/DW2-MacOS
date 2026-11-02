@@ -18,7 +18,11 @@
 /* Code reads the layout mode as Gpu_OtBufs[2].entries[0] (retail .bss has Gpu_OtLayoutMode right
  * behind the tables). C keeps no such order, so the native array has a third table whose first
  * word is the layout mode; Gpu_OtLayoutMode below stays unused. */
+#if defined(__APPLE__)
+GpuOtBuf *Gpu_OtBufs;
+#else
 GpuOtBuf Gpu_OtBufs[3];
+#endif
 #else
 GpuOtBuf Gpu_OtBufs[2];
 #endif

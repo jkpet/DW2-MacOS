@@ -96,7 +96,7 @@ typedef struct {
     /* 0x02 */ u16 locked;
     /* 0x04 */ s32 fileId;
     /* 0x08 */ s32 lastUsed;
-    /* 0x0C */ s32 data;
+    /* 0x0C */ sptr data;
 } CdLruEntry;
 
 CdLruEntry *Cd_FindLruCachedFile();
@@ -562,6 +562,9 @@ typedef struct {
     /* 0x08 */ s32 lastUsed;
     /* 0x0C */ sptr data;
 } CdCacheEntry;
+
+NATIVE_ASSERT(offsetof(CdLruEntry, data) == offsetof(CdCacheEntry, data))
+NATIVE_ASSERT(sizeof(CdLruEntry) == sizeof(CdCacheEntry))
 
 CdCacheEntry *Cd_FindCachedFile();
 

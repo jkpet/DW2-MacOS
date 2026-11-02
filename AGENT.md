@@ -40,43 +40,48 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
   - `host/main.c` now allows an explicit experimental macOS arm64 path when low-stack reservation fails: continue with default pthread/SDL thread stacks and print clear warnings instead of hard exit.
   - `check_window` on macOS now warns (rather than aborting) when image/stack addresses are above 2 GB, to expose next pointer-truncation crash sites for targeted fixes.
 - 2026-11-02: **macOS arm64 runtime investigation continued**
-  - `check_window` errors now name the failing probe. The prior `0x104f... outside ... 0x105000000` failure was `Ps1_Ram end`: ASLR can place the 2 MB RAM array across a 16 MB boundary. This remains an intermittent layout blocker.
+  - `check_window` errors name the failing probe. Repeated launches confirmed PIE ASLR could place the static 2 MB `Ps1_Ram` across a 16 MB boundary. Mach-O `-no_pie` is ignored for arm64, so this was fixed with a dedicated arena rather than linker flags (details below).
   - Fixed the first observed native pointer truncations in `Sys_Main`: pass the boot `RECT`, TIM data pointer, and VBlank callback as pointers on native builds.
   - Added arm64 sound pointer/function handle translation for the 32-bit values retained by translated libsnd/libspu code. Extended pointer-sized return/storage through the CD cache and native heap path, and fixed `Mem_GetOffsetEntry` to preserve the native pointer.
   - Replaced raw task pointers in fixed 32-bit slots with generation-tagged task references on 64-bit native builds. Updated task creation, dispatch, child traversal, lookup, destruction, host task inspection, and task-reference consumers; widened `Task_Create`'s separate init argument to `sptr` and converted its pointer-valued call sites.
   - Fixed the next startup crash in `ClearImage2`: two callers passed `RECT *` through an `s32` cast. Updated the Stg10 shadow init to retain its parent as a native pointer and the main shadow init to store a task reference.
   - Continued through title startup: fixed native pointer arithmetic in `Cd_GetFileEntry`/`Cd_GetFileEntrySubPtr`, changed the parts-drawing APIs to take pointers, fixed `LoadImage` call sites, kept OT-layer pointers native-width, and widened writes to the native packet cursor.
+- 2026-11-02: **city-entry pointer audit continued**
+  - Kept the VAB body pointer native-width at `SsVabTransBody`; this removed the intermittent startup segfault observed at that call.
+  - Kept map-file pointer words as file-relative offsets on 64-bit builds and added typed accessors that resolve them against the map file base. This avoids writing truncated native pointers into the packed map header.
+  - Widened the native `Actor_RefreshTransform` seam and added model-table accessors that resolve 32-bit animation/model offsets against their asset base rather than storing host pointers in file words.
+  - Text interpretation now restores the host region for its legacy 32-bit text/return-stack pointers. Animation tables use file-relative accessors on 64-bit builds.
+  - `CdLruEntry.data` is pointer-sized and compile-time checked against `CdCacheEntry`; `P32` now restores the high 32 bits from `Ps1_Ram` for raw host pointer words.
 
 ### Latest verified runtime state (current macOS arm64 machine)
 
-- macOS arm64 release build succeeds (`./.venv/bin/python tools/build_native.py --arch arm64 --release`).
+- macOS arm64 release build succeeds (`./.venv/bin/python tools/build_native.py --arch arm64 --release`; latest full rebuild reported 1435 warnings across 127 files).
 - Running `build/macos-arm64_rel/gte_test` currently exits with 1248 GTE command-reference mismatches; the test and GTE implementation were not changed in this investigation, and this result has not been compared with another platform.
 - `alloc_low_stack()` still fails with `MAP_FIXED` errno 12, so runtime uses the experimental default-stack path.
-- Depending on ASLR, startup either fails the 16 MB check at `Ps1_Ram end` or passes it and reaches the game. A failing example was `Ps1_Ram end at 0x1051fd60f` outside `0x104000000`.
-- With a passing layout, the latest LLDB smoke run completed 30 requested VBlank waits (37 total) and exited normally after entering game mode `0x401` and loading title assets. This exercises high-address task dispatch and title parts rendering; title/city functional coverage remains incomplete.
+- macOS arm64 now reserves a 16 MB-aligned, non-fixed `mmap` arena within the executable's 4 GB pointer region. `Ps1_Ram` occupies its first 2 MB and the three `Gpu_OtBufs` follow it; runtime checks ensure both ranges share the OT-link window and that legacy `P32` pointers still share a 4 GB region with the image. Twelve fresh one-VBlank launches passed with the arena at `0x110000000`.
+- A scripted new-game smoke (`Start`, `Up`, `Cross`) reached game mode `0x307`, loaded city assets, and completed 600 VBlank waits. Latest run: 607 total waits, 7,669 Psy-Q calls, 302 flips, normal exit.
   - `[host] macOS low stack MAP_FIXED failed first with errno=12 (Cannot allocate memory)`
   - `[host] macOS: could not reserve a game stack below 2 GB`
   - `[host] macOS: continuing with default pthread stack (experimental arm64 compatibility mode)`
-  - The initial task-slot crash (`Task_Run` received `0x33fd68` instead of `0x10033fd68`) is resolved by task references. The `ClearImage2`, title file-entry, parts-draw argument, and texture `LoadImage` pointer crashes were also resolved.
+  - The initial task-slot crash (`Task_Run` received `0x33fd68` instead of `0x10033fd68`), VAB body pointer, map start-record pointer, actor transform argument, model table pointer, text pointer, animation table pointer, LRU cache data layout, and `P32` raw pointer failures are resolved along the tested startup/new-game path.
 - The first `ClearImage` stack-pointer crash, sound DMA callback crash, CD-ready callback crash, and sound-buffer pointer crashes were each traced and passed by targeted pointer-width fixes. Raw 32-bit pointer words outside the task-reference system may still truncate.
-- Fixed-base/linker pagezero experiments were reverted because they caused immediate loader termination (`zsh: killed` before app logs).
+- Fixed-base/pagezero experiments were reverted after loader termination; a standalone `-Wl,-no_pie` probe also confirmed Apple's linker ignores non-PIE for arm64.
 - Disc image was restored by the user after an accidental shell `rm` command that included extra arguments.
+- The PS1 objects-only regression build could not run because `mips-linux-gnu-as` is unavailable at `tools/macos/binutils/mips-linux-gnu-as` and no MIPS assembler is on `PATH`.
 
 ---
 
 ## Known blockers (current state)
 
-1. **Mach-O overlay relink verification**
-   - `CMakeLists.txt` now has a first Mach-O relink attempt plus map output, but section behavior still needs validation on real macOS builds.
+1. **Mach-O overlay reset coverage**
+   - Runtime section markers are valid and stag1000/stag2000 reloads passed. Exercise the remaining overlays and more scene transitions.
 2. **Low-address stack strategy verification**
    - Low-address reservation still fails; the fallback is verified and exposes pointer truncation sites.
-3. **16 MB image window under ASLR**
-   - Some ASLR slides place the end of `Ps1_Ram` outside the window used by 24-bit OT links. The data layout must be made reliable or the pointer-link model adapted.
-4. **Remaining native pointer-width verification**
-   - Task slots now contain generation-tagged references and the first headless VBlank passes. Continue exercising task-reference consumers in title/city and battle scenes, and fix any other raw 32-bit pointer words exposed by runtime.
-5. **macOS toolchain/SDK dependency**
+3. **Remaining native pointer-width verification**
+   - Task slots use generation-tagged references, and the aligned arena passes the 600-VBlank new-game path. Continue exercising battle scenes and audit raw 32-bit pointer words exposed by further gameplay.
+4. **macOS toolchain/SDK dependency**
    - Bring-up requires Xcode Command Line Tools (`clang`, `make`, SDK paths) to pass CMake compiler checks.
-6. **Updater platform definitions**
+5. **Updater platform definitions**
    - `host/update.c` only assigns updater assets for Win64 and Linux x64; macOS path defaults to disabled updater.
 
 ---
@@ -204,7 +209,7 @@ When resuming:
 2. Check `CMakeLists.txt`, `tools/build_native.py`, `host/main.c`, `host/update.c` for partially completed phase work.
 3. Rebuild incrementally and run under LLDB to capture the current failure:
    - `./.venv/bin/python tools/build_native.py --arch arm64 --release && lldb --batch -k 'thread backtrace all' -o 'run --no-window --vblanks 1 --disc "<restored cue path>"' -- ./build/macos-arm64_rel/dw2`
-4. Task references are implemented; continue the headless run to the next concrete failure and validate more task consumers. Also make the 16 MB data-window layout stable under ASLR.
+4. Task references and the stable 16 MB PS1/GPU arena are implemented; continue the headless run to the next concrete failure and validate battle/task consumers and remaining raw pointer words.
 5. Keep commands chained with `&&` when giving copy/paste command sequences to avoid accidental path deletion.
 6. Continue with the next unchecked phase item.
 7. Preserve platform gates and avoid broad refactors unrelated to macOS bring-up.

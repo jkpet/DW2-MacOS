@@ -64,27 +64,29 @@ ActorModel *Gfx_AttachModel(Actor *a0, s32 id) {
     s->boneDepths = (s32 *)(s->bonePolys + s->boneCount);
     s->texAnimParts = s->boneDepths + s->boneCount;
     if (m->relocated == 0) {
+#ifndef DW2_PTR64
         for (i = 0; i < s->boneCount; i++) {
             s->boneVerts[i] = P32_SET((s16 *)((s32)s->boneVerts[i] + (s32)base));
             s->boneNormals[i] = P32_SET((s16 *)((s32)s->boneNormals[i] + (s32)base));
             s->bonePolys[i] = P32_SET((ModelQuadSection *)((s32)s->bonePolys[i] + (s32)base));
         }
+#endif
         m->relocated = 1;
     }
     if (fresh) {
         s->maxVerts = 0;
         s->maxNormals = 0;
         for (i = 0; i < s->boneCount; i++) {
-            if (s->maxVerts < *P32(s16, s->boneVerts[i])) {
-                s->maxVerts = *P32(s16, s->boneVerts[i]);
+            if (s->maxVerts < *Gfx_ModelBoneVerts(s, i)) {
+                s->maxVerts = *Gfx_ModelBoneVerts(s, i);
             }
-            if (s->maxNormals < *P32(s16, s->boneNormals[i])) {
-                s->maxNormals = *P32(s16, s->boneNormals[i]);
+            if (s->maxNormals < *Gfx_ModelBoneNormals(s, i)) {
+                s->maxNormals = *Gfx_ModelBoneNormals(s, i);
             }
         }
         s->field_28 = 0;
         for (i = 0; i < s->boneCount; i++) {
-            p = P32(ModelQuadSection, s->bonePolys[i]);
+            p = Gfx_ModelBonePolys(s, i);
             e = p->e;
             q = (ModelQuadSection *)(e + p->n);
             e = q->e;
@@ -100,6 +102,27 @@ ActorModel *Gfx_AttachModel(Actor *a0, s32 id) {
         s->vertColors = (s32 *)Mem_Alloc(s->maxNormals * 4, 2);
     }
     return s;
+}
+
+static void *Gfx_ModelFilePointer(const GfxModelFile *file, u32 offset) {
+#ifdef DW2_PTR64
+    return (u8 *)(uptr)file + offset;
+#else
+    (void)file;
+    return (void *)(uptr)offset;
+#endif
+}
+
+s16 *Gfx_ModelBoneVerts(const ActorModel *model, s32 index) {
+    return (s16 *)Gfx_ModelFilePointer(model->file, (u32)(uptr)model->boneVerts[index]);
+}
+
+s16 *Gfx_ModelBoneNormals(const ActorModel *model, s32 index) {
+    return (s16 *)Gfx_ModelFilePointer(model->file, (u32)(uptr)model->boneNormals[index]);
+}
+
+ModelQuadSection *Gfx_ModelBonePolys(const ActorModel *model, s32 index) {
+    return (ModelQuadSection *)Gfx_ModelFilePointer(model->file, (u32)(uptr)model->bonePolys[index]);
 }
 
 void Gfx_CalcModelBoneMatrices(Actor *a0) {
@@ -210,17 +233,17 @@ void Gfx_DrawTexModel(Actor *a0, s32 mode) {
     s->texSlot = (struct GfxModelTexSlot *)Gfx_FindOrLoadTexSlot(s->fileId << 16);
     s->otzShift = Sys_State.otLayerLen[s->otIndex] - 2;
     for (; i < s->boneCount; i++, e++) {
-        p = P32(ModelQuadSection, s->bonePolys[i]);
+        p = Gfx_ModelBonePolys(s, i);
         gte_SetRotMatrix(&e->viewMat);
         gte_SetTransMatrix(&e->viewMat);
         if (mode == 0 && Gfx_IsOriginOffscreen() != 0) {
             continue;
         }
-        if (Gfx_ProjectModelVerts((Vert6Pmv *)P32(s16, s->boneVerts[i]), (ModelProjView *)s, mode) != 0) {
+        if (Gfx_ProjectModelVerts((Vert6Pmv *)Gfx_ModelBoneVerts(s, i), (ModelProjView *)s, mode) != 0) {
             continue;
         }
         gte_SetLightMatrix(&e->lightMat);
-        Gfx_CalcNormalColors((Vert6Pmv *)P32(s16, s->boneNormals[i]), (ModelProjView *)s);
+        Gfx_CalcNormalColors((Vert6Pmv *)Gfx_ModelBoneNormals(s, i), (ModelProjView *)s);
         for (j = 0; j < 2; j++) {
             n = p->n;
             q = (ModelQuadGT4 *)p->e;
@@ -271,13 +294,13 @@ void Gfx_DrawWireModel(Actor *a0, s32 mode, CVECTOR *col) {
     e = s->bones;
     s->otzShift = Sys_State.otLayerLen[s->otIndex] - 2;
     for (; i < s->boneCount; i++, e++) {
-        p = P32(ModelQuadSection, s->bonePolys[i]);
+        p = Gfx_ModelBonePolys(s, i);
         gte_SetRotMatrix(&e->viewMat);
         gte_SetTransMatrix(&e->viewMat);
         if (mode == 0 && Gfx_IsOriginOffscreen() != 0) {
             continue;
         }
-        if (Gfx_ProjectModelVerts((Vert6Pmv *)P32(s16, s->boneVerts[i]), (ModelProjView *)s, mode) != 0) {
+        if (Gfx_ProjectModelVerts((Vert6Pmv *)Gfx_ModelBoneVerts(s, i), (ModelProjView *)s, mode) != 0) {
             continue;
         }
         for (j = 0; j < 2; j++) {
@@ -378,10 +401,17 @@ s32 Gfx_NoTexAnim;
 void (*Gfx_LateDraw)(void);
 #endif
 
+#ifdef DW2_NATIVE
+void Actor_RefreshTransform(Actor *arg0) {
+    Actor_UpdateTransform(arg0);
+    Actor_ProjectToScreen((ContC40 *)arg0);
+}
+#else
 void Actor_RefreshTransform(s32 arg0) {
     Actor_UpdateTransform(arg0);
     Actor_ProjectToScreen(arg0);
 }
+#endif
 
 extern void Mem_Zero(void *, s32);
 
@@ -401,7 +431,11 @@ void Actor_InitTransform(ContC40 *a0, s32 *a1, u16 a2) {
         p->posZ = a1[2];
     }
     p->rotY = a2;
+#ifdef DW2_NATIVE
+    Actor_RefreshTransform((Actor *)a0);
+#else
     Actor_RefreshTransform((s32)a0);
+#endif
 }
 
 void Actor_StepAxisMotion(AxisMotion *a0, s32 a1) {

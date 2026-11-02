@@ -37,8 +37,9 @@ typedef unsigned int undefined4;
  *   sptr / uptr      an int field holding a pointer where another view of that object has a
  *                    pointer: s32 / u32 on the PS1 and in the 32-bit build, pointer-sized in 64-bit.
  *   PTR32(T)         a fixed-width 32-bit reference field: T * on 32-bit builds and u32 on 64-bit.
- *                    Task references use Task_GetActor/Task_GetRef; P32/P32_SET remain for raw
- *                    pointer words that satisfy the platform's address constraints.
+ *                    Task references use Task_GetActor/Task_GetRef; P32/P32_SET encode/decode
+ *                    raw pointer words in the 4 GB host region containing Ps1_Ram. File-relative
+ *                    offsets still need a file-base accessor.
  *   NATIVE_OFS(T, f, n)  a pad that ends at field f of the real object T: n on the PS1, offsetof
  *                    natively; PTRW(n32, n64) where T is not defined yet (checked with
  *                    NATIVE_ASSERT after T).
@@ -51,7 +52,7 @@ typedef uintptr_t uptr;
 #if UINTPTR_MAX > 0xFFFFFFFFu
 #define DW2_PTR64 1
 #define PTR32(T) u32
-#define P32(T, x) ((T *)(uptr)(x))
+#define P32(T, x) ((T *)(uptr)((u32)(x) == 0 ? 0 : (((uptr)Ps1_Ram & ~(uptr)UINT32_MAX) | (u32)(x))))
 #define P32_SET(x) ((u32)(uptr)(x))
 #endif
 #define NATIVE_OFS(T, f, n) offsetof(T, f)

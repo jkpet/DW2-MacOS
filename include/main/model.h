@@ -5,12 +5,19 @@
 
 /* Functions src/main/model.c defines. */
 ActorModel *Gfx_AttachModel(Actor *a0, s32 id);
+s16 *Gfx_ModelBoneVerts(const ActorModel *model, s32 index);
+s16 *Gfx_ModelBoneNormals(const ActorModel *model, s32 index);
+ModelQuadSection *Gfx_ModelBonePolys(const ActorModel *model, s32 index);
 void Gfx_CalcModelBoneMatrices(Actor *a0);
 void Gfx_DrawTexModel(Actor *a0, s32 mode);
 void Gfx_DrawWireModel(Actor *a0, s32 mode, CVECTOR *col);
 void Actor_UpdateTransform(Actor *arg0);
 s32 Actor_ProjectToScreen(ContC40 *a0);
+#ifdef DW2_NATIVE
+void Actor_RefreshTransform(Actor *arg0);
+#else
 void Actor_RefreshTransform(s32 arg0);
+#endif
 void Actor_InitTransform(ContC40 *a0, s32 *a1, u16 a2);
 void Actor_StepAxisMotion(AxisMotion *a0, s32 a1);
 s32 Actor_ApplyAxisMotion(ContC40 *a0, s32 i);

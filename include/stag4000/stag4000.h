@@ -834,6 +834,9 @@ void Stg40_LabelFilledCells(void);
 
 /* part 36 salvage */
 extern ActorModel *Gfx_AttachModel(Actor *, s32);
+extern s16 *Gfx_ModelBoneVerts(const ActorModel *, s32);
+extern s16 *Gfx_ModelBoneNormals(const ActorModel *, s32);
+extern ModelQuadSection *Gfx_ModelBonePolys(const ActorModel *, s32);
 extern void Actor_UpdateTransform(Actor *);
 extern void Gfx_CalcModelBoneMatrices(Actor *);
 extern void Gfx_DrawTexModel(Actor *, s32);

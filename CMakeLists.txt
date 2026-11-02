@@ -227,8 +227,8 @@ target_compile_options(dw2 PRIVATE ${DW2_ARCH_FLAG} ${DW2_PIE_FLAGS} -fno-strict
 target_compile_definitions(dw2 PRIVATE DW2_NATIVE DW2_DEV=${DW2_DEV_VALUE})
 target_include_directories(dw2 PRIVATE ${CMAKE_SOURCE_DIR}/host/imgui)
 target_include_directories(dw2 PRIVATE ${DW2_INCLUDES})
-# 16 MB-aligned fixed image base: the whole image (globals, Ps1_Ram, the heap) lies in one
-# 16 MB window, which the 24-bit OT links need (psyq/ps1mem.h, host/main.c checks it).
+# Windows/Linux use a 16 MB-aligned fixed image base so globals, Ps1_Ram and the heap share the
+# 24-bit OT-link window. macOS arm64 reserves its PS1 RAM and OT arena at runtime (ps1mem.c).
 target_link_libraries(dw2 PRIVATE SDL3::SDL3-shared)
 if(WIN32)
     add_custom_command(TARGET dw2 POST_BUILD

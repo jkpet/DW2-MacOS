@@ -336,8 +336,10 @@ Psy-Q; the game only reads their results (`Pad_RecvBufs`, `PadGetState`, `MemCar
   into OTs themselves with 24-bit addresses (`(u32)p & 0xFFFFFF`, `tag.addr : 24` bitfields in `main/156C.h`): main
   anim.c, model.c, ot.c, parts.c, portrait.c, text.c and the overlays stag0000 font.c, scrollview.c; stag1100
   cardmenu.c; stag2000 mapbg.c, staticbg.c; stag3500 textrect.c; stag4000 automap.c, floor.c. A PC pointer does not
-  fit 24 bits. Plan: one 16 MB-aligned "PS1 RAM" arena that holds the heap (`Mem_InitHeap`), the OTs (`Gpu_OtBufs`)
-  and every packet buffer; the emulated GPU resolves `arena + (link & 0xFFFFFF)`. Works for 32-bit and 64-bit builds.
+  fit 24 bits. The macOS arm64 build now reserves one 16 MB-aligned arena for PS1 RAM, the heap
+  (`Mem_InitHeap`), the OTs (`Gpu_OtBufs`) and packet buffers; the emulated GPU resolves
+  `arena + (link & 0xFFFFFF)`. Windows/Linux retain their fixed-image layout, which keeps those addresses
+  in the same link window.
   So "the overlays never touch the GPU" holds for Psy-Q calls only: 8 overlay files build packets, and overlays call
   `LoadImage`, `SetDrawMode`, `SetGeomOffset` and the libgs camera functions themselves.
 - **Prototypes.** 25 of the functions are called from C with no prototype (C89 implicit declarations: `AddPrim`,

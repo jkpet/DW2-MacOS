@@ -109,6 +109,19 @@ u8 *Text_BuiltinStrings[] = {
 };
 TaskDesc Text_BoxDesc = { 0, Text_LoadFontsTask, Task_DefaultDestroy, Text_UpdateAllBoxes, 0xA34, 0xD8 };
 
+/* Text pointers live in the same 4 GB host region as Ps1_Ram, but retail text records and the
+ * return stack keep only their low 32 bits. Restore the host region when reading those words. */
+static u8 *Text_GetPointer(s32 address) {
+    if (address == 0) {
+        return NULL;
+    }
+#ifdef DW2_PTR64
+    return (u8 *)(((uintptr_t)Ps1_Ram & ~(uintptr_t)UINT32_MAX) | (u32)address);
+#else
+    return (u8 *)(uptr)(u32)address;
+#endif
+}
+
 void Text_PushReturn(s32 arg0) {
     Text_ReturnStack.data[Text_ReturnStack.count] = arg0;
     Text_ReturnStack.count = Text_ReturnStack.count + 1;
@@ -207,7 +220,7 @@ void Text_UpdateAllBoxes(Actor *a0) {
             nF5 = 0;
             nF4b = 0;
             nF4a = 0;
-            s = (u8 *)r->text;
+            s = Text_GetPointer(r->text);
             nF4c = line = 0;
             pos = *(Pair54 *)&r->x;
             nF4d = 0;
@@ -251,7 +264,7 @@ void Text_UpdateAllBoxes(Actor *a0) {
                         stop = 1;
                         break;
                     }
-                    s = (u8 *)vf - 1;
+                    s = Text_GetPointer(vf) - 1;
                     line--;
                     break;
                 case 0xFE:
@@ -609,7 +622,7 @@ void Text_UpdateAllBoxes(Actor *a0) {
                         n += *s;
                         Text_PushReturn((s32)(s + 1));
                         line--;
-                        s = (u8 *)Item_GetNameText(n) - 1;
+                        s = Text_GetPointer(Item_GetNameText(n)) - 1;
                     }
                     break;
                 case 0xF1:
@@ -642,7 +655,7 @@ void Text_UpdateAllBoxes(Actor *a0) {
                         {
                             s32 *args = &r->strArg0;
                             s32 jj = k - 1;
-                            s = (u8 *)args[jj] - 1;
+                            s = Text_GetPointer(args[jj]) - 1;
                         }
                         break;
                     default:

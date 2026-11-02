@@ -74,6 +74,15 @@ void Anim_SetModelAnimFile(Actor *arg0, s32 arg1, s32 arg2) {
     p->animDone = 0;
 }
 
+static void *Anim_FilePointer(const s32 *file, u32 offset) {
+#ifdef DW2_PTR64
+    return (u8 *)(uptr)file + offset;
+#else
+    (void)file;
+    return (void *)(uptr)offset;
+#endif
+}
+
 s32 Anim_HasModelAnim(Actor *a0, s32 n) {
     ActorModel *sub = a0->model;
     s32 id;
@@ -117,6 +126,7 @@ void Anim_StepModelAnim(Actor *a) {
     }
     if (data[0] == 0) {
         data[0] = 1;
+#ifndef DW2_PTR64
         for (k = 0; s->animTable[k] != 1; k++) {
             if (s->animTable[k] != 0) {
                 s->animTable[k] += (s32)data;
@@ -125,12 +135,13 @@ void Anim_StepModelAnim(Actor *a) {
         for (k = 0; k < s->boneCount; k++) {
             s->bonePoseTables[k] += (s32)data;
         }
+#endif
     }
     s->animTimer += Sys_State.frameDelta;
     while (s->animTimer >= 2) {
         s->animTimer -= 2;
         e = s->bones;
-        f = (u8 *)s->animTable[s->animIndex];
+        f = (u8 *)Anim_FilePointer(data, (u32)s->animTable[s->animIndex]);
         pos = s->animPos;
         for (i = 0; i < s->boneCount; i++) {
             e->keyIndex = f[s->animPos++];
@@ -155,7 +166,7 @@ done:
         ModelBone *b = s->bones;
         s32 n;
         for (n = 0; n < s->boneCount; n++, b++) {
-            r = &((Rec18 *)s->bonePoseTables[n])[b->keyIndex];
+            r = &((Rec18 *)Anim_FilePointer(data, (u32)s->bonePoseTables[n]))[b->keyIndex];
             b->localMat.m = r->m;
             for (j = 0; j < 3; j++) {
                 b->localMat.t[j] = r->t[j];

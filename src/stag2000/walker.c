@@ -181,6 +181,7 @@ void Stg20_WalkerUpdate(Actor *a) {
     s32 found;
     s32 ok;
     s32 snd;
+    u8 *stepSndBits;
     Stg20Rot *r;
 
     if (((Stg20ModelTask *)a)->walkerKind == 0) {
@@ -397,11 +398,12 @@ void Stg20_WalkerUpdate(Actor *a) {
                     }
                     if (ok != 0) {
                         snd = 0x27;
-                        if (Stg20_GetMapInfo()->stepSndBits != 0) {
+                        stepSndBits = Stg20_GetMapStepSndBits();
+                        if (stepSndBits != NULL) {
                             c = *Stg20_GetActorCell(a);
                             idx = c.y * 3 + c.x / 8;
                             mask = 1 << (s16)(c.x % 8);
-                            if (((u8 *)Stg20_GetMapInfo()->stepSndBits)[idx] & mask) {
+                            if (stepSndBits[idx] & mask) {
                                 snd = 0x28;
                             }
                         }

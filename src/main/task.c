@@ -10,7 +10,11 @@ ActorAllocView *Task_AllocWithBuffers(s32 a0, s32 a1);
  * game.h's order. Retail reaches the ones this unit uses with %gp_rel. */
 /* Heap start: the fixed end of the overlay load area (memory map). */
 #ifdef DW2_NATIVE
+#if defined(__APPLE__)
+MemBlock *Mem_HeapStart;
+#else
 MemBlock *Mem_HeapStart = (MemBlock *)PS1_RAM(0x80075000);
+#endif
 #else
 MemBlock *Mem_HeapStart = (MemBlock *)0x80075000;
 #endif

@@ -299,13 +299,13 @@ static Stg40SideModel *Stg40_SideModelFor(Actor *owner, s32 fileId) {
     m = Gfx_AttachModel(&s->actor, fileId);
     m->otIndex = 3;
     for (i = 0; i < m->boneCount; i++) {
-        if (m->maxVerts < *P32(s16, m->boneVerts[i])) {
-            m->maxVerts = *P32(s16, m->boneVerts[i]);
+        if (m->maxVerts < *Gfx_ModelBoneVerts(m, i)) {
+            m->maxVerts = *Gfx_ModelBoneVerts(m, i);
         }
-        if (m->maxNormals < *P32(s16, m->boneNormals[i])) {
-            m->maxNormals = *P32(s16, m->boneNormals[i]);
+        if (m->maxNormals < *Gfx_ModelBoneNormals(m, i)) {
+            m->maxNormals = *Gfx_ModelBoneNormals(m, i);
         }
-        p = P32(ModelQuadSection, m->bonePolys[i]);
+        p = Gfx_ModelBonePolys(m, i);
         for (j = 0; j < 2; j++) {
             n = p->n;
             s->needBytes += n * sizeof(PolyGT4_2130C);

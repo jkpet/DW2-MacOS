@@ -33,7 +33,7 @@ void Stg20_StageMain(Actor *a) {
         Flag_SetTableFile(Stg20_GetMapInfo()->flagTableFile);
         Task_Create(0x308, &slot[5], 0);
         if (Sys_State.gameMode < 0x32A) {
-            st = &((Stg20Start *)Stg20_GetMapInfo()->startRecs)[Sys_State.modeArg];
+            st = &Stg20_GetMapStartRecs()[Sys_State.modeArg];
             sp.id = 0x1F4;
             sp.blk[0].x = st->x;
             sp.blk[0].y = st->y;
@@ -172,15 +172,49 @@ void Stg20_StageMain(Actor *a) {
 
 Stg20MapFile *Stg20_GetMapInfo(void) {
     Stg20MapFile *f = (Stg20MapFile *)Cd_GetFileEntry(((Stg20Mode *)&Sys_State.gameMode)->lo + 0x308FFFF);
+#ifndef DW2_PTR64
     s32 base;
+#endif
 
     if (f->loaded == 0) {
+#ifdef DW2_PTR64
+        /* Keep the file's 32-bit offsets intact; native pointers belong in accessors, not the disk view. */
+        f->loaded = 1;
+#else
         base = Cd_GetFileOrNull(0x309);
         f->loaded = 1;
         f->exits += base;
         f->startRecs += base;
         f->bits += base;
         f->stepSndBits = f->stepSndBits != 0 ? f->stepSndBits + base : 0;
+#endif
     }
     return f;
+}
+
+static void *Stg20_MapPointer(u32 offset) {
+    if (offset == 0) {
+        return NULL;
+    }
+#ifdef DW2_PTR64
+    return (u8 *)(uptr)Cd_GetFileOrNull(0x309) + offset;
+#else
+    return (void *)(uptr)offset;
+#endif
+}
+
+Stg20Start *Stg20_GetMapStartRecs(void) {
+    return (Stg20Start *)Stg20_MapPointer((u32)Stg20_GetMapInfo()->startRecs);
+}
+
+Stg20Exit *Stg20_GetMapExits(void) {
+    return (Stg20Exit *)Stg20_MapPointer((u32)Stg20_GetMapInfo()->exits);
+}
+
+u8 *Stg20_GetMapBits(void) {
+    return (u8 *)Stg20_MapPointer((u32)(uptr)Stg20_GetMapInfo()->bits);
+}
+
+u8 *Stg20_GetMapStepSndBits(void) {
+    return (u8 *)Stg20_MapPointer((u32)Stg20_GetMapInfo()->stepSndBits);
 }

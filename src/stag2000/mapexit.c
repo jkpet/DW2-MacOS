@@ -18,7 +18,7 @@ void Stg20_MapExitUpdate(Actor *a) {
         Task_NextState0(a);
         break;
     case 1:
-        for (e = (Stg20Exit *)Stg20_GetMapInfo()->exits; e->x != 0; e++) {
+        for (e = Stg20_GetMapExits(); e->x != 0; e++) {
             c.x = e->x;
             c.y = e->y;
             if (Stg20_GetGridCell(&c) & 0x80) {

@@ -119,7 +119,11 @@ void Snd_ServiceSlotLoads(void) {
         case 5:
             if (Cd_GetFileState(e->vbFileId) == 3) {
                 Cd_LockFile(e->vbFileId);
+#ifdef DW2_NATIVE
+                e->vabId = SsVabTransBody((u_char *)Cd_GetFileEntry(Snd_BankDescs[e->contentId]->vbFile), e->vabId);
+#else
                 e->vabId = SsVabTransBody((s32)Cd_GetFileEntry(Snd_BankDescs[e->contentId]->vbFile), e->vabId);
+#endif
                 e->loadState++;
             }
             break;

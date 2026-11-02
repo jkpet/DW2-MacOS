@@ -34,7 +34,11 @@ extern s32 Cd_PreloadIds[];
 extern u8 Snd_SeqAttrTable[176 * 6 * 16];
 extern SndSlot Snd_Slots[3];
 extern TextStack Text_ReturnStack;
+#if defined(DW2_NATIVE) && defined(__APPLE__)
+extern GpuOtBuf *Gpu_OtBufs;
+#else
 extern GpuOtBuf Gpu_OtBufs[];
+#endif
 extern s32 Gpu_OtLayoutMode[2];
 extern GfxTexSlot Gfx_TexSlots[];
 extern FlagEntryState Flag_EntryIter;
@@ -87,7 +91,11 @@ extern s32 Spu_InTransfer;
 extern void (*Sys_VSyncCallbacks[])(void);
 extern TextStack Text_ReturnStack;
 extern TaskList Task_List;
+#if defined(DW2_NATIVE) && defined(__APPLE__)
+extern GpuOtBuf *Gpu_OtBufs;
+#else
 extern GpuOtBuf Gpu_OtBufs[];
+#endif
 extern GameState Save_GameState;
 extern s32 D_80062FD8;
 extern void Digi_InitFromTable(s32, s32, DigiRosterEntry *);
@@ -110,6 +118,9 @@ extern void Cd_EvictLruFile(void);
 extern void Text_Close(s32 *);
 extern void Mem_Free(ActorWork *);
 extern ActorModel *Gfx_AttachModel(Actor *, s32);
+extern s16 *Gfx_ModelBoneVerts(const ActorModel *, s32);
+extern s16 *Gfx_ModelBoneNormals(const ActorModel *, s32);
+extern ModelQuadSection *Gfx_ModelBonePolys(const ActorModel *, s32);
 extern void Gfx_ResetModelBones(Actor *);
 extern s32 Gfx_ZeroVector[];
 extern void Actor_UpdateTransform(Actor *);
