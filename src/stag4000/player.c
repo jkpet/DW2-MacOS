@@ -810,8 +810,8 @@ void Stg40_PlayerEnemyInfo(Actor *a0) {
         g->targetActor = t->actor;
         g->targetEnt = t;
         Stg40_ScrollToFollow(&t->loc, 0x10);
-        Task_SetState0((Actor *)Stg40_RootChildren->enemyInfoTask, 2);
-        Task_SetState1((Actor *)Stg40_RootChildren->enemyInfoTask, 0x64);
+        Task_SetState0(Task_GetActor(Stg40_RootChildren->enemyInfoTask), 2);
+        Task_SetState1(Task_GetActor(Stg40_RootChildren->enemyInfoTask), 0x64);
         Task_NextState2(a0);
         break;
     case 2:
@@ -848,7 +848,7 @@ void Stg40_PlayerEnemyInfo(Actor *a0) {
         break;
     case 0x64:
         Stg40_ScrollFollow(&e->loc);
-        Task_SetState0((Actor *)Stg40_RootChildren->enemyInfoTask, 2);
+        Task_SetState0(Task_GetActor(Stg40_RootChildren->enemyInfoTask), 2);
         Task_NextState2(a0);
         break;
     case 0x65:
@@ -990,7 +990,7 @@ void Stg40_PlayerShootGift(Actor *actor) {
     case 6:
         if (Stg40_MsgWinCloseIfDone(1) == 1) {
             Stg40_ScrollToFollow(&self->loc, 8);
-            Task_SetState0((Actor *)Stg40_RootChildren->enemyInfoTask, 2);
+            Task_SetState0(Task_GetActor(Stg40_RootChildren->enemyInfoTask), 2);
             Task_NextState2(actor);
         }
         break;
@@ -1329,7 +1329,7 @@ void Stg40_PlayerItemMenu(Actor *a0) {
         Stg40_RootState->scrollTop = 0;
         Stg40_ObjSetAnim(a0, 0x28);
         arg = Stg40_RootState->giftMenu != 0;
-        Task_Create(0x20B, &Stg40_RootChildren->itemMenuTask, (s32)&arg);
+        Task_Create(0x20B, &Stg40_RootChildren->itemMenuTask, (sptr)&arg);
         Snd_PlayById(0x37, 0);
         Stg40_ItemMenuRefresh();
         Task_NextState2(a0);
@@ -1362,7 +1362,7 @@ void Stg40_PlayerItemMenu(Actor *a0) {
             Task_NextState2(a0);
         }
         if (a0->stateLevel2 != 2) {
-            Task_SetState0((Actor *)Stg40_RootChildren->itemMenuTask, 2);
+            Task_SetState0(Task_GetActor(Stg40_RootChildren->itemMenuTask), 2);
         }
         break;
     case 3:

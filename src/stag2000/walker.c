@@ -196,7 +196,7 @@ void Stg20_WalkerUpdate(Actor *a) {
             w->modelId = Digi_GetModelFile(a->digiId);
             Gfx_AttachModel(a, w->modelId)->otIndex = 3;
             Stg20_WalkerSetAnim(a, 0x1E);
-            Task_Create(0x303, (s32 *)a->u34.children, (s32)a);
+            Task_Create(0x303, (s32 *)a->u34.children, (sptr)a);
             r = (Stg20Rot *)a->u38.ptr38;
             switch (Sys_State.gameMode) {
             case 0x30F:

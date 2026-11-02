@@ -174,11 +174,11 @@ void Stg40_ObjUpdate(Actor *a0) {
         if (w->pendingLinkedModel != -1) {
             slot = (s32 *)a0->u34.children;
             if (*slot != 0) {
-                Task_SetState0((Actor *)*slot, 3);
+                Task_SetState0(Task_GetActor(*slot), 3);
             } else {
-                arg.parent = P32_SET(a0);
+                arg.parent = Task_GetRef(a0);
                 arg.tableIndex = w->pendingLinkedModel;
-                Task_Create(0x207, slot, (s32)&arg);
+                Task_Create(0x207, slot, (sptr)&arg);
                 w->linkedModel = w->pendingLinkedModel;
                 w->pendingLinkedModel = -1;
             }
@@ -388,7 +388,7 @@ static void Stg40_SideDrawChild(Actor *a0, Stg40SideModel *ps) {
     if (slot == NULL || *slot == 0) {
         return;
     }
-    c = (Actor *)(sptr)*slot;
+    c = Task_GetActor(*slot);
     if (c->id != 0x207 || c->model == NULL || (c->stateLevel0 != 1 && c->stateLevel0 != 2)) {
         return;
     }

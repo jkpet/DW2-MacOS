@@ -38,7 +38,7 @@ void Stg20_LabDnaDigivolve(Actor *a) {
         case 0:
         default:
             if (slot[1] != 0) {
-                Task_SetState0((Actor *)slot[1], 2);
+                Task_SetState0(Task_GetActor(slot[1]), 2);
             }
             Stg20_MenuState.excludeFirst = 0;
             Task_Create(0x30C, &slot[3], 0);
@@ -47,8 +47,8 @@ void Stg20_LabDnaDigivolve(Actor *a) {
             Task_Create(0x30E, &slot[4], 0);
             Task_NextState3(a);
         case 1:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
-                Task_SetState0((Actor *)slot[4], 2);
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
+                Task_SetState0(Task_GetActor(slot[4]), 2);
                 if (Stg20_MenuState.result != 0) {
                     Task_SetState1(a, 0);
                 } else {
@@ -77,7 +77,7 @@ void Stg20_LabDnaDigivolve(Actor *a) {
             Task_NextState3(a);
             break;
         case 2:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
                 switch (Stg20_MenuState.result) {
                 case 0:
                     Task_NextState2(a);
@@ -103,7 +103,7 @@ void Stg20_LabDnaDigivolve(Actor *a) {
             Task_Create(0x310, &slot[3], 0);
             Task_NextState3(a);
         case 1:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
                 Task_SetState2(a, 1);
                 Task_SetState3(a, 1);
             }
@@ -114,9 +114,9 @@ void Stg20_LabDnaDigivolve(Actor *a) {
         switch (a->stateLevel3) {
         case 0:
         default:
-            Task_SetState1((Actor *)slot[1], 1);
+            Task_SetState1(Task_GetActor(slot[1]), 1);
             if (slot[2] != 0) {
-                Task_SetState0((Actor *)slot[2], 2);
+                Task_SetState0(Task_GetActor(slot[2]), 2);
             }
             Stg20_MenuState.excludeFirst = 1;
             Task_Create(0x30C, &slot[3], 0);
@@ -125,11 +125,11 @@ void Stg20_LabDnaDigivolve(Actor *a) {
             Task_Create(0x30E, &slot[4], 0);
             Task_NextState3(a);
         case 1:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
-                Task_SetState0((Actor *)slot[4], 2);
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
+                Task_SetState0(Task_GetActor(slot[4]), 2);
                 if (Stg20_MenuState.result != 0) {
                     if (slot[1] != 0) {
-                        Task_SetState0((Actor *)slot[1], 2);
+                        Task_SetState0(Task_GetActor(slot[1]), 2);
                     }
                     Task_SetState2(a, 0);
                 } else {
@@ -159,7 +159,7 @@ void Stg20_LabDnaDigivolve(Actor *a) {
             Task_NextState3(a);
             break;
         case 2:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
                 switch (Stg20_MenuState.result) {
                 case 0:
                     Task_NextState2(a);
@@ -170,7 +170,7 @@ void Stg20_LabDnaDigivolve(Actor *a) {
                     break;
                 case 2:
                     Task_SetState2(a, 6);
-                    Task_SetState0((Actor *)slot[5], 3);
+                    Task_SetState0(Task_GetActor(slot[5]), 3);
                     break;
                 }
             }
@@ -185,7 +185,7 @@ void Stg20_LabDnaDigivolve(Actor *a) {
             Task_Create(0x310, &slot[3], 0);
             Task_NextState3(a);
         case 1:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
                 Task_SetState2(a, 4);
                 Task_SetState3(a, 1);
             }
@@ -224,16 +224,16 @@ void Stg20_LabDnaDigivolve(Actor *a) {
                 buf[0] = 0x512;
                 buf[1] = 1;
                 buf[2] = 0x2A3;
-                Task_Create(0x313, &slot[8], (s32)buf);
+                Task_Create(0x313, &slot[8], (sptr)buf);
                 Task_NextState4(a);
                 Snd_StopById(0x101);
                 break;
             case 1:
-                if (((Actor *)slot[8])->stateLevel0 == 0) {
+                if (Task_GetActor(slot[8])->stateLevel0 == 0) {
                     break;
                 }
-                Task_SetState0((Actor *)slot[8], 2);
-                Task_SetState1((Actor *)P32(TaskEntry, w->menu), 2);
+                Task_SetState0(Task_GetActor(slot[8]), 2);
+                Task_SetState1(Task_GetActor(w->menu), 2);
                 w->timer = 0x5A;
                 w->busy = 1;
                 Task_NextState3(a);
@@ -251,23 +251,23 @@ void Stg20_LabDnaDigivolve(Actor *a) {
             args.z = 0;
             args.y = 0;
             args.x = 0;
-            Task_Create(7, &slot[6], (s32)&args);
-            Task_SetState1((Actor *)slot[1], 2);
-            Task_SetState1((Actor *)slot[2], 1);
+            Task_Create(7, &slot[6], (sptr)&args);
+            Task_SetState1(Task_GetActor(slot[1]), 2);
+            Task_SetState1(Task_GetActor(slot[2]), 1);
             Task_NextState3(a);
             break;
         case 3:
-            if (((Actor *)P32(TaskEntry, w->menu))->stateLevel2 == 3) {
+            if (Task_GetActor(w->menu)->stateLevel2 == 3) {
                 Stg20_MenuState.modelDigiId = Stg20_MenuState.evoTargetId;
                 Stg20_MenuState.modelNoGrow = 1;
                 Stg20_MenuState.modelSlide = 0;
                 Task_Create(0x30A, &slot[1], 0);
-                Task_SetState0((Actor *)slot[2], 3);
+                Task_SetState0(Task_GetActor(slot[2]), 3);
                 Task_NextState3(a);
             }
             break;
         case 4:
-            if (((Actor *)P32(TaskEntry, w->menu))->stateLevel1 != 0) {
+            if (Task_GetActor(w->menu)->stateLevel1 != 0) {
                 break;
             }
             p = &Save_GameState.elems[Stg20_MenuState.dnaParent0];
@@ -424,7 +424,7 @@ void Stg20_LabDnaDigivolve(Actor *a) {
         default:
             buf[4] = 0;
             buf[5] = Stg20_MenuState.dnaNewSlot;
-            Task_Create(0x16, &slot[7], (s32)&buf[4]);
+            Task_Create(0x16, &slot[7], (sptr)&buf[4]);
             Task_NextState3(a);
             break;
         case 1:
@@ -448,7 +448,7 @@ void Stg20_LabDnaDigivolve(Actor *a) {
             Task_NextState3(a);
             break;
         case 2:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
                 switch (Stg20_MenuState.result) {
                 case 1:
                 case 2:
@@ -475,7 +475,7 @@ void Stg20_LabDnaDigivolve(Actor *a) {
             Task_Create(0x310, &slot[3], 0);
             Task_NextState3(a);
         case 1:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
                 Task_SetState2(a, 8);
             }
             break;
@@ -502,7 +502,7 @@ void Stg20_LabDigivolve(Actor *a) {
         case 0:
         default:
             if (slot[1] != 0) {
-                Task_SetState0((Actor *)slot[1], 2);
+                Task_SetState0(Task_GetActor(slot[1]), 2);
             }
             Stg20_MenuState.excludeFirst = 0;
             Task_Create(0x30C, &slot[3], 0);
@@ -511,8 +511,8 @@ void Stg20_LabDigivolve(Actor *a) {
             Task_Create(0x30E, &slot[4], 0);
             Task_NextState3(a);
         case 1:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
-                Task_SetState0((Actor *)slot[4], 2);
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
+                Task_SetState0(Task_GetActor(slot[4]), 2);
                 if (Stg20_MenuState.result != 0) {
                     Task_SetState1(a, 0);
                 } else {
@@ -541,7 +541,7 @@ void Stg20_LabDigivolve(Actor *a) {
             Task_NextState3(a);
             break;
         case 2:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
                 switch (Stg20_MenuState.result) {
                 case 0:
                     Task_NextState2(a);
@@ -551,7 +551,7 @@ void Stg20_LabDigivolve(Actor *a) {
                     Task_SetState2(a, 0);
                     break;
                 case 2:
-                    Task_SetState0((Actor *)slot[5], 3);
+                    Task_SetState0(Task_GetActor(slot[5]), 3);
                     Task_SetState2(a, 3);
                     break;
                 }
@@ -567,7 +567,7 @@ void Stg20_LabDigivolve(Actor *a) {
             Task_Create(0x310, &slot[3], 0);
             Task_NextState3(a);
         case 1:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
                 Task_SetState2(a, 1);
                 Task_SetState3(a, 1);
             }
@@ -602,16 +602,16 @@ void Stg20_LabDigivolve(Actor *a) {
                 buf[0] = 0x512;
                 buf[1] = 0;
                 buf[2] = 0x2A3;
-                Task_Create(0x313, &slot[8], (s32)buf);
+                Task_Create(0x313, &slot[8], (sptr)buf);
                 Task_NextState4(a);
                 Snd_StopById(0x101);
                 break;
             case 1:
-                if (((Actor *)slot[8])->stateLevel0 == 0) {
+                if (Task_GetActor(slot[8])->stateLevel0 == 0) {
                     break;
                 }
-                Task_SetState0((Actor *)slot[8], 2);
-                Task_SetState1((Actor *)P32(TaskEntry, w->menu), 1);
+                Task_SetState0(Task_GetActor(slot[8]), 2);
+                Task_SetState1(Task_GetActor(w->menu), 1);
                 w->busy = 1;
                 Task_NextState4(a);
                 w->timer = 0x5A;
@@ -626,13 +626,13 @@ void Stg20_LabDigivolve(Actor *a) {
                 args.z = 0;
                 args.y = 0;
                 args.x = 0;
-                Task_Create(7, &slot[6], (s32)&args);
+                Task_Create(7, &slot[6], (sptr)&args);
                 Task_NextState3(a);
                 break;
             }
             break;
         case 2:
-            if (((Actor *)P32(TaskEntry, w->menu))->stateLevel2 == 3) {
+            if (Task_GetActor(w->menu)->stateLevel2 == 3) {
                 Stg20_MenuState.modelDigiId = Stg20_MenuState.evoTargetId;
                 Stg20_MenuState.modelNoGrow = 1;
                 Stg20_MenuState.modelSlide = 0;
@@ -641,7 +641,7 @@ void Stg20_LabDigivolve(Actor *a) {
             }
             break;
         case 3:
-            if (((Actor *)P32(TaskEntry, w->menu))->stateLevel1 == 0) {
+            if (Task_GetActor(w->menu)->stateLevel1 == 0) {
                 w->busy = 0;
                 Snd_PlayById(0x101, 1);
                 e = &Save_GameState.elems[Stg20_MenuState.infoRosterIndex];
@@ -679,7 +679,7 @@ void Stg20_LabDigivolve(Actor *a) {
             Task_NextState3(a);
             break;
         case 2:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
                 switch (Stg20_MenuState.result) {
                 case 1:
                 case 2:
@@ -702,7 +702,7 @@ void Stg20_LabDigivolve(Actor *a) {
             Task_Create(0x310, &slot[3], 0);
             Task_NextState3(a);
         case 1:
-            if (((Actor *)slot[3])->stateLevel0 == 2) {
+            if (Task_GetActor(slot[3])->stateLevel0 == 2) {
                 Task_SetState2(a, 4);
             }
             break;
@@ -719,7 +719,7 @@ void Stg20_DigiLabUpdate(Actor *a) {
     case 0:
         Stg20_MenuState.labMode = 0;
         Task_Create(0x30D, &slot[5], 0);
-        w->menu = P32_SET(Task_FindFirst(0x308, -1, -1));
+        w->menu = Task_GetRef((Actor *)Task_FindFirst(0x308, -1, -1));
         Stg20_MenuState.menuAllowed = 0;
         Task_NextState0(a);
         break;
@@ -730,7 +730,7 @@ void Stg20_DigiLabUpdate(Actor *a) {
             switch (a->stateLevel2) {
             case 0:
             default:
-                Task_SetState0((Actor *)P32(TaskEntry, w->menu), 0);
+                Task_SetState0(Task_GetActor(w->menu), 0);
                 Task_Create(0x30B, &slot[3], 0);
                 Stg20_MsgWinShowSysMsg(0x115);
                 Task_NextState2(a);

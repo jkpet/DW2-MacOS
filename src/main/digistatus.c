@@ -79,7 +79,7 @@ void Menu_DigiStatusTask(Actor *a) {
         Mem_FillWordsNeg1(w, 0x1B);
         GsSetOffset(-0xA0, 0xB4);
         t[0] = a;
-        Task_Create(6, (s32 *)a->u34.children, (s32)t);
+        Task_Create(6, (s32 *)a->u34.children, (sptr)t);
         a->childCount = 0;
         Task_NextState0(a);
         break;
@@ -92,13 +92,13 @@ void Menu_DigiStatusTask(Actor *a) {
             {
                 /* retail stores through the child's model before it is attached (NULL + offset:
                  * PS1 RAM, harmless there; P1.25) */
-                Actor *c = P32(Actor, *(PTR32(Actor) *)a->u34.children);
+                Actor *c = Task_GetActor(*(s32 *)a->u34.children);
                 if (c != NULL && c->model != NULL) {
                     c->model->otIndex = 4;
                 }
             }
 #else
-            P32(Actor, *(PTR32(Actor) *)a->u34.children)->model->otIndex = 4;
+            Task_GetActor(*(s32 *)a->u34.children)->model->otIndex = 4;
 #endif
             if (Math_RampToOne((s32)a, &w->ramp) != 0) {
                 break;

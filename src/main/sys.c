@@ -209,9 +209,9 @@ void Sys_Main(void) {
         }
         Gfx_DrawFade();
         Sys_State.drawPass = 0;
-        slot = Task_TryRun((void *)slot);
+        slot = Task_TryRun(slot);
         Sys_State.drawPass = 1;
-        slot = Task_TryRun((void *)slot);
+        slot = Task_TryRun(slot);
 #ifdef DW2_NATIVE
         if (Gfx_LateDraw != NULL) { /* PG.8a: draw-only extras after every retail draw */
             void (*late)(void) = Gfx_LateDraw;

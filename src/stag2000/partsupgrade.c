@@ -138,7 +138,7 @@ void Stg20_UpgradeListRefresh(Actor *a) {
 void Stg20_PartsUpgradeUpdate(Actor *task) {
     Stg20ItemWork *w = (Stg20ItemWork *) task->work;
     s32 state = task->stateLevel0;
-    s32 children = task->u34.children;
+    s32 *children = (s32 *)task->u34.children;
     s32 sub;
     s32 st2;
 

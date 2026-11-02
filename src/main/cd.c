@@ -61,7 +61,11 @@ EntA0 *Cd_GetFileEntry(u32 arg0) {
     }
     index = arg0 & 0xFFFF;
     base = (u8 *)Cd_GetFileSync(arg0 >> 16);
+#ifdef DW2_NATIVE
+    return (EntA0 *)((uptr)base + ((u32 *)base)[index]);
+#else
     return (EntA0 *)(((u32 *)base)[index] + (u32)base);
+#endif
 }
 
 sptr Mem_GetOffsetEntry(s32 arg0, s32 *arg1) {

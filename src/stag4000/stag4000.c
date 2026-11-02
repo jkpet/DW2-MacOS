@@ -185,19 +185,19 @@ void Stg40_SetupStage(Actor *a0) {
     Stg40_SyncVisitedBits(1);
     Task_Create(9, slots, 0);
     cur = slots + 6;
-    Task_Create(0x203, cur, (s32)Cd_GetFileEntry(0xE200000));
+    Task_Create(0x203, cur, (sptr)Cd_GetFileEntry(0xE200000));
     cur = slots + 7;
     j = 0;
     e = Dung_StatePtr->ents;
     while (j < Dung_StatePtr->entCount) {
         if (e->flags & 0x8000) {
-            Task_Create(0x204, cur, (s32)e);
+            Task_Create(0x204, cur, (sptr)e);
             cur++;
             }
         e++;
         j++;
     }
-    Task_Create(0x202, cur, (s32)&Dung_StatePtr->floorTexId0);
+    Task_Create(0x202, cur, (sptr)&Dung_StatePtr->floorTexId0);
     cur++;
     Task_Create(0x206, cur, 0);
     cur++;
@@ -392,7 +392,7 @@ void Stg40_RootUpdate(Actor *arg0) {
                 break;
             case 1:
                 if (Dung_StatePtr->freeze == 2) {
-                    Task_SetState0((Actor *)ctx->hudTask, 2);
+                    Task_SetState0(Task_GetActor(ctx->hudTask), 2);
                     Stg40_RootState->automapMode = 0;
                     Task_SetState1(arg0, 2);
                 } else if (Stg40_BeginTransition(arg0) == st) {
@@ -414,7 +414,7 @@ void Stg40_RootUpdate(Actor *arg0) {
             switch (arg0->stateLevel2) {
             default:
             case 0:
-                Task_SetState0((Actor *)ctx->hudTask, 2);
+                Task_SetState0(Task_GetActor(ctx->hudTask), 2);
                 Stg40_RootState->automapMode = 0;
                 Gfx_FadeOutToBlack(0x20);
                 Task_NextState2(arg0);
@@ -463,7 +463,7 @@ void Stg40_RootUpdate(Actor *arg0) {
             default:
             case 0:
                 Dung_StatePtr->freeze = 1;
-                Task_SetState0((Actor *)ctx->hudTask, 2);
+                Task_SetState0(Task_GetActor(ctx->hudTask), 2);
                 Task_NextState2(arg0);
                 break;
             case 1:

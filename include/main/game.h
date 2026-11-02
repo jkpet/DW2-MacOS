@@ -961,7 +961,7 @@ extern void Gfx_AddTrisGT3(GfxModelTriGT3 *, s32, ActorModel *, s32);
 s16 _SsVmPBVoice(s16, s16, s16, s16, u16);
 void Save_ClearEventFlags(void);
 void Task_RunChildren(TaskChildrenView *a0);
-s32 Task_TryRun(void *arg0);
+s32 Task_TryRun(s32 arg0);
 void Task_Destroy(s32 *arg0);
 
 typedef struct {

@@ -49,7 +49,7 @@ void Stg00_LineupSpawnModels(Actor *arg0) {
         args.posX = Stg00_LineupLayouts[w->layout][i].posX;
         args.posY = 0;
         args.posZ = Stg00_LineupLayouts[w->layout][i].posZ;
-        Task_Create(0x105, slot, (s32)&args);
+        Task_Create(0x105, slot, (sptr)&args);
         slot++;
     }
 }

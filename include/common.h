@@ -29,15 +29,16 @@ typedef unsigned int undefined4;
 #define NULL ((void *)0)
 #endif
 
-/* Pointer width (native build, P1.12). The retail code keeps pointers in 32-bit ints (task slots,
- * file words) and types one object's field as a pointer in one view and as an int in another.
- * Every native build keeps all game addresses below 2 GB, so a 32-bit int gives a pointer back;
- * what a 64-bit build must keep is one layout for all views of an object:
+/* Pointer width (native build, P1.12). Retail code keeps some references in 32-bit words and
+ * types one object's field as a pointer in one view and as an int in another. On 64-bit builds,
+ * task references are generation-tagged 32-bit handles; other raw 32-bit pointer words still
+ * require low-address compatibility or a dedicated native representation. Keep one layout for
+ * all views of an object:
  *   sptr / uptr      an int field holding a pointer where another view of that object has a
  *                    pointer: s32 / u32 on the PS1 and in the 32-bit build, pointer-sized in 64-bit.
- *   PTR32(T)         a pointer field where the rest of the code keeps a 32-bit int (task slots
- *                    written by Task_Create): T * except in 64-bit, where it is a u32 read with
- *                    P32(T, x) and written with P32_SET(x).
+ *   PTR32(T)         a fixed-width 32-bit reference field: T * on 32-bit builds and u32 on 64-bit.
+ *                    Task references use Task_GetActor/Task_GetRef; P32/P32_SET remain for raw
+ *                    pointer words that satisfy the platform's address constraints.
  *   NATIVE_OFS(T, f, n)  a pad that ends at field f of the real object T: n on the PS1, offsetof
  *                    natively; PTRW(n32, n64) where T is not defined yet (checked with
  *                    NATIVE_ASSERT after T).

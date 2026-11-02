@@ -2,7 +2,7 @@
 #include "stag2000/stag2000.h"
 
 /* Task callbacks the descriptors below need (defined further down). */
-void Stg20_ShadowInit(Actor *a, s32 v);
+void Stg20_ShadowInit(Actor *a, Actor *target);
 void Stg20_ShadowUpdate(Actor *a);
 void Stg20_ShadowDraw(Actor *a);
 
@@ -10,8 +10,8 @@ TaskDesc Stg20_ShadowDesc = {
     (TaskInitFn)Stg20_ShadowInit, Stg20_ShadowUpdate, Task_DefaultDestroy, Stg20_ShadowDraw, 4, 0,
 };
 
-void Stg20_ShadowInit(Actor *a, s32 v) {
-    ((Stg20Work *)a->work)->field_0 = v;
+void Stg20_ShadowInit(Actor *a, Actor *target) {
+    ((Stg20LinkWork *)a->work)->target = target;
 }
 
 void Stg20_ShadowUpdate(Actor *a) {

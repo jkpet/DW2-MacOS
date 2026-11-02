@@ -146,11 +146,11 @@ void Stg35_BattleScriptTask(Actor *arg0) {
                 break;
             case 17:
                 a1.field_0 = (s32)Stg35_BattleScript;
-                Task_Create(0x70A, (s32 *)&children[3], (s32)&a1);
+                Task_Create(0x70A, (s32 *)&children[3], (sptr)&a1);
                 w->script += 1;
                 break;
             case 18:
-                if (P32(Actor, children[3])->stateLevel0 == 1) {
+                if (Task_GetActor(children[3])->stateLevel0 == 1) {
                     w->script += 1;
                 } else {
                     cont = 0;
@@ -164,13 +164,13 @@ void Stg35_BattleScriptTask(Actor *arg0) {
                     a3.field_0 = q[0];
                     a3.field_4 = q[1];
                     a3.field_8 = w->script[2];
-                    Task_Create(0x70B, (s32 *)&children[4], (s32)&a3);
+                    Task_Create(0x70B, (s32 *)&children[4], (sptr)&a3);
                     Task_NextState1(arg0);
                 case 1:
                     break;
                 }
-                if (P32(Actor, children[4])->stateLevel0 == 1) {
-                    Task_SetState0(P32(Actor, children[4]), 2);
+                if (Task_GetActor(children[4])->stateLevel0 == 1) {
+                    Task_SetState0(Task_GetActor(children[4]), 2);
                     w->script += 3;
                     Task_SetState1(arg0, 0);
                 } else {

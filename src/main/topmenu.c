@@ -7,7 +7,7 @@
 #include "main/itemeffect.h"
 
 /* Declarations the original file made before this code. */
-extern void Task_Create(u32, s32 *, s32);
+extern void Task_Create(u32, s32 *, sptr);
 
 /* Small data this unit defines: initialised ones go to .sdata, the rest to .sbss in
  * game.h's order. Retail reaches them with %gp_rel here. */
@@ -225,10 +225,14 @@ s32 Menu_GridIndexRowMajor(s16 *arg0, s16 *arg1) {
     return arg1[0] * arg0[1] + arg0[0];
 }
 
-s32 Cd_GetFileEntrySubPtr(s32 arg0, s32 arg1) {
+sptr Cd_GetFileEntrySubPtr(s32 arg0, s32 arg1) {
     s32 *p = (s32 *)Cd_GetFileEntry(arg0);
-    s32 r = Cd_GetFileOrNull(arg0 >> 16);
+    sptr r = Cd_GetFileOrNull(arg0 >> 16);
+#ifdef DW2_NATIVE
+    return (sptr)((uptr)r + (u32)p[arg1]);
+#else
     return p[arg1] + r;
+#endif
 }
 
 void Text_FormatNumber(u8 *out, s32 val, s32 width) {

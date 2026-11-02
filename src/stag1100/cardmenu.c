@@ -805,7 +805,7 @@ void Stg11_StateVsPartySelect(Actor *arg0, Stg11MenuWork *arg1) {
     }
     if (Stg11_WatchCardRemoved(arg0, arg1) != 0) {
         if (*slot != 0) {
-            Task_SetState0((Actor *)*slot, 2);
+            Task_SetState0(Task_GetActor(*slot), 2);
         }
         Text_PrintIdList((s32 *)arg1, (TextIdListEntry *)Cd_GetFileEntrySubPtr(0xD280006, arg1->menuKind - 1), 0);
         Stg11_CloseSlotText(arg0, arg1);

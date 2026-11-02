@@ -919,7 +919,7 @@ typedef struct {
     /* 0x4 */ s16 tableIndex;
 } Stg40Arg207;
 
-extern void Task_Create(u32, s32 *, s32);
+extern void Task_Create(u32, s32 *, sptr);
 void Stg40_PlayerUpdate(Actor *a0);
 void Stg40_EnemyUpdate(Actor *a0);
 s32 Stg40_ObjStepMove(Stg40Ent48 *e);

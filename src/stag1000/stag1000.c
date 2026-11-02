@@ -53,13 +53,13 @@ void Stg10_StageSetup(Actor *a0) {
         Sys_SetFrameRate60();
         Gpu_InitDoubleBuffer(0x140, 0x1E0, 2, 1);
         ResetGraph(1);
-        ClearImage2((s32)&Stg10_VramClearRect, 0, 0, 0);
+        ClearImage2(&Stg10_VramClearRect, 0, 0, 0);
         DrawSync(0);
         Sys_State.bufIndex = 0;
         Snd_StopAll();
         args[0] = Stg10_MovieFileIds[Sys_State.gameMode - 0x402];
         args[1] = Cd_GetFileSectors(args[0]) / 10 - 10;
-        Task_Create(0x402, slot + 2, (s32)args);
+        Task_Create(0x402, slot + 2, (sptr)args);
         break;
     }
     Task_NextState0(a0);

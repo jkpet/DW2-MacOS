@@ -184,7 +184,7 @@ void Stg30_JoinPromptUpdate(Actor *a0) {
                 Stg30_JoinCreateDigi(a0, 0);
                 args.field_0 = 0;
                 args.field_4 = 0x23;
-                Task_Create(0x16, q, (s32)&args);
+                Task_Create(0x16, q, (sptr)&args);
                 Task_NextState2(a0);
                 break;
             case 1:
@@ -222,7 +222,7 @@ void Stg30_JoinPromptUpdate(Actor *a0) {
                 Stg30_JoinCreateDigi(a0, 1);
                 args.field_0 = 0;
                 args.field_4 = 0x23;
-                Task_Create(0x16, p, (s32)&args);
+                Task_Create(0x16, p, (sptr)&args);
                 Task_NextState2(a0);
                 break;
             case 3:

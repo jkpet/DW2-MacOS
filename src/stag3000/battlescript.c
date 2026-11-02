@@ -206,11 +206,11 @@ void Stg30_BattleScriptTask(Actor *a0) {
             case 14:
                 a[0] = w->pc[1];
                 a[1] = w->pc[2];
-                Task_Create(0x50C, &sl->field_0, (s32)a);
+                Task_Create(0x50C, &sl->field_0, (sptr)a);
                 if (Stg30_Battle.statusMsg != 0) {
                     b[0] = 8;
                     b[2] = Stg30_Battle.statusMsg;
-                    Task_Create(0x50D, &sl->field_8, (s32)b);
+                    Task_Create(0x50D, &sl->field_8, (sptr)b);
                 }
                 w->pc += 3;
                 break;
@@ -218,19 +218,19 @@ void Stg30_BattleScriptTask(Actor *a0) {
                 c[0] = 0;
                 c[1] = w->pc[1];
                 c[2] = 0;
-                Task_Create(0x50D, &sl->field_4, (s32)c);
+                Task_Create(0x50D, &sl->field_4, (sptr)c);
                 w->pc += 2;
                 break;
             case 17:
                 d[0] = w->pc[1] + 4;
                 d[2] = 0;
-                Task_Create(0x50D, &sl->field_0, (s32)d);
+                Task_Create(0x50D, &sl->field_0, (sptr)d);
                 w->pc += 2;
                 break;
             case 18:
                 e[0] = 7;
                 e[2] = 0;
-                Task_Create(0x50D, &sl->field_8, (s32)e);
+                Task_Create(0x50D, &sl->field_8, (sptr)e);
                 w->pc += 1;
                 break;
             case 16:
@@ -241,16 +241,16 @@ void Stg30_BattleScriptTask(Actor *a0) {
                 }
                 f[1] = v;
                 f[2] = w->pc[3];
-                Task_Create(0x50D, &sl->field_4, (s32)f);
+                Task_Create(0x50D, &sl->field_4, (sptr)f);
                 w->pc += 4;
                 break;
             case 21:
                 h[0] = (s32)Stg30_BattleScript;
-                Task_Create(0x50E, (s32 *)&sl->actionLoadTask, (s32)h);
+                Task_Create(0x50E, (s32 *)&sl->actionLoadTask, (sptr)h);
                 w->pc += 1;
                 break;
             case 22:
-                if (P32(Actor, sl->actionLoadTask)->stateLevel0 != 1) {
+                if (Task_GetActor(sl->actionLoadTask)->stateLevel0 != 1) {
                     cont = 0;
                 } else {
                     w->pc += 1;
@@ -264,14 +264,14 @@ void Stg30_BattleScriptTask(Actor *a0) {
                     g[0] = q[0];
                     g[1] = q[1];
                     g[2] = w->pc[2];
-                    Task_Create(0x511, (s32 *)&sl->xaTask, (s32)g);
+                    Task_Create(0x511, (s32 *)&sl->xaTask, (sptr)g);
                     Task_NextState1(a0);
                 case 1:
-                    if (P32(Actor, sl->xaTask)->stateLevel0 != 1) {
+                    if (Task_GetActor(sl->xaTask)->stateLevel0 != 1) {
                         cont = 0;
                         break;
                     }
-                    Task_SetState0(P32(Actor, sl->xaTask), 2);
+                    Task_SetState0(Task_GetActor(sl->xaTask), 2);
                     w->pc += 3;
                     Task_SetState1(a0, 0);
                     break;

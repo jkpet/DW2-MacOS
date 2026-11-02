@@ -83,7 +83,7 @@ extern void Gpu_InitDoubleBuffer(s32 w, s32 h, s32 mode, s32 inter);
 extern void Gpu_SetBgClearColor(s32 a0, s32 a1, s32 a2);
 extern void Gfx_FadeInFromBlack(s32 arg0);
 extern void Gfx_FadeClear(void);
-extern void Task_Create(u32, s32 *, s32);
+extern void Task_Create(u32, s32 *, sptr);
 extern void Snd_StopAll(void);
 extern s32 Cd_GetFileSectors(s32 arg0);
 extern s32 Cd_PollRead(void);

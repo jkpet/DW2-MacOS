@@ -20,7 +20,7 @@ s32 Menu_MoveGridCursorP1(s32 arg0, s32 arg1);
 s32 Menu_ScrollToShow(s32 *arg0, s32 arg1, s32 arg2);
 s32 Menu_GridIndexColMajor(s16 *arg0, s16 *arg1);
 s32 Menu_GridIndexRowMajor(s16 *arg0, s16 *arg1);
-s32 Cd_GetFileEntrySubPtr(s32 arg0, s32 arg1);
+sptr Cd_GetFileEntrySubPtr(s32 arg0, s32 arg1);
 void Text_FormatNumber(u8 *out, s32 val, s32 width);
 void Menu_TopMenuInit(Actor *arg0, s16 arg1);
 void Menu_TopMenuTask(Actor *a0);

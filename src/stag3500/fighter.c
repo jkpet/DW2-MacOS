@@ -90,7 +90,7 @@ void Stg35_SpawnSkillCastFx(Actor *arg0, s32 arg1) {
             default:
                 break;
             }
-            Task_Create(7, &slot[i], (s32)&args);
+            Task_Create(7, &slot[i], (sptr)&args);
         }
     }
 }
@@ -124,7 +124,7 @@ void Stg35_SpawnSkillHitFx(Actor *arg0) {
             default:
                 break;
             }
-            Task_Create(7, &slot[i], (s32)&args);
+            Task_Create(7, &slot[i], (sptr)&args);
         }
     }
 }
@@ -252,7 +252,7 @@ void Stg35_FighterTask(Actor *arg0) {
         w->curAnim = -1;
         Stg35_FighterSetAnim(arg0, 0);
         a1.field_0 = (s32)arg0;
-        Task_Create(6, &((s32 *)arg0->u34.children)[3], (s32)&a1);
+        Task_Create(6, &((s32 *)arg0->u34.children)[3], (sptr)&a1);
         m0 = (Stg35ModelFade *)arg0->model;
         w->drawTex = 1;
         w->drawWire = 0;

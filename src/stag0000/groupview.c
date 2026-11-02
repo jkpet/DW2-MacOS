@@ -54,7 +54,7 @@ void Stg00_SpawnRandomGroup(Actor *arg0) {
             args.posX = x;
             args.posY = 0;
             args.posZ = z;
-            Task_Create(0x105, &slot[k], (s32)&args);
+            Task_Create(0x105, &slot[k], (sptr)&args);
         }
         z += 0x2800;
         y += 0x800;

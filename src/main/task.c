@@ -20,13 +20,90 @@ s32 D_80050758;
 TaskList Task_List;
 TaskFindFilter Task_FindFilter;
 
+#ifdef DW2_PTR64
+/* Task references live in fixed 32-bit slots throughout the game. Keep their
+ * representation stable and translate them to native pointers at the boundary. */
+typedef struct {
+    Actor *actor;
+    u32 generation;
+} TaskHandleEntry;
+
+#define TASK_HANDLE_COUNT 100
+#define TASK_HANDLE_INDEX_BITS 7
+#define TASK_HANDLE_INDEX_MASK ((1u << TASK_HANDLE_INDEX_BITS) - 1)
+#define TASK_HANDLE_GENERATION_MAX 0x00FFFFFFu
+
+static TaskHandleEntry sTaskHandles[TASK_HANDLE_COUNT];
+
+static s32 Task_RegisterActor(s32 index, Actor *actor) {
+    TaskHandleEntry *entry = &sTaskHandles[index];
+
+    entry->generation = (entry->generation + 1) & TASK_HANDLE_GENERATION_MAX;
+    if (entry->generation == 0) {
+        entry->generation = 1;
+    }
+    entry->actor = actor;
+    return (s32)((entry->generation << TASK_HANDLE_INDEX_BITS) | (u32)(index + 1));
+}
+
+static void Task_UnregisterRef(s32 ref) {
+    u32 index = (u32)ref & TASK_HANDLE_INDEX_MASK;
+    u32 generation = (u32)ref >> TASK_HANDLE_INDEX_BITS;
+
+    if (index == 0 || index > TASK_HANDLE_COUNT) {
+        return;
+    }
+    index--;
+    if (sTaskHandles[index].generation == generation) {
+        sTaskHandles[index].actor = NULL;
+    }
+}
+#endif
+
+Actor *Task_GetActor(s32 ref) {
+#ifdef DW2_PTR64
+    u32 index = (u32)ref & TASK_HANDLE_INDEX_MASK;
+    u32 generation = (u32)ref >> TASK_HANDLE_INDEX_BITS;
+
+    if (index == 0 || index > TASK_HANDLE_COUNT) {
+        return NULL;
+    }
+    index--;
+    if (sTaskHandles[index].generation != generation) {
+        return NULL;
+    }
+    return sTaskHandles[index].actor;
+#else
+    return (Actor *)(uptr)(u32)ref;
+#endif
+}
+
+s32 Task_GetRef(const Actor *actor) {
+#ifdef DW2_PTR64
+    s32 i;
+
+    if (actor == NULL) {
+        return 0;
+    }
+    for (i = 0; i < TASK_HANDLE_COUNT; i++) {
+        TaskHandleEntry *entry = &sTaskHandles[i];
+        if (entry->actor == actor) {
+            return (s32)((entry->generation << TASK_HANDLE_INDEX_BITS) | (u32)(i + 1));
+        }
+    }
+    return 0;
+#else
+    return (s32)(uptr)actor;
+#endif
+}
+
 /* Defined further down. */
 void Task_DefaultDestroy(Actor *arg0);
 /* Legacy non-prototype declarations used by dead/retail call sites above their definitions. */
 void Task_Free();
 void Task_NextState0();
 
-void Task_Create(u32 id, s32 *slot, s32 arg) {
+void Task_Create(u32 id, s32 *slot, sptr arg) {
     TaskDesc *d;
     ActorAllocView *o;
 
@@ -40,7 +117,7 @@ void Task_Create(u32 id, s32 *slot, s32 arg) {
     if (arg != 0 && d->init != 0) {
         d->init(o, arg);
     }
-    *slot = (s32)o;
+    *slot = Task_GetRef((Actor *)o);
 }
 
 /* Unnamed: calls Task_NextState0() with no argument, no callers, no table ref (dead). */
@@ -70,6 +147,11 @@ void Task_ClearList(void) {
     for (i = 0; i < 100; i++) {
         Task_List.entries[i] = 0;
     }
+#ifdef DW2_PTR64
+    for (i = 0; i < TASK_HANDLE_COUNT; i++) {
+        sTaskHandles[i].actor = NULL;
+    }
+#endif
     Task_List.count = 0;
 }
 
@@ -87,7 +169,11 @@ ActorAllocView *Task_Alloc(void) {
 #endif
     for (i = 0; i < 0x64; i++) {
         if (Task_List.entries[i] == 0) {
-            Task_List.entries[i] = (s32)s0;
+#ifdef DW2_PTR64
+            Task_List.entries[i] = Task_RegisterActor(i, (Actor *)s0);
+#else
+            Task_List.entries[i] = (s32)(uptr)s0;
+#endif
             break;
         }
     }
@@ -104,6 +190,7 @@ TaskFreeView *arg0;
     s32 i;
     s32 *p;
     s32 j;
+    s32 ref = Task_GetRef((Actor *)arg0);
 
     if (arg0->childCount != 0) {
         s32 *fp = arg0->children;
@@ -145,8 +232,11 @@ TaskFreeView *arg0;
     }
 
     for (j = 0; j < 100; j++) {
-        if (Task_List.entries[j] == (s32)arg0) {
+        if (ref != 0 && Task_List.entries[j] == ref) {
             Task_List.entries[j] = 0;
+#ifdef DW2_PTR64
+            Task_UnregisterRef(ref);
+#endif
             break;
         }
     }
@@ -183,7 +273,7 @@ TaskEntry *Task_FindNext(void) {
     i = Task_FindFilter.nextIndex;
     while (i < Task_List.count) {
         do {
-            e = (TaskEntry *)Task_List.entries[i];
+            e = (TaskEntry *)Task_GetActor(Task_List.entries[i]);
             if (e != 0) {
                 if (Task_FindFilter.key0 != -1) {
                     if (e->id != Task_FindFilter.key0) break;
@@ -195,7 +285,7 @@ TaskEntry *Task_FindNext(void) {
                     if (e->param != Task_FindFilter.key2) break;
                 }
                 Task_FindFilter.nextIndex = i + 1;
-                return (TaskEntry *)Task_List.entries[i];
+                return (TaskEntry *)Task_GetActor(Task_List.entries[i]);
             }
         } while (0);
         i++;

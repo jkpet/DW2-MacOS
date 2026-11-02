@@ -123,7 +123,7 @@ s32 Text_PopReturn(void) {
 }
 
 extern GfxTexSlot *Gfx_FindOrLoadTexSlot(s32);
-extern void Task_Create(u32, s32 *, s32);
+extern void Task_Create(u32, s32 *, sptr);
 
 void Text_LoadFontsTask(Actor *a0) {
     if (a0->stateLevel0 != 0) {
@@ -132,7 +132,7 @@ void Text_LoadFontsTask(Actor *a0) {
     Gfx_FindOrLoadTexSlot(0x13A0000);
     if ((Sys_State.gameMode & 0xF00) != 0x500) {
         Gfx_FindOrLoadTexSlot(0x1100000);
-        Task_Create(0xA, a0->u34.children, 0);
+        Task_Create(0xA, (s32 *)a0->u34.children, 0);
     }
     Task_NextState0(a0);
 }
@@ -330,8 +330,8 @@ void Text_UpdateAllBoxes(Actor *a0) {
                             case 3:
                             case 5:
                             case 7:
-                                if (P32(Actor, slots->box[row]) != 0) {
-                                    Task_SetState0(P32(Actor, slots->box[row]), 2);
+                                if (Task_GetActor(slots->box[row]) != 0) {
+                                    Task_SetState0(Task_GetActor(slots->box[row]), 2);
                                 }
                                 Task_NextState1(a0);
                                 break;
@@ -340,14 +340,14 @@ void Text_UpdateAllBoxes(Actor *a0) {
                             Task_NextState1(a0);
                             break;
                         case 1:
-                            if (P32(Actor, slots->box[row])->stateLevel1 == 1) {
+                            if (Task_GetActor(slots->box[row])->stateLevel1 == 1) {
                                 r->waitingInput = 0;
                                 r->cmdFADone++;
                                 Task_SetState1(a0, 0);
                             }
                             break;
                         case 2:
-                            if (P32(Actor, slots->box[row]) == 0) {
+                            if (Task_GetActor(slots->box[row]) == 0) {
                                 r->waitingInput = 0;
                                 r->cmdFADone++;
                                 Task_SetState1(a0, 0);
@@ -362,8 +362,8 @@ void Text_UpdateAllBoxes(Actor *a0) {
                     k9 = *s;
                     if (k9 & 1) {
                         if (r->cmdF9Done == nF9) {
-                            if (P32(Actor, slots->num[(k9 >> 1) & 1]) != 0) {
-                                Task_SetState0(P32(Actor, slots->num[(k9 >> 1) & 1]), 2);
+                        if (Task_GetActor(slots->num[(k9 >> 1) & 1]) != 0) {
+                            Task_SetState0(Task_GetActor(slots->num[(k9 >> 1) & 1]), 2);
                             }
                             r->cmdF9Done++;
                             Snd_PlayById(0x3A, 0);
@@ -374,10 +374,10 @@ void Text_UpdateAllBoxes(Actor *a0) {
                         num[0] = *s++ * 100;
                         num[0] += *s++ * 10;
                         num[0] += *s;
-                        if (P32(Actor, slots->num[num[1]]) != 0) {
-                            Text_PortraitSetImage(P32(Actor, slots->num[num[1]]), num[0]);
+                        if (Task_GetActor(slots->num[num[1]]) != 0) {
+                            Text_PortraitSetImage(Task_GetActor(slots->num[num[1]]), num[0]);
                         } else {
-                            Task_Create(5, (s32 *)&slots->num[num[1]], (s32)num);
+                            Task_Create(5, (s32 *)&slots->num[num[1]], (sptr)num);
                         }
                         r->cmdF9Done++;
                         Snd_PlayById(0x39, 0);
@@ -537,13 +537,13 @@ void Text_UpdateAllBoxes(Actor *a0) {
                             default:
                                 num[0] = k4 & 0xF;
                                 num[1] = 0;
-                                Task_Create(0x16, (s32 *)&slots->task, (s32)num);
+                                Task_Create(0x16, (s32 *)&slots->task, (sptr)num);
                                 a0->stateLevel1++;
                                 r->waitingInput = 1;
                                 break;
                             case 1:
                                 s += 2;
-                                if (P32(Actor, slots->task) == 0) {
+                                if (Task_GetActor(slots->task) == 0) {
                                     a0->stateLevel1 = 0;
                                     r->waitingInput = 0;
                                     r->cmdF4TaskDone++;
@@ -730,7 +730,7 @@ void Text_Close(s32 *slot) {
         r = &e->work[i];
         q = &e->children[i];
         r->inUse = 0;
-        a = P32(Actor, q[1]);
+        a = Task_GetActor(q[1]);
         if (a != 0) {
             Task_SetState0(a, 3);
         }

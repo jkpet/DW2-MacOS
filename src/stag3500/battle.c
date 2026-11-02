@@ -20,20 +20,20 @@ void Stg35_ShowWinnerSide(Stg35ChildOwner *arg0, s32 arg1) {
     s32 i;
 
     for (i = 0; i < 6; i++) {
-        Actor *a = P32(Actor, l->fighters[i]);
+        Actor *a = Task_GetActor(l->fighters[i]);
 
         if (a != NULL) {
             if (arg1 == 0) {
                 if (i < 3) {
                     Stg35_FighterSetVisible(a, 1);
-                    Stg35_FighterQueueHomeReset(P32(Actor, l->fighters[i]));
+                    Stg35_FighterQueueHomeReset(Task_GetActor(l->fighters[i]));
                 } else {
                     Stg35_FighterSetVisible(a, 0);
                 }
             } else {
                 if (i >= 3) {
                     Stg35_FighterSetVisible(a, 1);
-                    Stg35_FighterQueueHomeReset(P32(Actor, l->fighters[i]));
+                    Stg35_FighterQueueHomeReset(Task_GetActor(l->fighters[i]));
                 } else {
                     Stg35_FighterSetVisible(a, 0);
                 }
@@ -47,9 +47,9 @@ void Stg35_ShowAllDigi(Stg35ChildOwner *arg0) {
     s32 i;
 
     for (i = 0; i < 6; i++) {
-        if (P32(Actor, l->fighters[i]) != NULL) {
-            Stg35_FighterSetVisible(P32(Actor, l->fighters[i]), 1);
-            Stg35_FighterQueueHomeReset(P32(Actor, l->fighters[i]));
+        if (Task_GetActor(l->fighters[i]) != NULL) {
+            Stg35_FighterSetVisible(Task_GetActor(l->fighters[i]), 1);
+            Stg35_FighterQueueHomeReset(Task_GetActor(l->fighters[i]));
         }
     }
 }
@@ -99,7 +99,7 @@ void Stg35_BattleUpdate(Actor *arg0) {
             a.field_8 = 0;
             a.field_0 = Stg35_Battle.rec[j].digiId;
             a.field_4 = j;
-            Task_Create(0x707, (s32 *)&c[11 + j], (s32)&a);
+            Task_Create(0x707, (s32 *)&c[11 + j], (sptr)&a);
         }
         for (j = 0; j < 6; j++) {
             Stg35_BuildCommandList(j);
@@ -110,7 +110,7 @@ void Stg35_BattleUpdate(Actor *arg0) {
         switch (arg0->stateLevel1) {
         case 0:
         default:
-            if (P32(Actor, c[4])->stateLevel0 == 1 && P32(Actor, c[4])->stateLevel1 == 1) {
+            if (Task_GetActor(c[4])->stateLevel0 == 1 && Task_GetActor(c[4])->stateLevel1 == 1) {
                 Task_Create(0x708, (s32 *)&c[19], 0);
                 Task_NextState1(arg0);
             }
@@ -131,7 +131,7 @@ void Stg35_BattleUpdate(Actor *arg0) {
                 Task_Create(0x70C, (s32 *)&c[17], w->round);
                 Task_NextState2(arg0);
             case 3:
-                if (P32(Actor, c[17]) == NULL) {
+                if (Task_GetActor(c[17]) == NULL) {
                     Task_NextState1(arg0);
                 }
                 break;
@@ -185,7 +185,7 @@ void Stg35_BattleUpdate(Actor *arg0) {
                 }
                 Task_NextState2(arg0);
             case 3:
-                if (P32(Actor, c[18]) == NULL) {
+                if (Task_GetActor(c[18]) == NULL) {
                     Task_NextState1(arg0);
                 }
                 break;
@@ -294,7 +294,7 @@ void Stg35_BattleUpdate(Actor *arg0) {
             }
             for (j = w->winnerSide * 3; j < w->winnerSide * 3 + 3; j++) {
                 if (Stg35_Battle.rec[j].hp != 0) {
-                    Task_SetState01(P32(Actor, c[11 + j]), 2, 2);
+                    Task_SetState01(Task_GetActor(c[11 + j]), 2, 2);
                 }
             }
             Task_NextState1(arg0);

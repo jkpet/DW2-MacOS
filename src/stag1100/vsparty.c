@@ -273,7 +273,7 @@ void Stg11_VsPartyUpdate(Actor *arg0) {
         case 0:
         default:
             if (*slot2 != 0) {
-                Task_SetState0((Actor *)*slot2, 2);
+                Task_SetState0(Task_GetActor(*slot2), 2);
             }
             Text_CloseArray(w->texts, 0x14);
             Task_NextState1(arg0);

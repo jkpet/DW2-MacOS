@@ -962,7 +962,7 @@ typedef struct {
 
 /* Task callbacks. Init gets Task_Create's argument; many callbacks are declared with
    other argument types (s16, none), so rows cast them to these. */
-typedef void (*TaskInitFn)(ActorAllocView *, s32);
+typedef void (*TaskInitFn)(ActorAllocView *, sptr);
 typedef void (*TaskFn)(Actor *);
 
 /* Object type descriptor from the Task_DescTable[id >> 8][id & 0xFF] table
@@ -975,6 +975,11 @@ typedef struct {
     /* 0x10 */ s32 workSize;
     /* 0x14 */ s32 auxSize;
 } TaskDesc;
+
+/* Task slots remain 32-bit game references. On 64-bit native builds they are
+ * generation-tagged handles resolved through the task table, not truncated pointers. */
+Actor *Task_GetActor(s32 ref);
+s32 Task_GetRef(const Actor *actor);
 
 /* 5-byte slot descriptor walked by Pad_AllocActPower (PadPort field_4). */
 typedef struct {

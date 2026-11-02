@@ -156,7 +156,7 @@ static Actor *find_task(int id) {
     int i;
 
     for (i = 0; i < 100; i++) {
-        Actor *a = (Actor *)(uintptr_t)(uint32_t)Task_List.entries[i];
+        Actor *a = Task_GetActor(Task_List.entries[i]);
 
         if (a != NULL && a->id == id) {
             return a;

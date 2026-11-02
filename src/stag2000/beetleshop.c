@@ -51,7 +51,7 @@ void Stg20_BeetleShopUpdate(Actor *a) {
                     if (Stg20_MenuState.result != 0) {
                         Task_NextState0(a);
                     } else if (Stg20_MenuState.menuChoice == 0) {
-                        Task_SetState0((Actor *)slot[1], 3);
+                        Task_SetState0(Task_GetActor(slot[1]), 3);
                         Task_SetState1(a, 1);
                     } else {
                         Task_SetState1(a, 2);

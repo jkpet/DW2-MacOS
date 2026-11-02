@@ -624,7 +624,7 @@ extern void Anim_StepModelAnim(Actor *);
 extern void Gfx_DrawWireModel(Actor *, s32, CVECTOR *);
 extern void Task_SetState0(Actor *, u32);
 extern void Gfx_SetPartsScale(GfxPartScaleView *, s32, s32);
-extern void Task_Create(u32, s32 *, s32);
+extern void Task_Create(u32, s32 *, sptr);
 extern void Task_NextState1(Actor *);
 extern void Task_NextState2(Actor *);
 extern void Task_NextState3(Actor *);

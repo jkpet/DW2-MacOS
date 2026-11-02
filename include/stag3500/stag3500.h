@@ -479,7 +479,7 @@ extern void Stg35_ShowWinnerSide(Stg35ChildOwner *arg0, s32 arg1);
 extern void Stg35_ShowAllDigi(Stg35ChildOwner *arg0);
 
 /* Main-exe functions, declared the way this overlay calls them. */
-extern void Task_Create(u32 id, s32 *slot, s32 arg);
+extern void Task_Create(u32 id, s32 *slot, sptr arg);
 extern void Task_NextState1(Actor *arg0);
 extern void Task_NextState2(Actor *arg0);
 extern void Task_NextState3(Actor *arg0);

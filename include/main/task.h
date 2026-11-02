@@ -5,8 +5,8 @@
 
 /* Functions src/main/task.c defines. */
 extern TaskEntry *Task_FindNext(void);
-extern void Task_Create(u32, s32 *, s32);
-void Task_Create(u32 id, s32 *slot, s32 arg);
+extern void Task_Create(u32, s32 *, sptr);
+void Task_Create(u32 id, s32 *slot, sptr arg);
 void func_80011140(void);
 void func_80011160(void);
 void func_80011168(void);

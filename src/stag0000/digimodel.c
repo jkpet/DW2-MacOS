@@ -72,13 +72,13 @@ void Stg00_SpawnSkillCastFx(Actor *arg0, s32 arg1) {
             case 2:
                 break;
             }
-            Task_Create(7, &slot[i + 1], (s32)&args);
+            Task_Create(7, &slot[i + 1], (sptr)&args);
         }
     }
     args2.field_4 = w->skillId;
     args2.field_0 = 0;
     args2.field_8 = 0;
-    Task_Create(0x10B, &slot[4], (s32)&args2);
+    Task_Create(0x10B, &slot[4], (sptr)&args2);
 }
 
 void Stg00_SpawnSkillHitFx(Actor *arg0) {
@@ -109,7 +109,7 @@ void Stg00_SpawnSkillHitFx(Actor *arg0) {
             case 2:
                 break;
             }
-            Task_Create(7, &slot[i + 1], (s32)&args);
+            Task_Create(7, &slot[i + 1], (sptr)&args);
         }
     }
 }
@@ -247,7 +247,7 @@ void Stg00_DigiModelTask(Actor *arg0) {
         Gfx_AttachModel(arg0, w->modelFile)->otIndex = 3;
         Anim_SetModelAnim(arg0, 0);
         a1.owner = (s32)arg0;
-        Task_Create(6, (s32 *)arg0->u34.children, (s32)&a1);
+        Task_Create(6, (s32 *)arg0->u34.children, (sptr)&a1);
         w->drawTex = 1;
         w->drawWire = 0;
         Task_NextState0(arg0);
@@ -379,11 +379,11 @@ void Stg00_DigiModelTask(Actor *arg0) {
                     a3.field_0 = p[0];
                     a3.field_4 = p[1];
                     a3.field_8 = 1;
-                    Task_Create(0x10C, &slot[5], (s32)&a3);
+                    Task_Create(0x10C, &slot[5], (sptr)&a3);
                     Task_NextState3(arg0);
                 case 1:
-                    if (((Actor *)slot[5])->stateLevel0 == 1) {
-                        Task_NextState0((Actor *)slot[5]);
+                    if (Task_GetActor(slot[5])->stateLevel0 == 1) {
+                        Task_NextState0(Task_GetActor(slot[5]));
                         k = Skill_GetCastAnim(w->skillId);
                         Stg00_SpawnSkillCastFx(arg0, k);
                         switch (k) {

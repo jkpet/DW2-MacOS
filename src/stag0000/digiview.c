@@ -50,7 +50,7 @@ void Stg00_DigiViewSpawnModel(Actor *arg0) {
     args.posX = 0;
     args.posY = 0;
     args.posZ = 0;
-    Task_Create(0x105, slot, (s32)&args);
+    Task_Create(0x105, slot, (sptr)&args);
     Text_Close(&w->nameText);
     Text_Close(&w->nameTextSmall);
     t.text = (s32)Digi_GetDefaultName(Digi_GetModelListId(w->modelListIdx));
@@ -391,11 +391,11 @@ void Stg00_DigiViewTask(Actor *arg0)
       ch = (s32 *) arg0->u34.children;
       if (work->drawTex != 0)
       {
-        Task_SetState01((Actor *) ch[0], 2, 8);
+        Task_SetState01(Task_GetActor(ch[0]), 2, 8);
         work->drawTex = 0;
         return;
       }
-      Task_SetState01((Actor *) ch[0], 2, 9);
+      Task_SetState01(Task_GetActor(ch[0]), 2, 9);
       work->drawTex = 1;
     }
   }

@@ -40,7 +40,7 @@ void Stg20_StageMain(Actor *a) {
             sp.blk[1].x = 0;
             sp.blk[1].y = 0;
             sp.facing = st->dir;
-            Task_Create(0x302, &slot[4], (s32)&sp);
+            Task_Create(0x302, &slot[4], (sptr)&sp);
             if (Stg20_GetMapInfo()->flagTableFile != 0) {
                 n = 0;
                 for (id = Flag_FirstPassingEntry(); id != -1; id = Flag_NextPassingEntry()) {
@@ -52,7 +52,7 @@ void Stg20_StageMain(Actor *a) {
                         sp.blk[k].x = src[k].x != 0xFF ? src[k].x : 0;
                         sp.blk[k].y = src[k].y != 0xFF ? src[k].y : 0;
                     }
-                    Task_Create(0x302, &slot[6 + n], (s32)&sp);
+                    Task_Create(0x302, &slot[6 + n], (sptr)&sp);
                     n++;
                 }
             }
@@ -145,7 +145,7 @@ void Stg20_StageMain(Actor *a) {
                 a->childCount = 2;
                 Task_NextState1(a);
                 if (w->areaSelect != 0) {
-                    Stg20_AreaSelectShowName((Actor *)slot[3], 0);
+                    Stg20_AreaSelectShowName(Task_GetActor(slot[3]), 0);
                 }
             }
             break;
@@ -161,7 +161,7 @@ void Stg20_StageMain(Actor *a) {
                     Task_SetState1(a, 0);
                 }
                 if (w->areaSelect != 0) {
-                    Stg20_AreaSelectShowName((Actor *)slot[3], 1);
+                    Stg20_AreaSelectShowName(Task_GetActor(slot[3]), 1);
                 }
             }
             break;

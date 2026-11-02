@@ -106,7 +106,7 @@ static void capture_tasks(DevSnap *s) {
 
     s->taskListCount = Task_List.count;
     for (i = 0; i < 100 && s->taskCount < DEVSNAP_TASKS; i++) {
-        const Actor *a = (const Actor *)(uintptr_t)(uint32_t)Task_List.entries[i];
+        const Actor *a = Task_GetActor(Task_List.entries[i]);
         DevSnapTask *t;
         const TaskDesc *d = NULL;
         int row, idx;

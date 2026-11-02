@@ -113,7 +113,7 @@ void Stg20_WarpPadUpdate(Actor *a) {
             args.x = o->posX;
             args.y = o->posY;
             args.z = o->posZ;
-            Task_Create(7, slot, (s32)&args);
+            Task_Create(7, slot, (sptr)&args);
             Task_NextState1(a);
             a->elapsed = 0;
         case 1:

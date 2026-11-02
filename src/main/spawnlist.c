@@ -42,7 +42,7 @@ loop:
     if (p->taskId == end) {
         goto done;
     }
-    Task_Create(p->taskId, slot, (s32)&p->args);
+    Task_Create(p->taskId, slot, (sptr)&p->args);
     slot++;
     p = (TaskSpawnEntry *)((u8 *)p + p->size);
     goto loop;

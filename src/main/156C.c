@@ -55,7 +55,7 @@ void Task_RunChildren(TaskChildrenView *a0) {
     }
 }
 
-s32 Task_TryRun(void *arg0) {
+s32 Task_TryRun(s32 arg0) {
     if (arg0 == 0) {
         return 0;
     }
@@ -64,7 +64,7 @@ s32 Task_TryRun(void *arg0) {
 
 void Task_Destroy(s32 *arg0) {
     if (*arg0 != 0) {
-        Task_SetState0(*arg0, 3);
+        Task_SetState0(Task_GetActor(*arg0), 3);
         do {
             *arg0 = Task_TryRun(*arg0);
         } while (*arg0 != 0);
@@ -87,7 +87,7 @@ typedef struct {
 
 /* Task_Run's view of a TaskDesc: the callbacks after Task_Create's init. */
 typedef struct {
-    /* 0x00 */ void (*init)(ActorAllocView *, s32);
+    /* 0x00 */ void (*init)(ActorAllocView *, sptr);
     /* 0x04 */ void (*update)(TaskRunObj *);
     /* 0x08 */ void (*destroy)(TaskRunObj *);
     /* 0x0C */ void (*draw)(TaskRunObj *);
@@ -108,8 +108,13 @@ typedef struct {
 #endif
 
 s32 Task_Run(s32 arg0) {
-    TaskRunObj *t = (TaskRunObj *)arg0;
-    TaskRunDesc *d = (TaskRunDesc *)Task_DescTable[t->id >> 8][t->id & 0xFF];
+    TaskRunObj *t = (TaskRunObj *)Task_GetActor(arg0);
+    TaskRunDesc *d;
+
+    if (t == NULL) {
+        return 0;
+    }
+    d = (TaskRunDesc *)Task_DescTable[t->id >> 8][t->id & 0xFF];
 
     if (Sys_State.drawPass != 0) {
         if (d->draw != 0 && t->frameCount != 0) {
@@ -139,5 +144,5 @@ s32 Task_Run(s32 arg0) {
     }
 children:
     Task_RunChildren((TaskChildrenView *)t);
-    return (s32)t;
+    return arg0;
 }

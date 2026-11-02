@@ -29,12 +29,12 @@ void Stg30_ShowPartyFighters(Stg30ListOwner *a0) {
     Stg30BattleChildren *l = a0->list;
 
     for (i = 0; i < 6; i++) {
-        if (P32(Actor, l->actors[i]) != NULL) {
+        if (Task_GetActor(l->actors[i]) != NULL) {
             if (i < 3) {
-                Stg30_FighterSetVisible(P32(Actor, l->actors[i]), 1);
-                Stg30_FighterQueueHomeReset(P32(Actor, l->actors[i]));
+                Stg30_FighterSetVisible(Task_GetActor(l->actors[i]), 1);
+                Stg30_FighterQueueHomeReset(Task_GetActor(l->actors[i]));
             } else {
-                Stg30_FighterSetVisible(P32(Actor, l->actors[i]), 0);
+                Stg30_FighterSetVisible(Task_GetActor(l->actors[i]), 0);
             }
         }
     }
@@ -45,8 +45,8 @@ void Stg30_ShowAllFighters(Stg30ListOwner *a0) {
     Stg30BattleChildren *l = a0->list;
 
     for (i = 0; i < 6; i++) {
-        if (P32(Actor, l->actors[i]) != NULL) {
-            Stg30_FighterSetVisible(P32(Actor, l->actors[i]), 1);
+        if (Task_GetActor(l->actors[i]) != NULL) {
+            Stg30_FighterSetVisible(Task_GetActor(l->actors[i]), 1);
         }
     }
 }
@@ -56,8 +56,8 @@ void Stg30_ResetAllFightersHome(Stg30ListOwner *a0) {
     Stg30BattleChildren *l = a0->list;
 
     for (i = 0; i < 6; i++) {
-        if (P32(Actor, l->actors[i]) != NULL) {
-            Stg30_FighterQueueHomeReset(P32(Actor, l->actors[i]));
+        if (Task_GetActor(l->actors[i]) != NULL) {
+            Stg30_FighterQueueHomeReset(Task_GetActor(l->actors[i]));
         }
     }
 }
@@ -135,7 +135,7 @@ void Stg30_BattleWonUpdate(Actor *a0) {
         }
         for (i = 0; i < 3; i++) {
             if (Stg30_Battle.digis[i].hp != 0) {
-                Task_SetState01(P32(Actor, l->actors[i]), 2, 2);
+                Task_SetState01(Task_GetActor(l->actors[i]), 2, 2);
             }
         }
         Cd_QueueFile(0x13A);
@@ -159,7 +159,7 @@ void Stg30_BattleWonUpdate(Actor *a0) {
                     sum.field_0 += Stg30_Battle.digis[t].exp;
                 }
             }
-            Task_Create(0x502, &l->resultTask, (s32)&sum);
+            Task_Create(0x502, &l->resultTask, (sptr)&sum);
             Task_NextState2(a0);
             break;
         }
@@ -228,7 +228,7 @@ void Stg30_BattleWonUpdate(Actor *a0) {
                     Task_NextState3(a0);
                     break;
                 }
-                Task_Create(0x512, &l->resultTask, (s32)&args);
+                Task_Create(0x512, &l->resultTask, (sptr)&args);
                 Task_NextState4(a0);
                 break;
             case 1:
@@ -252,7 +252,7 @@ void Stg30_BattleWonUpdate(Actor *a0) {
             stage2 = Digi_GetRank(Stg30_Battle.digis[Stg30_Battle.joinCandidate].digiId);
             if ((Rand_Next() & 0x7F) < Stg30_JoinChance[stage2][st - 1]) {
                 arg = Stg30_Battle.joinCandidate;
-                Task_Create(0x513, &l->resultTask, (s32)&arg);
+                Task_Create(0x513, &l->resultTask, (sptr)&arg);
             }
         }
         Task_NextState2(a0);
@@ -414,7 +414,7 @@ void Stg30_BattleUpdate(Actor *a0) {
                     Stg30_Battle.digis[i] = Save_GameState.elems[i];
                     args[1] = i;
                     args[2] = Stg30_Battle.digis[i].hp == 0;
-                    Task_Create(0x509, (s32 *)&l->actors[i], (s32)args);
+                    Task_Create(0x509, (s32 *)&l->actors[i], (sptr)args);
                 }
             }
             for (i = 3; i < 6; i++) {
@@ -424,7 +424,7 @@ void Stg30_BattleUpdate(Actor *a0) {
                 if (Stg30_Battle.digis[i].digiId != 0) {
                     args[1] = i;
                     args[2] = 0;
-                    Task_Create(0x509, (s32 *)&l->actors[i], (s32)args);
+                    Task_Create(0x509, (s32 *)&l->actors[i], (sptr)args);
                 }
             }
             Enemy_GetSetSummary((void *)Sys_State.modeArg, &out);
@@ -482,7 +482,7 @@ void Stg30_BattleUpdate(Actor *a0) {
                     default:
                         out.mapDigiId = 5;
                         out.aiType = 1;
-                        Task_Create(0x50C, &l->bannerTask, (s32)&out);
+                        Task_Create(0x50C, &l->bannerTask, (sptr)&out);
                         Task_NextState3(a0);
                     case 1:
                         if (l->bannerTask != 0) {
@@ -506,7 +506,7 @@ void Stg30_BattleUpdate(Actor *a0) {
                     default:
                         out.mapDigiId = 5;
                         out.aiType = 0;
-                        Task_Create(0x50C, &l->bannerTask, (s32)&out);
+                        Task_Create(0x50C, &l->bannerTask, (sptr)&out);
                         Task_NextState3(a0);
                     case 1:
                         if (l->bannerTask != 0) {

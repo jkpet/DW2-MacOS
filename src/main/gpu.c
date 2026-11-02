@@ -20,7 +20,7 @@ void Gpu_ClearScreens(void) {
     for (i = 0; i < 2; i++) {
         r = Sys_State.disp[i].disp;
         ResetGraph(1);
-        ClearImage2((s32)&r, 0, 0, 0);
+        ClearImage2(&r, 0, 0, 0);
         DrawSync(0);
     }
 }

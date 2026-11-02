@@ -56,12 +56,12 @@ s32 Ovl_GetCurrentId(void) {
 }
 
 extern void Ovl_Load(s32);
-extern void Task_Create(u32, s32 *, s32);
+extern void Task_Create(u32, s32 *, sptr);
 extern s32 Snd_AnySlotLoading(void);
 
 void Sys_GameModeTask(Actor *a0) {
     s32 st = a0->stateLevel0;
-    s32 t = a0->u34.children;
+    s32 *t = (s32 *)a0->u34.children;
     switch (st) {
     case 0:
     default:

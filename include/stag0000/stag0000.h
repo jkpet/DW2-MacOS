@@ -277,7 +277,7 @@ extern void Task_NextState0(Actor *);
 extern void Task_SetState0(Actor *arg0, u32 arg1);
 extern void Task_SetState1(Actor *arg0, u32 arg1);
 extern void Task_Destroy(s32 *arg0);
-extern void Task_Create(u32, s32 *, s32);
+extern void Task_Create(u32, s32 *, sptr);
 #ifndef DW2_NATIVE /* Psy-Q: psyq/ headers in the native build */
 extern void GsInitCoordinate2(Coord1F668 *, Coord1F668 *);
 #endif

@@ -341,8 +341,8 @@ static void game_main(void) {
 }
 
 #if !defined(_WIN32) && !defined(__APPLE__)
-/* Linux: the main thread's stack lies far above 4 GB, but the game keeps stack addresses in
- * 32-bit ints (Task_Create(id, slot, (s32)&local), P1.12). The game runs on a stack mapped below
+/* Linux: the main thread's stack lies far above 4 GB, but legacy game paths keep stack addresses in
+ * 32-bit words (Task_Create(id, slot, (sptr)&local), P1.12). The game runs on a stack mapped below
  * 2 GB (MAP_32BIT), entered with a context switch on the same thread. */
 #define GAME_STACK_SIZE (8u << 20)
 

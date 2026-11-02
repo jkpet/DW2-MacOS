@@ -31,15 +31,15 @@
  * given at create time; drawn while that actor lives. Created by the digimon status menu and the
  * stag0000 / stag3000 / stag3500 fighters; stag2000 has its own copy (Stg20_ShadowDesc).
  * Task callbacks the descriptor below names (defined further down). */
-void Gfx_ShadowInit(Actor *arg0, s32 *arg1);
+void Gfx_ShadowInit(Actor *arg0, Actor **arg1);
 void Gfx_ShadowUpdate(Actor *arg0);
 void Gfx_ShadowDraw(Actor *arg0);
 
 TaskDesc Gfx_ShadowDesc = { (TaskInitFn)Gfx_ShadowInit, Gfx_ShadowUpdate, Task_DefaultDestroy, Gfx_ShadowDraw, 8, 0 };
 
 /* work field_0 = the actor to follow. */
-void Gfx_ShadowInit(Actor *arg0, s32 *arg1) {
-    arg0->work->field_0 = *arg1;
+void Gfx_ShadowInit(Actor *arg0, Actor **arg1) {
+    arg0->work->field_0 = Task_GetRef(*arg1);
 }
 
 /* Follow the target's root bone XZ at y 0; work field_4 = 1 while the target is alive. */
@@ -55,7 +55,7 @@ void Gfx_ShadowUpdate(Actor *arg0) {
         break;
     case 1: {
         ActorWork *w = arg0->work;
-        Actor *v1 = (Actor *)w->field_0;
+        Actor *v1 = Task_GetActor(w->field_0);
         w->field_4 = 0;
         if (v1 != 0) {
             s32 st = v1->stateLevel0;

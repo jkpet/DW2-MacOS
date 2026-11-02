@@ -96,7 +96,7 @@ void Stg30_SpawnSkillCastFx(Actor *a0, s32 k) {
             case 2:
                 break;
             }
-            Task_Create(7, &slots[i + 1], (s32)&args);
+            Task_Create(7, &slots[i + 1], (sptr)&args);
         }
     }
 }
@@ -130,7 +130,7 @@ void Stg30_SpawnSkillHitFx(Actor *a0) {
             case 2:
                 break;
             }
-            Task_Create(7, &slots[i + 1], (s32)&args);
+            Task_Create(7, &slots[i + 1], (sptr)&args);
         }
     }
 }
@@ -260,9 +260,9 @@ void Stg30_FighterTask(Actor *arg0) {
         w->anim = -1;
         Stg30_FighterSetAnim(arg0, 0);
         a1.field_0 = (s32)arg0;
-        Task_Create(6, &((s32 *)arg0->u34.children)[4], (s32)&a1);
+        Task_Create(6, &((s32 *)arg0->u34.children)[4], (sptr)&a1);
         a2 = (s32)arg0;
-        Task_Create(0x501, (s32 *)arg0->u34.children, (s32)&a2);
+        Task_Create(0x501, (s32 *)arg0->u34.children, (sptr)&a2);
         m0 = (Stg30ModelTint *)arg0->model;
         w->drawTex = 1;
         w->drawWire = 0;
@@ -461,12 +461,12 @@ void Stg30_FighterTask(Actor *arg0) {
     if (w->lastHudFlag != Stg30_Battle.interruptActive) {
         ch = (PTR32(Actor) *)arg0->u34.children;
         if (Stg30_Battle.interruptActive != 0) {
-            if (P32(Actor, ch[0])->stateLevel0 == 2) {
-                Task_SetState1(P32(Actor, ch[0]), 1);
+            if (Task_GetActor(ch[0])->stateLevel0 == 2) {
+                Task_SetState1(Task_GetActor(ch[0]), 1);
             }
         } else {
-            if (P32(Actor, ch[0])->stateLevel0 == 1) {
-                Task_SetState0(P32(Actor, ch[0]), 2);
+            if (Task_GetActor(ch[0])->stateLevel0 == 1) {
+                Task_SetState0(Task_GetActor(ch[0]), 2);
             }
         }
         w->lastHudFlag = Stg30_Battle.interruptActive;

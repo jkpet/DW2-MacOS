@@ -36,7 +36,7 @@ void Stg00_StageSetup(Actor *arg0) {
             a1.field_10 = 0;
             a1.field_14 = 0;
             a1.field_18 = 0x230;
-            Task_Create(0x109, &slot[0], (s32)&a1);
+            Task_Create(0x109, &slot[0], (sptr)&a1);
             Task_Create(0x106, &slot[1], 0);
             Task_Create(0x108, &slot[2], 0);
             break;
@@ -48,7 +48,7 @@ void Stg00_StageSetup(Actor *arg0) {
             a2.field_10 = 0;
             a2.field_14 = 0;
             a2.field_18 = 0x230;
-            Task_Create(0x109, &slot[0], (s32)&a2);
+            Task_Create(0x109, &slot[0], (sptr)&a2);
             Task_Create(0x103, &slot[1], 0);
             Task_Create(0x106, &slot[2], 0);
             Task_Create(0x102, &slot[3], 0);
@@ -61,7 +61,7 @@ void Stg00_StageSetup(Actor *arg0) {
             a3.field_10 = -0x2BC;
             a3.field_14 = 0;
             a3.field_18 = 0x5DC;
-            Task_Create(0x109, &slot[0], (s32)&a3);
+            Task_Create(0x109, &slot[0], (sptr)&a3);
             Task_Create(0x106, &slot[1], 0);
             Task_Create(0x104, &slot[2], 0);
             break;

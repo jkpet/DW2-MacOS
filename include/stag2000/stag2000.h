@@ -571,7 +571,7 @@ typedef struct {
 } Stg20ShopListWork;
 extern Stg20ShopList Stg20_ShopItems;
 extern void Stg20_FormatPrice(u8 *out, s32 v);
-extern void Task_Create(u32, s32 *, s32);
+extern void Task_Create(u32, s32 *, sptr);
 extern void Stg20_MsgWinShowSysMsg(s32 id);
 extern void Stg20_LabDigivolve(Actor *a);
 extern void Stg20_LabDnaDigivolve(Actor *a);
