@@ -163,12 +163,12 @@ ActorAllocView *Task_AllocWithBuffers(s32 a0, s32 a1) {
     a0 *= 2;
 #endif
     if (a0 != 0) {
-        s32 x = Mem_Alloc(a0, 2);
+        sptr x = Mem_Alloc(a0, 2);
         s0->work = x;
         Mem_Zero((void *)x, a0);
     }
     if (a1 != 0) {
-        s32 y = Mem_Alloc(a1, 2);
+        sptr y = Mem_Alloc(a1, 2);
         s0->children = y;
         Mem_Zero((void *)y, a1);
         s0->childCount = a1 >> 2;

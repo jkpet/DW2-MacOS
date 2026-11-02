@@ -38,13 +38,23 @@ void Snd_W8(uint32_t addr, uint32_t v);
 #define SH(a, v) Snd_W16((uint32_t)(a), (uint32_t)(v))
 #define SB(a, v) Snd_W8((uint32_t)(a), (uint32_t)(v))
 
-/* A native pointer as the 32-bit value retail memory and registers hold, and back. */
-#define SND_ADDR(p) ((uint32_t)(uintptr_t)(p))
-#define SND_PTR(v) ((void *)(uintptr_t)(uint32_t)(v))
 /* Function pointers stored in retail memory (callback tables, D_8004FC50 ...). */
 typedef int (*SndFn)();
+#if defined(__APPLE__) && (defined(__aarch64__) || defined(__arm64__))
+uint32_t Snd_Addr(const void *pointer);
+void *Snd_Ptr(uint32_t value);
+uint32_t Snd_FnVal(SndFn fn);
+SndFn Snd_Fn(uint32_t value);
+#define SND_ADDR(p) Snd_Addr((const void *)(p))
+#define SND_PTR(v) Snd_Ptr((uint32_t)(v))
+#define SND_FNVAL(f) Snd_FnVal((SndFn)(f))
+#define SND_FN(v) Snd_Fn((uint32_t)(v))
+#else
+#define SND_ADDR(p) ((uint32_t)(uintptr_t)(p))
+#define SND_PTR(v) ((void *)(uintptr_t)(uint32_t)(v))
 #define SND_FNVAL(f) ((uint32_t)(uintptr_t)(f))
 #define SND_FN(v) ((SndFn)(uintptr_t)(uint32_t)(v))
+#endif
 
 /* MIPS mult / multu hi word, for the division-by-constant sequences of the retail code. */
 #define MULT_HI(a, b) ((int32_t)(((int64_t)(int32_t)(a) * (int64_t)(int32_t)(b)) >> 32))

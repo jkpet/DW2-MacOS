@@ -64,14 +64,18 @@ EntA0 *Cd_GetFileEntry(u32 arg0) {
     return (EntA0 *)(((u32 *)base)[index] + (u32)base);
 }
 
-s32 Mem_GetOffsetEntry(s32 arg0, s32 *arg1) {
+sptr Mem_GetOffsetEntry(s32 arg0, s32 *arg1) {
     if (arg0 == 0) {
         return 0;
     }
+#ifdef DW2_NATIVE
+    return (sptr)arg1 + arg1[(u16)arg0];
+#else
     return arg1[(u16)arg0] + (s32)arg1;
+#endif
 }
 
-s32 Cd_GetFileOrNull(s32 arg0) {
+sptr Cd_GetFileOrNull(s32 arg0) {
     if (arg0 == 0) {
         return 0;
     }
@@ -208,7 +212,7 @@ void Cd_LoadFileSync(s32 arg0) {
     } while (Cd_GetFileState(arg0) != 3);
 }
 
-s32 Cd_GetFileSync(s32 arg0) {
+sptr Cd_GetFileSync(s32 arg0) {
     CdCacheEntry *p = Cd_FindCachedFile(arg0);
     if (p != 0 && p->state == 3) {
         p->lastUsed = Sys_State.frameCount;

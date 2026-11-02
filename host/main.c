@@ -204,14 +204,22 @@ void Host_DisplayOn(void) {
  * sign extended alike). */
 static void check_window(void) {
     uintptr_t base = (uintptr_t)Ps1_Ram & ~(uintptr_t)0xFFFFFF;
-    const void *probes[] = { Ps1_Ram, Ps1_Ram + PS1_RAM_SIZE - 1, Ps1_Scratchpad, Ovl_LoadArea, &Sys_FlipPending,
-                             (const void *)Sys_Main };
+    const struct {
+        const char *name;
+        const void *address;
+    } probes[] = { { "Ps1_Ram start", Ps1_Ram },
+                   { "Ps1_Ram end", Ps1_Ram + PS1_RAM_SIZE - 1 },
+                   { "Ps1_Scratchpad", Ps1_Scratchpad },
+                   { "Ovl_LoadArea", Ovl_LoadArea },
+                   { "Sys_FlipPending", &Sys_FlipPending },
+                   { "Sys_Main", (const void *)Sys_Main } };
     volatile int stack_probe = 0;
     size_t i;
 
     for (i = 0; i < sizeof(probes) / sizeof(probes[0]); i++) {
-        if (((uintptr_t)probes[i] & ~(uintptr_t)0xFFFFFF) != base) {
-            fprintf(stderr, "[host] %p is outside the 16 MB window at 0x%08lX\n", probes[i], (unsigned long)base);
+        if (((uintptr_t)probes[i].address & ~(uintptr_t)0xFFFFFF) != base) {
+            fprintf(stderr, "[host] %s at %p is outside the 16 MB window at 0x%08lX\n", probes[i].name,
+                    probes[i].address, (unsigned long)base);
             exit(1);
         }
     }

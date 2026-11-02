@@ -397,7 +397,7 @@ extern void Mem_Zero(void *a0, s32 a1);
 extern void Task_DefaultDestroy(Actor *arg0);
 extern void Stg35_PartsDraw(Stg35PartsHandle *arg0);
 extern void Stg35_BuildSkillScript(s32 arg0);
-extern s32 Mem_Alloc(s32, s32);
+extern sptr Mem_Alloc(s32, s32);
 extern void Mem_Free(ActorWork *arg0);
 extern s32 Skill_GetNameText(s32 arg0);
 extern s32 func_8001E8D0(s32 id);

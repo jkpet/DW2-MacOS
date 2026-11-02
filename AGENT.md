@@ -39,19 +39,24 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 - 2026-11-02: **arm64 compatibility unblocked for iterative refactor**
   - `host/main.c` now allows an explicit experimental macOS arm64 path when low-stack reservation fails: continue with default pthread/SDL thread stacks and print clear warnings instead of hard exit.
   - `check_window` on macOS now warns (rather than aborting) when image/stack addresses are above 2 GB, to expose next pointer-truncation crash sites for targeted fixes.
+- 2026-11-02: **macOS arm64 runtime investigation continued**
+  - `check_window` errors now name the failing probe. The prior `0x104f... outside ... 0x105000000` failure was `Ps1_Ram end`: ASLR can place the 2 MB RAM array across a 16 MB boundary. This remains an intermittent layout blocker.
+  - Fixed the first observed native pointer truncations in `Sys_Main`: pass the boot `RECT`, TIM data pointer, and VBlank callback as pointers on native builds.
+  - Added arm64 sound pointer/function handle translation for the 32-bit values retained by translated libsnd/libspu code. Extended pointer-sized return/storage through the CD cache and native heap path, and fixed `Mem_GetOffsetEntry` to preserve the native pointer.
+  - The headless run now completes sound initialization and reaches the first task run. LLDB then stops in `Task_Run` with task pointer `0x33fd68` (the actual heap pointer was `0x10033fd68`): task slots and task-run APIs still truncate pointers to `s32`.
 
-### Latest verified runtime state (user machine)
+### Latest verified runtime state (current macOS arm64 machine)
 
-- macOS arm64 release build succeeds (`python tools/build_native.py --arch arm64 --release`).
-- Prior to the latest experimental fallback patch validation, runtime stopped at:
-  - `[host] macOS low stack MAP_FIXED failed first with errno=12 (Cannot allocate memory)`
-  - `[host] macOS: could not reserve a game stack below 2 GB`
-- Latest user-verified run (after `.cue` restoration) now progresses further:
+- macOS arm64 release build succeeds (`./.venv/bin/python tools/build_native.py --arch arm64 --release`).
+- Running `build/macos-arm64_rel/gte_test` currently exits with 1248 GTE command-reference mismatches; the test and GTE implementation were not changed in this investigation, and this result has not been compared with another platform.
+- `alloc_low_stack()` still fails with `MAP_FIXED` errno 12, so runtime uses the experimental default-stack path.
+- Depending on ASLR, startup either fails the 16 MB check at `Ps1_Ram end` or passes it and reaches the game. A failing example was `Ps1_Ram end at 0x1051fd60f` outside `0x104000000`.
+- With a passing layout, the current headless run reaches `Sys_Main`, sound setup, and task creation. The latest LLDB run stops at `Task_Run`:
   - `[host] macOS low stack MAP_FIXED failed first with errno=12 (Cannot allocate memory)`
   - `[host] macOS: could not reserve a game stack below 2 GB`
   - `[host] macOS: continuing with default pthread stack (experimental arm64 compatibility mode)`
-  - `[host] 0x104fadbcc is outside the 16 MB window at 0x105000000`
-  - This confirms the new fallback path is active; the next blocker is 16 MB window invariant enforcement rather than stack allocation.
+  - LLDB: `Task_Run(arg0=0x000000000033fd68)`; corresponding heap address is `0x10033fd68`.
+- The first `ClearImage` stack-pointer crash, sound DMA callback crash, CD-ready callback crash, and sound-buffer pointer crashes were each traced and passed by targeted pointer-width fixes. Pointer truncation remains elsewhere; the task slot is the next confirmed site.
 - Fixed-base/linker pagezero experiments were reverted because they caused immediate loader termination (`zsh: killed` before app logs).
 - Disc image was restored by the user after an accidental shell `rm` command that included extra arguments.
 
@@ -62,10 +67,14 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 1. **Mach-O overlay relink verification**
    - `CMakeLists.txt` now has a first Mach-O relink attempt plus map output, but section behavior still needs validation on real macOS builds.
 2. **Low-address stack strategy verification**
-   - `host/main.c` now has a macOS low-stack path plus experimental fallback continuation on normal stacks, but this latest fallback behavior is not yet validated on the user machine.
-3. **macOS toolchain/SDK dependency**
+   - Low-address reservation still fails; the fallback is verified and exposes pointer truncation sites.
+3. **16 MB image window under ASLR**
+   - Some ASLR slides place the end of `Ps1_Ram` outside the window used by 24-bit OT links. The data layout must be made reliable or the pointer-link model adapted.
+4. **Pointer-width task model**
+   - Task handles, `Task_List.entries`, `Task_Create` slots, `Task_TryRun`, and `Task_Run` still store/pass task pointers as `s32`.
+5. **macOS toolchain/SDK dependency**
    - Bring-up requires Xcode Command Line Tools (`clang`, `make`, SDK paths) to pass CMake compiler checks.
-4. **Updater platform definitions**
+6. **Updater platform definitions**
    - `host/update.c` only assigns updater assets for Win64 and Linux x64; macOS path defaults to disabled updater.
 
 ---
@@ -191,9 +200,9 @@ When resuming:
 
 1. Read this file first.
 2. Check `CMakeLists.txt`, `tools/build_native.py`, `host/main.c`, `host/update.c` for partially completed phase work.
-3. First validate current `host/main.c` fallback behavior with a real user run:
-   - `rm -rf build/macos-arm64_rel && python tools/build_native.py --arch arm64 --release && ./build/macos-arm64_rel/dw2 --no-window --vblanks 60 --update-check --disc "<restored cue path>"`
-4. If fallback run proceeds past low-stack gating, capture the first crash/assert/log and patch that concrete truncation site.
+3. Rebuild incrementally and run under LLDB to capture the current failure:
+   - `./.venv/bin/python tools/build_native.py --arch arm64 --release && lldb --batch -k 'thread backtrace all' -o 'run --no-window --vblanks 1 --disc "<restored cue path>"' -- ./build/macos-arm64_rel/dw2`
+4. Fix the task pointer representation first, then rerun to identify the next concrete truncation site. Also make the 16 MB data-window layout stable under ASLR.
 5. Keep commands chained with `&&` when giving copy/paste command sequences to avoid accidental path deletion.
 6. Continue with the next unchecked phase item.
 7. Preserve platform gates and avoid broad refactors unrelated to macOS bring-up.

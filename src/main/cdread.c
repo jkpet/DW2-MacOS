@@ -91,7 +91,11 @@ void Cd_ReadSyncCallback(s32 ev) {
             Cd_ReadState.state++;
             break;
         case 2:
+#ifdef DW2_NATIVE
+            CdReadyCallback(Cd_ReadSectorCallback);
+#else
             CdReadyCallback((s32)Cd_ReadSectorCallback);
+#endif
             CdControlF(6, 0);
             Cd_ReadState.state++;
             break;
@@ -123,7 +127,7 @@ s32 Cd_PollRead(void) {
     return 1;
 }
 
-void Cd_ReadFileAsync(s32 arg0, s32 arg1) {
+void Cd_ReadFileAsync(s32 arg0, sptr arg1) {
     u8 sp10[8];
     s32 r;
 

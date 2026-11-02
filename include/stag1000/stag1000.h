@@ -87,7 +87,7 @@ extern void Task_Create(u32, s32 *, s32);
 extern void Snd_StopAll(void);
 extern s32 Cd_GetFileSectors(s32 arg0);
 extern s32 Cd_PollRead(void);
-extern s32 Mem_Alloc(s32, s32);
+extern sptr Mem_Alloc(s32, s32);
 extern void Cd_GetFilePos(s32 arg0, void *arg1);
 extern s32 Math_CycleRange(s32, s32, s32, s32);
 extern void Gfx_HidePartsByMask(GfxPartMaskView *, s32);

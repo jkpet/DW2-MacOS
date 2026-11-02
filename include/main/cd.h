@@ -5,8 +5,8 @@
 
 /* Functions src/main/cd.c defines. */
 EntA0 *Cd_GetFileEntry(u32 arg0);
-s32 Mem_GetOffsetEntry(s32 arg0, s32 *arg1);
-s32 Cd_GetFileOrNull(s32 arg0);
+sptr Mem_GetOffsetEntry(s32 arg0, s32 *arg1);
+sptr Cd_GetFileOrNull(s32 arg0);
 void Cd_ClearFileCache(void);
 CdCacheEntry *Cd_FindCachedFile();
 CdCacheEntry *Cd_FindFreeCacheSlot(void);
@@ -16,7 +16,7 @@ void Cd_EvictLruFile(void);
 void Cd_QueueFile(s32 id);
 void Cd_ServiceQueue(void);
 void Cd_LoadFileSync(s32 arg0);
-s32 Cd_GetFileSync(s32 arg0);
+sptr Cd_GetFileSync(s32 arg0);
 void Cd_FreeFile(s32);
 void Cd_LockFile(s32 a0);
 void Cd_UnlockFile(s32 a0);

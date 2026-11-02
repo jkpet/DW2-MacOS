@@ -107,12 +107,20 @@ void Sys_Main(void) {
     VSync(0);
     SetDispMask(0);
     ResetGraph(0);
+#ifdef DW2_NATIVE
+    VSyncCallback(Sys_VSyncHandler);
+#else
     VSyncCallback((s32)Sys_VSyncHandler);
+#endif
     r.x = 0;
     r.y = 0;
     r.w = 0x280;
     r.h = 0x1FF;
+#ifdef DW2_NATIVE
+    ClearImage((RECT *)&r, 0, 0, 0);
+#else
     ClearImage((s32)&r, 0, 0, 0);
+#endif
     DrawSync(0);
     GsInitGraph(0x140, 0xF0, 1, 1, 0);
     GsInit3D();
@@ -124,7 +132,11 @@ void Sys_Main(void) {
     VSync(0);
     GsGetTimInfo((u32 *)(Ovl_LoadAddr + 4), &tim);
     VSync(0);
+#ifdef DW2_NATIVE
+    LoadImage((RECT *)&Sys_BootImageRect, (u_long *)tim.paddr);
+#else
     LoadImage((s32)&Sys_BootImageRect, (s32)tim.paddr);
+#endif
     DrawSync(0);
     VSync(0);
     SetDispMask(1);

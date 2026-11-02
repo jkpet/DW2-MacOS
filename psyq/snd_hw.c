@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(__APPLE__) && (defined(__aarch64__) || defined(__arm64__))
+#include <pthread.h>
+#endif
+
 #include "backend/psxspu.h"
 #include "libsnd.h"
 #include "psyq_log.h"
@@ -49,6 +53,132 @@ static int is_ram(uint32_t a) { return (a & 0xDFE00000u) == 0x80000000u; }
 static uint32_t dma_madr, dma_bcr, dma_chcr, dma_dpcr, dma_dicr, spu_delay, com_delay;
 static uint32_t dma4_callback;
 static int dma4_pending;
+
+#if defined(__APPLE__) && (defined(__aarch64__) || defined(__arm64__))
+/* Retail sound code stores native pointers in 32-bit words and performs address arithmetic on
+ * them. On arm64, encode each 16 MB host-address region in a reserved 32-bit slot; neighboring
+ * slots preserve arithmetic across a 16 MB boundary. Keep callback handles in a separate range. */
+#define SND_PTR_HANDLE_BASE 0xC0000000u
+#define SND_FN_HANDLE_BASE 0xF0000000u
+#define SND_HANDLE_REGION_SIZE ((uintptr_t)1u << 24)
+#define SND_PTR_HANDLE_SLOTS 48u
+#define SND_PTR_HANDLE_GROUP_SIZE 3u
+#define SND_FN_HANDLE_MASK 0xFFFFFF00u
+static uintptr_t snd_ptr_regions[SND_PTR_HANDLE_SLOTS];
+static SndFn snd_fn_handles[256];
+static pthread_mutex_t snd_handle_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+uint32_t Snd_Addr(const void *pointer) {
+    uintptr_t address = (uintptr_t)pointer;
+    uintptr_t region;
+    unsigned int i;
+    unsigned int group;
+    unsigned int slot = SND_PTR_HANDLE_SLOTS;
+
+    if (pointer == NULL) {
+        return 0;
+    }
+    if (address <= UINT32_MAX && address < SND_PTR_HANDLE_BASE) {
+        return (uint32_t)address;
+    }
+
+    region = address & ~(SND_HANDLE_REGION_SIZE - 1u);
+    pthread_mutex_lock(&snd_handle_mutex);
+    for (i = 0; i < SND_PTR_HANDLE_SLOTS; i++) {
+        if (snd_ptr_regions[i] == region) {
+            slot = i;
+            break;
+        }
+    }
+    if (slot == SND_PTR_HANDLE_SLOTS) {
+        for (group = 0; group < SND_PTR_HANDLE_SLOTS / SND_PTR_HANDLE_GROUP_SIZE; group++) {
+            unsigned int first = group * SND_PTR_HANDLE_GROUP_SIZE;
+            if (snd_ptr_regions[first] == 0 && snd_ptr_regions[first + 1] == 0 && snd_ptr_regions[first + 2] == 0) {
+                snd_ptr_regions[first] = region - SND_HANDLE_REGION_SIZE;
+                snd_ptr_regions[first + 1] = region;
+                snd_ptr_regions[first + 2] = region + SND_HANDLE_REGION_SIZE;
+                slot = first + 1;
+                break;
+            }
+        }
+    }
+    pthread_mutex_unlock(&snd_handle_mutex);
+
+    if (slot == SND_PTR_HANDLE_SLOTS) {
+        fprintf(stderr, "[snd] arm64 address handle table is full\n");
+        abort();
+    }
+    return SND_PTR_HANDLE_BASE + slot * (uint32_t)SND_HANDLE_REGION_SIZE +
+           (uint32_t)(address & (SND_HANDLE_REGION_SIZE - 1u));
+}
+
+void *Snd_Ptr(uint32_t value) {
+    unsigned int slot;
+    uintptr_t region;
+
+    if (value < SND_PTR_HANDLE_BASE || value >= SND_FN_HANDLE_BASE) {
+        return (void *)(uintptr_t)value;
+    }
+    slot = (value - SND_PTR_HANDLE_BASE) >> 24;
+    pthread_mutex_lock(&snd_handle_mutex);
+    region = slot < SND_PTR_HANDLE_SLOTS ? snd_ptr_regions[slot] : 0;
+    pthread_mutex_unlock(&snd_handle_mutex);
+    if (region == 0) {
+        fprintf(stderr, "[snd] invalid arm64 address handle 0x%08X\n", value);
+        abort();
+    }
+    return (void *)(region + (value & (uint32_t)(SND_HANDLE_REGION_SIZE - 1u)));
+}
+
+uint32_t Snd_FnVal(SndFn fn) {
+    uintptr_t address = (uintptr_t)fn;
+    unsigned int i;
+    unsigned int free_slot = 0;
+
+    if (fn == NULL) {
+        return 0;
+    }
+    if (address <= UINT32_MAX && (((uint32_t)address & SND_FN_HANDLE_MASK) != SND_FN_HANDLE_BASE)) {
+        return (uint32_t)address;
+    }
+    pthread_mutex_lock(&snd_handle_mutex);
+    for (i = 1; i < sizeof(snd_fn_handles) / sizeof(snd_fn_handles[0]); i++) {
+        if (snd_fn_handles[i] == fn) {
+            pthread_mutex_unlock(&snd_handle_mutex);
+            return SND_FN_HANDLE_BASE | i;
+        }
+        if (snd_fn_handles[i] == NULL && free_slot == 0) {
+            free_slot = i;
+        }
+    }
+    if (free_slot == 0) {
+        pthread_mutex_unlock(&snd_handle_mutex);
+        fprintf(stderr, "[snd] arm64 callback handle table is full\n");
+        abort();
+    }
+    snd_fn_handles[free_slot] = fn;
+    pthread_mutex_unlock(&snd_handle_mutex);
+    return SND_FN_HANDLE_BASE | free_slot;
+}
+
+SndFn Snd_Fn(uint32_t value) {
+    unsigned int slot;
+    SndFn fn;
+
+    if ((value & SND_FN_HANDLE_MASK) == SND_FN_HANDLE_BASE) {
+        slot = value & 0xFFu;
+        pthread_mutex_lock(&snd_handle_mutex);
+        fn = slot == 0 ? NULL : snd_fn_handles[slot];
+        pthread_mutex_unlock(&snd_handle_mutex);
+        if (fn == NULL) {
+            fprintf(stderr, "[snd] invalid arm64 callback handle 0x%08X\n", value);
+            abort();
+        }
+        return fn;
+    }
+    return (SndFn)(uintptr_t)value;
+}
+#endif
 
 /* MADR value back to a pointer: retail RAM, a native pointer, or a 24-bit native address in
  * the 16 MB window (psyq/ps1mem.h). */

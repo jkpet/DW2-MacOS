@@ -597,7 +597,7 @@ extern void Task_SetState1(Actor *arg0, u32 arg1);
 extern void Task_DefaultDestroy(Actor *arg0);
 extern void Task_SetState0(Actor *arg0, u32 arg1);
 extern s32 Rand_Next(void);
-extern s32 Mem_Alloc(s32 arg0, s32 arg1);
+extern sptr Mem_Alloc(s32 arg0, s32 arg1);
 extern s32 Beetle_GetPart(s32 i);
 extern s32 Item_GetLevel(s32 item); /* main defines it (void); the overlay passes an item id */
 extern void Task_NextState0(Actor *arg0);
@@ -621,7 +621,7 @@ extern void Text_Open(void *, TextOpenArgs *);
 extern GfxTexSlot *Gfx_FindOrLoadTexSlot(s32);
 extern void Snd_PlayById(s32, s32);
 extern void Task_NextState2(Actor *arg0);
-extern s32 Cd_GetFileOrNull(s32 arg0);
+extern sptr Cd_GetFileOrNull(s32 arg0);
 extern void Flag_SetTableFile(s32 arg0);
 extern s32 Flag_FirstPassingEntry(void); /* main defines it void; its tail call leaves Flag_NextPassingEntry's result in v0 */
 extern Blk12 *Flag_GetEntryPosList(); /* main defines it (void); the overlay passes the entry index */

@@ -551,7 +551,7 @@ typedef struct {
 } EntA0;
 
 EntA0 *Cd_GetFileEntry();
-s32 Cd_GetFileOrNull(s32 arg0);
+sptr Cd_GetFileOrNull(s32 arg0);
 s32 Skill_GetType();
 
 /* Record returned by the Cd_FindCachedFile lookup. */
@@ -560,7 +560,7 @@ typedef struct {
     /* 0x02 */ s16 locked;
     /* 0x04 */ s32 fileId;
     /* 0x08 */ s32 lastUsed;
-    /* 0x0C */ s32 data;
+    /* 0x0C */ sptr data;
 } CdCacheEntry;
 
 CdCacheEntry *Cd_FindCachedFile();
@@ -607,12 +607,12 @@ typedef struct {
 typedef struct {
     /* 0x00 */ s32 state;
     /* 0x04 */ s32 sectorsLeft;
-    /* 0x08 */ s32 dest;
+    /* 0x08 */ sptr dest;
     /* 0x0C */ u8 cdMode;
     u8 _padD[0x3];
     /* 0x10 */ s32 sectorCount;
     /* 0x14 */ s32 fileId;
-    /* 0x18 */ s32 buf;
+    /* 0x18 */ sptr buf;
     /* 0x1C */ s32 nextLba;
 } CdReadState;
 

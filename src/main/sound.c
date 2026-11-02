@@ -257,12 +257,12 @@ extern s16 SsUtSetReverbType(s16);
 extern void SsUtSetReverbDepth(s16, s16);
 extern void SsUtReverbOn();
 #endif
-extern s32 Mem_Alloc(s32, s32);
+extern sptr Mem_Alloc(s32, s32);
 extern void Snd_SetSlotContent(s32, s32);
 extern void Cd_ServiceQueue();
 
 void Snd_Init(void) {
-    s32 v0;
+    sptr v0;
     s32 i;
     Ew54C48 *e;
 

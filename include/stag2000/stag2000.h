@@ -327,7 +327,7 @@ extern s32 Rand_Next();
 extern void Mem_FillWordsNeg1(s32 *arg0, s32 arg1);
 extern void Text_OpenById(void *a0, s32 a1, s32 a2, Halves a3);
 extern s32 Actor_ProjectToScreen(ContC40 *a0);
-extern s32 Cd_GetFileOrNull(s32 arg0);
+extern sptr Cd_GetFileOrNull(s32 arg0);
 extern void Item_SortList(void);
 extern void Text_Open(void *arg0, TextOpenArgs *arg1);
 extern void Stg20_MarkGridOccupant(Stg20Cell *c, s32 set, s32 flag);

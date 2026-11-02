@@ -15,7 +15,7 @@
 #include "main/digilist.h"
 
 /* Declarations the original file made before this code. */
-extern s32 Mem_Alloc(s32, s32);
+extern sptr Mem_Alloc(s32, s32);
 
 ActorWork *Gpu_PrimBufs[3] = { 0 };
 
@@ -38,7 +38,7 @@ void Gpu_ResetPrimBuf(void) {
     Sys_State.packet.work = Gpu_PrimBufs[Sys_State.bufIndex];
 }
 
-extern s32 Mem_Alloc(s32, s32);
+extern sptr Mem_Alloc(s32, s32);
 
 void Gpu_AllocPacketBufs(s32 a0) {
     Gpu_PrimBufs[2] = (ActorWork *)a0;

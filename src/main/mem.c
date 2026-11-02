@@ -96,7 +96,7 @@ void Mem_InitHeap(MemBlock *heap, s32 size) {
     end->tag = 1;
 }
 
-s32 Mem_TryAlloc(s32 arg0, s32 tag) {
+sptr Mem_TryAlloc(s32 arg0, s32 tag) {
 #ifdef DW2_NATIVE
     u32 size = MEM_ROUND(arg0);
     MemBlock *b = Mem_HeapHead;
@@ -132,7 +132,7 @@ s32 Mem_TryAlloc(s32 arg0, s32 tag) {
                     b->next = n;
                 }
                 b->tag = tag;
-                return (s32)(b + 1);
+                return (sptr)(b + 1);
             }
         }
         b = b->next;
@@ -140,8 +140,8 @@ s32 Mem_TryAlloc(s32 arg0, s32 tag) {
     return 0;
 }
 
-s32 Mem_Alloc(s32 arg0, s32 arg1) {
-    s32 r;
+sptr Mem_Alloc(s32 arg0, s32 arg1) {
+    sptr r;
     while ((r = Mem_TryAlloc(arg0, arg1)) == 0) {
         Cd_EvictLruFile();
     }

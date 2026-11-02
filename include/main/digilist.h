@@ -16,7 +16,7 @@ extern s16 SsUtSetReverbType(s16);
 extern void SsUtSetReverbDepth(s16, s16);
 extern void SsUtReverbOn();
 #endif
-extern s32 Mem_Alloc(s32, s32);
+extern sptr Mem_Alloc(s32, s32);
 extern void Cd_ServiceQueue();
 extern Obj6A8C0 *Stg20_FindWalkerByDigiId(s32);
 extern void Stg20_WalkerWarpToCell(void *, s32 *);
@@ -29,7 +29,7 @@ extern s16 Stg40_IsTextObjCmdBusy(void);
 extern s32 Stg40_IsTextObjCmdBusy(void);
 #endif
 extern void Stg20_StartBgShake(void);
-extern s32 Mem_Alloc(s32, s32);
+extern sptr Mem_Alloc(s32, s32);
 #ifndef DW2_NATIVE /* Psy-Q: psyq/ headers in the native build */
 extern void ScaleMatrix(Obj209 *, s32 *);
 extern void RotMatrixYXZ(void *, Obj209 *);

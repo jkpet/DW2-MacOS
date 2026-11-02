@@ -2,7 +2,7 @@
 #include "stag0000/stag0000.h"
 
 #ifdef DW2_NATIVE
-extern s32 Cd_GetFileSync(s32 arg0);
+extern sptr Cd_GetFileSync(s32 arg0);
 #endif
 
 /* Task callbacks this unit defines further down (the descriptors come first). */
