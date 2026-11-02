@@ -38,3 +38,10 @@ asm/USA/*/rodata/
 # dw2.pak: built from the player's own disc image (tools/dw2pack.py), never committed.
 *.pak
 *.pak.tmp
+Digimon World 2 (USA).xml
+asm/USA/main/data/395F0.data.s
+asm/USA/main/data/505D8.data.s
+asm/USA/main/data/800.rodata.s
+asm/USA/main/nonmatchings/psyq/_SsVmVSetUp.s
+linkers/USA/undefined_syms_auto.main.txt
+tools/macos/mkpsxiso/dumpsxiso
