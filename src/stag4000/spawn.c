@@ -376,7 +376,7 @@ void Stg40_SpawnRandomHazards(void) {
     Stg40DungFloor *m = P32(Stg40DungFloor, Stg40_RootState->floorMap);
     Stg40Ids5 ids = Stg40_RandomHazardKinds;
     Stg40MapGen *g = m->hazardGroups;
-    s32 buf;
+    u8 (*buf)[2];
     s32 i;
     s32 j;
     s32 n;
@@ -385,7 +385,7 @@ void Stg40_SpawnRandomHazards(void) {
     if (Stg40_RootState->roomCount == 0) {
         return;
     }
-    buf = Mem_Alloc(0x1800, 2);
+    buf = (u8 (*)[2])(uptr)Mem_Alloc(0x1800, 2);
     for (i = 0; i < 5; g++, i++) {
         switch (Stg40_RandInt(4)) {
         case 0:
@@ -418,7 +418,7 @@ void Stg40_SpawnRandomHazards(void) {
                 v = g->val3;
                 break;
             }
-            Stg40_SpawnHazardAtRandom((u8 (*)[2])buf, ids.id[i], v);
+            Stg40_SpawnHazardAtRandom(buf, ids.id[i], v);
         }
     }
     Mem_Free((ActorWork *)buf);

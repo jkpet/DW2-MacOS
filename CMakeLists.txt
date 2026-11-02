@@ -296,4 +296,12 @@ if(APPLE)
     target_compile_definitions(floodfill_pointer_test PRIVATE ${DW2_DEFS})
     target_include_directories(floodfill_pointer_test PRIVATE ${DW2_INCLUDES})
     target_link_options(floodfill_pointer_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for the room hazard scratch allocation surviving its Mem_Free call.
+    add_executable(spawn_hazard_free_test ${CMAKE_SOURCE_DIR}/tests/spawn_hazard_free_test.c
+        ${CMAKE_SOURCE_DIR}/src/stag4000/spawn.c ${CMAKE_SOURCE_DIR}/src/main/mem.c)
+    target_compile_options(spawn_hazard_free_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(spawn_hazard_free_test PRIVATE ${DW2_DEFS})
+    target_include_directories(spawn_hazard_free_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(spawn_hazard_free_test PRIVATE -Wl,-dead_strip)
 endif()
