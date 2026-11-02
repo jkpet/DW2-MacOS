@@ -195,25 +195,30 @@ void Stg20_WalkerUpdate(Actor *a) {
         Actor_InitTransform(a, pos, (w->facing << 10) & 0xFC00);
         if (w->visible != 0) {
             w->modelId = Digi_GetModelFile(a->digiId);
-            Gfx_AttachModel(a, w->modelId)->otIndex = 3;
-            Stg20_WalkerSetAnim(a, 0x1E);
-            Task_Create(0x303, (s32 *)a->u34.children, (sptr)a);
-            r = (Stg20Rot *)a->u38.ptr38;
-            switch (Sys_State.gameMode) {
-            case 0x30F:
-                v = 0;
-                if (a->digiId == 0x2E) {
-                    v = -0x480;
+            if (w->modelId == 0) {
+                /* A scripted walker can still update and talk without having a renderable model. */
+                w->visible = 0;
+            } else {
+                Gfx_AttachModel(a, w->modelId)->otIndex = 3;
+                Stg20_WalkerSetAnim(a, 0x1E);
+                Task_Create(0x303, (s32 *)a->u34.children, (sptr)a);
+                r = (Stg20Rot *)a->u38.ptr38;
+                switch (Sys_State.gameMode) {
+                case 0x30F:
+                    v = 0;
+                    if (a->digiId == 0x2E) {
+                        v = -0x480;
+                    }
+                    r->posY = v;
+                    break;
+                case 0x318:
+                    v = 0;
+                    if (a->digiId == 0x14) {
+                        v = -0x480;
+                    }
+                    r->posY = v;
+                    break;
                 }
-                r->posY = v;
-                break;
-            case 0x318:
-                v = 0;
-                if (a->digiId == 0x14) {
-                    v = -0x480;
-                }
-                r->posY = v;
-                break;
             }
         }
         w->text = -1;

@@ -3,6 +3,7 @@ build/
 dumps/
 rom/
 local/
+screens/
 __pycache__/
 permuter/
 tools/giveups/
