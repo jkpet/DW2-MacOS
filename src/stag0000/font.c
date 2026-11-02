@@ -3,6 +3,7 @@
 #include "stag0000/stag0000_funcs.h"
 #include "stag0000/scrollview.h"
 #include "stag0000/dungsel.h"
+#include "main/texslot.h"
 
 INCLUDE_BIN(Stg00_FontGlyphs, "assets/stag0000/font_glyphs.bin");
 
@@ -32,7 +33,11 @@ void Stg00_FontInit(void) {
 
     Stg00_FontWork = (Stg00Work *)Mem_Alloc(NATIVE_SIZE(Stg00Work, 0x9D8), 2);
     Stg00_FontTextBuf = Stg00_FontWork->textBuf;
+#ifdef DW2_PTR64
+    Stg00_FontWork->texSlot = P32(s32, Gfx_ReserveTexSlot());
+#else
     Stg00_FontWork->texSlot = Gfx_ReserveTexSlot();
+#endif
     n = 0x200;
     src = Stg00_FontGlyphs;
     r = &Stg00_FontWork->rectBig;

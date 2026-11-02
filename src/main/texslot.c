@@ -184,6 +184,15 @@ s32 Gfx_ReserveTexSlot(void) {
 }
 
 void Gfx_ReleaseTexSlot(s32 *arg0) {
+#ifdef DW2_PTR64
+    /* Some retail work fields keep this slot address in a 32-bit word. Restore the host region
+     * before dereferencing it on 64-bit native builds. */
+    if (arg0 != NULL) {
+        uintptr_t address = (uintptr_t)arg0;
+        arg0 = (s32 *)(((uintptr_t)Ps1_Ram & ~(uintptr_t)UINT32_MAX) |
+                       (address & (uintptr_t)UINT32_MAX));
+    }
+#endif
     if (*arg0 == -2) {
         *arg0 = 0;
     }

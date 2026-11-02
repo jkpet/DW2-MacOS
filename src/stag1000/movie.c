@@ -64,7 +64,11 @@ void Stg10_StrKickCd(u8 *arg0) {
 void Stg10_StrInit(u8 *arg0, void (*arg1)()) {
     DecDCTReset(0);
     DecDCToutCallback(arg1);
+#ifdef DW2_NATIVE
+    StSetRing(Stg10_StrRingBuf, 0x20);
+#else
     StSetRing((s32)Stg10_StrRingBuf, 0x20);
+#endif
     StSetStream(1, 1, -1, 0, 0);
     Stg10_StrKickCd(arg0);
 }
