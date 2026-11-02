@@ -33,6 +33,39 @@
 #include "main/skill.h"
 #include "main/anim.h"
 #include "main/model.h"
+#ifdef DW2_NATIVE
+extern void Stg20_DebugModelProbe(s32 gameMode, s32 modeArg, s32 digiId, s32 modelId, s32 boneCount,
+                                  s32 acceptedBones, s32 originCulled, s32 projectionCulled, s32 quadInputs,
+                                  s32 triInputs, s32 maxVerts, s32 maxNormals, s32 submittedQuads,
+                                  s32 submittedTris);
+
+static s32 Gfx_DebugTrackedModelFile = -1;
+static s32 Gfx_DebugSubmittedQuads;
+static s32 Gfx_DebugSubmittedTris;
+
+static s32 Gfx_DebugFirstWalkerModelDraw(Actor *a) {
+    static Actor *seen[32];
+    static s32 count;
+    static s32 lastMode = -1;
+    s32 mode = Sys_State.gameMode;
+    s32 i;
+
+    if (mode != lastMode) {
+        count = 0;
+        lastMode = mode;
+    }
+    for (i = 0; i < count; i++) {
+        if (seen[i] == a) {
+            return 0;
+        }
+    }
+    if (count == sizeof(seen) / sizeof(seen[0])) {
+        return 0;
+    }
+    seen[count++] = a;
+    return 1;
+}
+#endif
 
 ActorModel *Gfx_AttachModel(Actor *a0, s32 id) {
     s32 fresh = 0;
@@ -226,8 +259,25 @@ void Gfx_DrawTexModel(Actor *a0, s32 mode) {
     s32 i;
     s32 j;
     s32 n;
+#ifdef DW2_NATIVE
+    s32 originCulled = 0;
+    s32 projectionCulled = 0;
+    s32 acceptedBones = 0;
+    s32 quadInputs = 0;
+    s32 triInputs = 0;
+    s32 probeThisDraw = 0;
+#endif
 
     s = a0->model;
+#ifdef DW2_NATIVE
+    if (mode == 0 && a0->digiId == 0x1AD && (Sys_State.gameMode == 0x301 || Sys_State.gameMode == 0x308)
+        && Gfx_DebugFirstWalkerModelDraw(a0)) {
+        probeThisDraw = 1;
+        Gfx_DebugTrackedModelFile = s->fileId;
+        Gfx_DebugSubmittedQuads = 0;
+        Gfx_DebugSubmittedTris = 0;
+    }
+#endif
     i = 0;
     e = s->bones;
     s->texSlot = (struct GfxModelTexSlot *)Gfx_FindOrLoadTexSlot(s->fileId << 16);
@@ -236,17 +286,32 @@ void Gfx_DrawTexModel(Actor *a0, s32 mode) {
         p = Gfx_ModelBonePolys(s, i);
         gte_SetRotMatrix(&e->viewMat);
         gte_SetTransMatrix(&e->viewMat);
-        if (mode == 0 && Gfx_IsOriginOffscreen() != 0) {
-            continue;
+        if (mode == 0) {
+            s32 originOffscreen = Gfx_IsOriginOffscreen();
+            if (originOffscreen != 0) {
+#ifdef DW2_NATIVE
+                originCulled++;
+#endif
+                continue;
+            }
         }
         if (Gfx_ProjectModelVerts((Vert6Pmv *)Gfx_ModelBoneVerts(s, i), (ModelProjView *)s, mode) != 0) {
+#ifdef DW2_NATIVE
+            projectionCulled++;
+#endif
             continue;
         }
+#ifdef DW2_NATIVE
+        acceptedBones++;
+#endif
         gte_SetLightMatrix(&e->lightMat);
         Gfx_CalcNormalColors((Vert6Pmv *)Gfx_ModelBoneNormals(s, i), (ModelProjView *)s);
         for (j = 0; j < 2; j++) {
             n = p->n;
             q = (ModelQuadGT4 *)p->e;
+#ifdef DW2_NATIVE
+            quadInputs += n;
+#endif
             if (n != 0) {
                 if (s->clutRow == 1) {
                     Gfx_AddQuadsGT4(q, n, s, 2);
@@ -260,6 +325,9 @@ void Gfx_DrawTexModel(Actor *a0, s32 mode) {
         for (j = 0; j < 2; j++) {
             n = p->n;
             r = (GfxModelTriGT3 *)((GfxModelTriSec *)p)->e;
+#ifdef DW2_NATIVE
+            triInputs += n;
+#endif
             if (n != 0) {
                 if (s->clutRow == 1) {
                     Gfx_AddTrisGT3(r, n, s, 2);
@@ -271,6 +339,14 @@ void Gfx_DrawTexModel(Actor *a0, s32 mode) {
             p = (ModelQuadSection *)r;
         }
     }
+#ifdef DW2_NATIVE
+    if (probeThisDraw) {
+        Stg20_DebugModelProbe(Sys_State.gameMode, Sys_State.modeArg, a0->digiId, s->fileId, s->boneCount,
+                              acceptedBones, originCulled, projectionCulled, quadInputs, triInputs, s->maxVerts,
+                              s->maxNormals, Gfx_DebugSubmittedQuads, Gfx_DebugSubmittedTris);
+        Gfx_DebugTrackedModelFile = -1;
+    }
+#endif
 #ifdef DW2_NATIVE
     if (Gfx_NoTexAnim) {
         return;
@@ -601,6 +677,11 @@ void Gfx_AddTrisGT3(GfxModelTriGT3 *t, s32 n, ActorModel *s, s32 mode) {
             p->tag.addr = ((GfxModelOTag *)&Sys_State.otLayers.s[idx][z])->addr;
             ((GfxModelOTag *)&Sys_State.otLayers.s[idx][z])->addr = (u32)p;
             p++;
+#ifdef DW2_NATIVE
+            if (Gfx_DebugTrackedModelFile == s->fileId) {
+                Gfx_DebugSubmittedTris++;
+            }
+#endif
         } while (0);
     }
     Sys_State.packet.addr = (sptr)p;
@@ -678,6 +759,11 @@ void Gfx_AddQuadsGT4(ModelQuadGT4 *t, s32 n, ActorModel *s, s32 mode) {
             p->tag.addr = ((GfxModelOTag *)&g->otLayers.s[idx][z])->addr;
             ((GfxModelOTag *)&g->otLayers.s[idx][z])->addr = (u32)p;
             p++;
+#ifdef DW2_NATIVE
+            if (Gfx_DebugTrackedModelFile == s->fileId) {
+                Gfx_DebugSubmittedQuads++;
+            }
+#endif
         } while (0);
     }
     Sys_State.packet.addr = (sptr)p;
