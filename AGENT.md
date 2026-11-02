@@ -33,6 +33,27 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 - 2026-11-02: **Phase 1 verification hooks added**
   - `host/overlay.c` now validates overlay ranges at startup (bad range and overlap checks) before snapshotting data.
   - `CMakeLists.txt` now emits a macOS linker map (`build/.../dw2.map`) to inspect Mach-O overlay section layout.
+- 2026-11-02: **macOS linker adjustment (revised)**
+  - Full fixed-base Mach-O flags caused immediate process kill before `main` on arm64.
+  - `-pagezero_size` also caused immediate loader termination on this arm64 setup; macOS link flags were reverted to map-only (known launch-safe baseline).
+- 2026-11-02: **arm64 compatibility unblocked for iterative refactor**
+  - `host/main.c` now allows an explicit experimental macOS arm64 path when low-stack reservation fails: continue with default pthread/SDL thread stacks and print clear warnings instead of hard exit.
+  - `check_window` on macOS now warns (rather than aborting) when image/stack addresses are above 2 GB, to expose next pointer-truncation crash sites for targeted fixes.
+
+### Latest verified runtime state (user machine)
+
+- macOS arm64 release build succeeds (`python tools/build_native.py --arch arm64 --release`).
+- Prior to the latest experimental fallback patch validation, runtime stopped at:
+  - `[host] macOS low stack MAP_FIXED failed first with errno=12 (Cannot allocate memory)`
+  - `[host] macOS: could not reserve a game stack below 2 GB`
+- Latest user-verified run (after `.cue` restoration) now progresses further:
+  - `[host] macOS low stack MAP_FIXED failed first with errno=12 (Cannot allocate memory)`
+  - `[host] macOS: could not reserve a game stack below 2 GB`
+  - `[host] macOS: continuing with default pthread stack (experimental arm64 compatibility mode)`
+  - `[host] 0x104fadbcc is outside the 16 MB window at 0x105000000`
+  - This confirms the new fallback path is active; the next blocker is 16 MB window invariant enforcement rather than stack allocation.
+- Fixed-base/linker pagezero experiments were reverted because they caused immediate loader termination (`zsh: killed` before app logs).
+- Disc image was restored by the user after an accidental shell `rm` command that included extra arguments.
 
 ---
 
@@ -41,7 +62,7 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 1. **Mach-O overlay relink verification**
    - `CMakeLists.txt` now has a first Mach-O relink attempt plus map output, but section behavior still needs validation on real macOS builds.
 2. **Low-address stack strategy verification**
-   - `host/main.c` now has a macOS low-stack path, but success/reliability must be validated on real hardware and scenes.
+   - `host/main.c` now has a macOS low-stack path plus experimental fallback continuation on normal stacks, but this latest fallback behavior is not yet validated on the user machine.
 3. **macOS toolchain/SDK dependency**
    - Bring-up requires Xcode Command Line Tools (`clang`, `make`, SDK paths) to pass CMake compiler checks.
 4. **Updater platform definitions**
@@ -170,5 +191,9 @@ When resuming:
 
 1. Read this file first.
 2. Check `CMakeLists.txt`, `tools/build_native.py`, `host/main.c`, `host/update.c` for partially completed phase work.
-3. Continue with the next unchecked phase item.
-4. Preserve platform gates and avoid broad refactors unrelated to macOS bring-up.
+3. First validate current `host/main.c` fallback behavior with a real user run:
+   - `rm -rf build/macos-arm64_rel && python tools/build_native.py --arch arm64 --release && ./build/macos-arm64_rel/dw2 --no-window --vblanks 60 --update-check --disc "<restored cue path>"`
+4. If fallback run proceeds past low-stack gating, capture the first crash/assert/log and patch that concrete truncation site.
+5. Keep commands chained with `&&` when giving copy/paste command sequences to avoid accidental path deletion.
+6. Continue with the next unchecked phase item.
+7. Preserve platform gates and avoid broad refactors unrelated to macOS bring-up.

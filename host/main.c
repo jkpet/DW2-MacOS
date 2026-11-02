@@ -215,11 +215,21 @@ static void check_window(void) {
             exit(1);
         }
     }
+#ifdef __APPLE__
+    if (base >= 0x80000000u || (uintptr_t)&stack_probe >= 0x80000000u) {
+        fprintf(stderr,
+                "[host] WARNING: running with addresses above 2 GB on macOS arm64 (window=0x%08lX, stack=%p)\n",
+                (unsigned long)base, (void *)&stack_probe);
+        fprintf(stderr,
+                "[host] WARNING: this is an experimental compatibility path while pointer/int truncations are being removed\n");
+    }
+#else
     if (base >= 0x80000000u || (uintptr_t)&stack_probe >= 0x80000000u) {
         fprintf(stderr, "[host] window 0x%08lX or stack %p is not below 2 GB\n", (unsigned long)base,
                 (void *)&stack_probe);
         exit(1);
     }
+#endif
     printf("[host] 16 MB window 0x%08lX: Ps1_Ram %p, heap %p..%p\n", (unsigned long)base, (void *)Ps1_Ram,
            PS1_RAM(0x80075000), PS1_RAM(0x801FF000));
 }
@@ -444,7 +454,9 @@ static void run_on_low_stack_macos(void) {
     data.stack = alloc_low_stack();
     if (data.stack == NULL) {
         fprintf(stderr, "[host] macOS: could not reserve a game stack below 2 GB\n");
-        exit(1);
+        fprintf(stderr, "[host] macOS: continuing with default pthread stack (experimental arm64 compatibility mode)\n");
+        game_main();
+        return;
     }
     printf("[host] macOS low stack %p..%p\n", data.stack, (u8 *)data.stack + GAME_STACK_SIZE);
     rc = pthread_attr_init(&attr);
@@ -498,7 +510,15 @@ static void run_threaded(void) {
         data.stack = alloc_low_stack();
         if (data.stack == NULL) {
             fprintf(stderr, "[host] game thread: no low stack below 2 GB on macOS\n");
-            exit(1);
+            fprintf(stderr,
+                    "[host] game thread: continuing with default pthread stack (experimental arm64 compatibility mode)\n");
+            rc = pthread_create(&th, NULL, game_main_thread_start, &data);
+            if (rc != 0) {
+                fprintf(stderr, "[host] game thread: pthread_create failed (%d)\n", rc);
+                exit(1);
+            }
+            pthread_detach(th);
+            goto threaded_host_init;
         }
         printf("[host] macOS threaded low stack %p..%p\n", data.stack, (u8 *)data.stack + GAME_STACK_SIZE);
         rc = pthread_attr_init(&attr);
@@ -533,6 +553,7 @@ static void run_threaded(void) {
     }
     SDL_DetachThread(t);
 #endif
+threaded_host_init:
     SDL_WaitSemaphore(init_req);
     Host_InitWindow(0);
     SDL_SignalSemaphore(init_done);
