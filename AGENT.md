@@ -30,13 +30,12 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 
 ## Known blockers (current state)
 
-1. **Linux/ELF assumptions in native build path**
-   - Current non-Windows path in `CMakeLists.txt` is Linux-oriented (GNU-ld flags and ELF semantics).
-2. **Low-address stack mapping dependency**
-   - `host/main.c` uses `MAP_32BIT` for non-Windows to keep stack below 2GB.
-   - `MAP_32BIT` is Linux-specific and unavailable on macOS.
-3. **Build script platform coverage**
-   - `tools/build_native.py` only treats Windows and Linux as first-class native build targets.
+1. **Mach-O overlay relink verification**
+   - `CMakeLists.txt` now has a first Mach-O relink attempt, but section behavior must be validated on real macOS builds.
+2. **Low-address stack strategy verification**
+   - `host/main.c` now has a macOS low-stack path, but success/reliability must be validated on real hardware and scenes.
+3. **macOS toolchain/SDK dependency**
+   - Bring-up requires Xcode Command Line Tools (`clang`, `make`, SDK paths) to pass CMake compiler checks.
 4. **Updater platform definitions**
    - `host/update.c` only assigns updater assets for Win64 and Linux x64; macOS path defaults to disabled updater.
 
@@ -46,11 +45,11 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 
 ## Phase 0 — Baseline and feature gate
 
-- [ ] Add explicit platform detection for macOS in native build flow:
+- [x] Add explicit platform detection for macOS in native build flow:
   - `CMakeLists.txt`: split `APPLE` from generic non-Windows branch.
   - `tools/build_native.py`: add Darwin target/build-dir naming.
 - [ ] Introduce a compile-time feature define (e.g., `DW2_PLATFORM_MAC`) where needed, without changing Win/Linux logic.
-- [ ] Ensure all new behavior is additive and gated per platform.
+- [x] Ensure all new behavior is additive and gated per platform.
 
 **Exit criteria:** project config reaches generation stage on macOS with clear, deterministic errors for remaining blockers (not ambiguous linker/runtime failures).
 
@@ -69,12 +68,12 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 
 ## Phase 2 — Runtime memory model adaptation (highest risk)
 
-- [ ] Rework Linux-only low-stack path in `host/main.c`:
+- [x] Rework Linux-only low-stack path in `host/main.c`:
   - Remove unconditional non-Windows `MAP_32BIT` dependency.
   - Implement macOS-specific low-address stack strategy **or** safe fallback path.
 - [ ] Preserve address constraints validated by `check_window()`:
   - If macOS cannot satisfy existing below-2GB assumptions directly, introduce a controlled compatibility mode and document behavior impact.
-- [ ] Add explicit startup diagnostics:
+- [x] Add explicit startup diagnostics:
   - Print which memory strategy is active.
   - Fail fast with clear message if invariants cannot be satisfied.
 
@@ -82,8 +81,8 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 
 ## Phase 3 — Script/tooling and docs
 
-- [ ] Extend `tools/build_native.py` docs/help text for macOS usage.
-- [ ] Update `README.md` build section with macOS prerequisites and command.
+- [x] Extend `tools/build_native.py` docs/help text for macOS usage.
+- [x] Update `README.md` build section with macOS prerequisites and command.
 - [ ] Keep existing Windows/Linux instructions untouched except where clarification is needed.
 
 **Exit criteria:** new contributor can build macOS target from README alone.

@@ -300,6 +300,16 @@ Linux: gcc, CMake, Ninja and `libsdl3-dev`, then:
 python3 tools/build_native.py --release              # -> build/linux64_rel/dw2
 ```
 
+macOS (Apple Silicon, arm64, bring-up in progress): Xcode Command Line Tools, CMake, Ninja,
+SDL3 (CMake package, e.g. `brew install sdl3`), then:
+
+```
+python3 tools/build_native.py --arch arm64 --release # -> build/macos-arm64_rel/dw2
+```
+
+The macOS path is still being ported. Some steps fail fast with explicit messages while Mach-O
+overlay relink and low-address runtime behavior are being validated.
+
 A few data tables are taken from your disc while building (`configs/USA/include_bin.txt`), so
 the build also needs the disc's files extracted to `dumps/disc/` with `dumpsxiso -pt`. Builds
 without `--release` add developer tools (an overlay on F2 with timing, tasks, memory, save data
