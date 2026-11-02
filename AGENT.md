@@ -132,6 +132,24 @@ For each phase, run the smallest relevant checks first:
 
 Keep logs for each checkpoint under `build/<platform>/` artifacts.
 
+### Mach-O overlay verification checklist (on macOS host)
+
+After a successful macOS configure/build, inspect `build/macos-arm64*/dw2.map` and runtime logs:
+
+1. **Map exists**
+   - Confirm `dw2.map` was emitted in the active build directory.
+2. **Overlay sections are present**
+   - Check for the expected overlay section names:
+     - `__dw2ovl0` .. `__dw2ovl6`
+3. **Overlay ranges are non-empty**
+   - Confirm each overlay section has non-zero size in the map output.
+4. **Runtime range checks pass**
+   - On startup, verify no `[host] overlay ... bad data range` or overlap errors.
+5. **Snapshot/reset path is exercised**
+   - Trigger at least one scene change and confirm no overlay-reset crash.
+6. **Keep artifact references**
+   - Save the map file path and relevant startup log lines in the session notes for handoff.
+
 ---
 
 ## Risk log
