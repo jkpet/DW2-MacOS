@@ -1,8 +1,8 @@
 # Native Pointer-Width Audit Candidates
 
-Findings from the macOS arm64 native build. The dungeon relocation crash was reproduced from the
-user's trace and fixed with a focused regression test. The other listed candidates still need
-runtime investigation.
+Findings from the macOS arm64 native build. The dungeon relocation and room-label flood-fill crashes
+were reproduced and fixed with focused arm64 regression tests. The floor-render packet cursor and
+Digimon-transfer pointer candidates still need investigation.
 
 ## Audit method
 
@@ -30,8 +30,23 @@ GPU packet links, and known recovery paths account for many matches.
   the fix it prints `dungfile_reloc_test: PASS`.
 - The arm64 release build succeeds after the fix (incremental build: 57 warnings across 6 files).
   A headless movie-enabled startup smoke completed 600 requested VBlank waits and exited normally.
-- **Remaining validation:** the synthetic test verifies the real relocator and pointer restoration;
-  the full user-driven dungeon-entry route has not yet been rerun.
+- **Remaining validation:** the synthetic test verifies the real relocator and pointer restoration.
+  The next user-driven dungeon-entry attempt progressed past relocation and exposed the flood-fill
+  finding below; the route after both fixes still needs to be rerun.
+
+### Room-label flood fill narrowed its allocated queue pointer to `s32`
+
+- The user's next dungeon-entry crash faulted at `0x10136500` in the first `Stg40FillPt` queue
+  write, with `buf=269706496` (`0x10136500`). `Mem_Alloc` returns `sptr`, but `Stg40_LabelRooms`
+  stored its result in `s32` and `Stg40_FloodFillRoom` accepted `s32`, discarding the host address's
+  upper bits.
+- The queue is now a typed `Stg40FillPt *` from allocation through the function declaration and
+  implementation; queue reads and writes use that pointer directly.
+- Added `tests/floodfill_pointer_test.c`, which calls the production flood fill with a one-cell grid
+  and a queue mapped above 4 GB. Before the fix, LLDB showed `buf=0x10000000` and `EXC_BAD_ACCESS`
+  on the first write; after the fix it prints `floodfill_pointer_test: PASS`.
+- The full arm64 release build and both focused dungeon tests pass. The full user-driven
+  dungeon-entry route still needs to be rerun.
 
 ## Open candidates
 
@@ -47,20 +62,9 @@ GPU packet links, and known recovery paths account for many matches.
 - **Follow-up:** run a dungeon-floor render under LLDB and compare `packet.addr` with `pkt` at the
   first helper call.
 
-### 2. Room-label flood fill narrows a heap allocation to `s32`
-
-- `Mem_Alloc` returns `sptr` (`src/main/mem.c:143-148`), which is pointer-sized in the native
-  build.
-- `src/stag4000/cellgrid.c:247-258` stores that result in `s32 buf`, passes it to
-  `Stg40_FloodFillRoom(s32 buf, ...)`, then casts it to `Stg40FillPt *` for writes/reads at
-  `cellgrid.c:183-208` and to `ActorWork *` for `Mem_Free` at line 258.
-- The allocation's upper address bits appear to be lost on native arm64.
-- **Follow-up:** check the allocation and first flood-fill write while entering a dungeon with an
-  unlabeled room; verify the buffer address survives each call boundary.
-
 ## Additional candidate
 
-### 3. Digimon-transfer rows round-trip pointers through fixed-width record fields
+### 2. Digimon-transfer rows round-trip pointers through fixed-width record fields
 
 - `MenuDigiPickRow.record` and `MenuCtx.transferRecord` are fixed `s32` fields
   (`include/main/156C.h:1234,1762-1769`).
@@ -82,5 +86,5 @@ GPU packet links, and known recovery paths account for many matches.
 
 ## Current status
 
-The relocation fix and test are in the working tree. The open candidates above have not yet been
-confirmed by runtime reproduction.
+The relocation and flood-fill fixes and their focused tests are in the working tree. The floor-render
+packet cursor and transfer-record candidates have not yet been confirmed by runtime reproduction.

@@ -165,7 +165,7 @@ Stg40Cell *Stg40_GetCell(s32 x, s32 y) {
     return r;
 }
 
-void Stg40_FloodFillRoom(s32 buf, s32 p1, s32 x, s32 y, s32 fill)
+void Stg40_FloodFillRoom(Stg40FillPt *buf, s32 p1, s32 x, s32 y, s32 fill)
 {
     Stg40Cell *grid = (Stg40Cell *)Dung_StatePtr->cells;
     s32 width = Dung_StatePtr->floorHdr->cols;
@@ -180,16 +180,16 @@ void Stg40_FloodFillRoom(s32 buf, s32 p1, s32 x, s32 y, s32 fill)
         return;
     }
     count = 1;
-    ((Stg40FillPt *)buf)[0].x = x;
-    ((Stg40FillPt *)buf)[0].y = y;
+    buf[0].x = x;
+    buf[0].y = y;
     grid[width * y + x].flags |= fill;
     do {
         if (maxRun < count) {
             maxRun = count;
         }
         count--;
-        x = ((Stg40FillPt *)buf)[count].x;
-        y = ((Stg40FillPt *)buf)[count].y;
+        x = buf[count].x;
+        y = buf[count].y;
         for (k = 0; k < 4; k++) {
             nx = Stg40_FillNeighbours[k * 2] + x;
             ny = Stg40_FillNeighbours[k * 2 + 1] + y;
@@ -204,8 +204,8 @@ void Stg40_FloodFillRoom(s32 buf, s32 p1, s32 x, s32 y, s32 fill)
                 continue;
             }
             grid[width * ny + nx].flags |= fill;
-            ((Stg40FillPt *)buf)[count].x = nx;
-            ((Stg40FillPt *)buf)[count].y = ny;
+            buf[count].x = nx;
+            buf[count].y = ny;
             count++;
         }
     } while (count != 0);
@@ -246,7 +246,7 @@ void Stg40_LabelFilledCells(void) {
 
 void Stg40_LabelRooms(void) {
     s32 w = Dung_StatePtr->floorHdr->cols;
-    s32 buf = Mem_Alloc(0x3FF8, 2);
+    Stg40FillPt *buf = (Stg40FillPt *)(uptr)Mem_Alloc(0x3FF8, 2);
     s32 i;
 
     Stg40_RootState->roomCount = 0;

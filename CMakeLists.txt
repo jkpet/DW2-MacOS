@@ -288,4 +288,12 @@ if(APPLE)
     target_compile_definitions(dungfile_reloc_test PRIVATE ${DW2_DEFS})
     target_include_directories(dungfile_reloc_test PRIVATE ${DW2_INCLUDES})
     target_link_options(dungfile_reloc_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for the room-label flood-fill queue's pointer-width call boundary.
+    add_executable(floodfill_pointer_test ${CMAKE_SOURCE_DIR}/tests/floodfill_pointer_test.c
+        ${CMAKE_SOURCE_DIR}/src/stag4000/cellgrid.c)
+    target_compile_options(floodfill_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(floodfill_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(floodfill_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(floodfill_pointer_test PRIVATE -Wl,-dead_strip)
 endif()

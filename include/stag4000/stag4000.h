@@ -829,7 +829,7 @@ extern Stg40Ent48 *Stg40_FindEntAt(s16 x, s16 y);
 typedef struct {
     /* 0x0 */ s16 chars[7];
 } Stg40DigiName;
-void Stg40_FloodFillRoom(s32 buf, s32 a1, s32 x, s32 y, s32 flag);
+void Stg40_FloodFillRoom(Stg40FillPt *buf, s32 a1, s32 x, s32 y, s32 flag);
 void Stg40_LabelFilledCells(void);
 
 /* part 36 salvage */
