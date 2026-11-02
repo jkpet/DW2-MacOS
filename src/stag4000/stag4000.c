@@ -119,7 +119,7 @@ void Stg40_SetupStage(Actor *a0) {
         break;
     }
     if (Dung_StatePtr->entryMode == 0) {
-        Stg40_InitDungeonEntry(work);
+        Stg40_InitDungeonEntry();
     }
     Stg40_LoadDungFile(Dung_StatePtr->dungFileId);
     Stg40_LoadEventTiles(((Stg40DungFloor *)Stg40_RootState->floorMap)->eventTable);
