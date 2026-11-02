@@ -1,11 +1,11 @@
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
 #define _GNU_SOURCE /* MAP_32BIT */
 #endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
 #include <sys/mman.h>
 #include <ucontext.h>
 #endif
@@ -317,7 +317,7 @@ static void game_main(void) {
     Host_Quit("Sys_Main returned");
 }
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
 /* Linux: the main thread's stack lies far above 4 GB, but the game keeps stack addresses in
  * 32-bit ints (Task_Create(id, slot, (s32)&local), P1.12). The game runs on a stack mapped below
  * 2 GB (MAP_32BIT), entered with a context switch on the same thread. */
@@ -348,6 +348,9 @@ static HOST_ENTRY int game_thread(void *arg) {
     (void)arg;
 #ifdef _WIN32
     game_main();
+#elif defined(__APPLE__)
+    fprintf(stderr, "[host] macOS stack strategy not implemented yet (see AGENT.md Phase 2)\n");
+    exit(1);
 #else
     run_on_low_stack();
 #endif

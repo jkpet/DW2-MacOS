@@ -15,27 +15,38 @@ client without them into build/<dir>_rel. A Windows x64 release build also refre
 ImGui F1 settings window.
 
 Targets (--arch): on Windows x86 (default; MinGW-w64 i686, build/native/dw2.exe) or x64
-(MinGW-w64 x86_64, build/native64/dw2.exe); on Linux x64 only (system gcc, build/linux64/dw2),
-run as `python3 tools/build_native.py` there.
+(MinGW-w64 x86_64, build/native64/dw2.exe); on Linux x64 (system gcc, build/linux64/dw2); on
+macOS arm64 (clang, build/macos-arm64/dw2; bring-up in progress, see AGENT.md).
 
 Toolchain: DW2_MINGW = the MinGW-w64 root holding bin/gcc.exe (default
 D:/tools/winlibs-i686/mingw32 for x86, D:/tools/winlibs-x86_64/mingw64 for x64); Ninja from the
 venv (pip install ninja) or PATH; DW2_SDL3 = the SDL3 MinGW development release root (default
-D:/tools/SDL3, SDL3-devel-3.x-mingw unpacked); Linux uses the system SDL3 (libsdl3-dev). The
-INCLUDE_BIN assets come from the user's disc dump like in tools/build_dw2.py
+D:/tools/SDL3, SDL3-devel-3.x-mingw unpacked); Linux and macOS use a system SDL3 CMake package.
+The INCLUDE_BIN assets come from the user's disc dump like in tools/build_dw2.py
 (configs/USA/include_bin.txt); assets/Ovl_LoadArea.bin comes from splat."""
 
 import argparse
 import collections
 import os
+import platform
 import re
 import shutil
 import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WINDOWS = os.name == "nt"
-BUILD_DIRS = {"x86": "native", "x64": "native64"} if WINDOWS else {"x64": "linux64"}
+SYSTEM = platform.system()
+WINDOWS = SYSTEM == "Windows"
+LINUX = SYSTEM == "Linux"
+MACOS = SYSTEM == "Darwin"
+if WINDOWS:
+    BUILD_DIRS = {"x86": "native", "x64": "native64"}
+elif LINUX:
+    BUILD_DIRS = {"x64": "linux64"}
+elif MACOS:
+    BUILD_DIRS = {"arm64": "macos-arm64"}
+else:
+    BUILD_DIRS = {"x64": "native"}
 MINGW_DEFAULT = {"x86": "D:/tools/winlibs-i686/mingw32", "x64": "D:/tools/winlibs-x86_64/mingw64"}
 SDL3_TRIPLET = {"x86": "i686-w64-mingw32", "x64": "x86_64-w64-mingw32"}
 sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -96,8 +107,9 @@ def update_play(build):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--arch", choices=sorted(BUILD_DIRS), default="x86" if WINDOWS else "x64",
-                    help="target (Windows: x86 or x64; Linux: x64)")
+    arch_default = "x86" if WINDOWS else "arm64" if MACOS else "x64"
+    ap.add_argument("--arch", choices=sorted(BUILD_DIRS), default=arch_default,
+                    help="target (Windows: x86 or x64; Linux: x64; macOS: arm64)")
     ap.add_argument("--rebuild", action="store_true", help="delete the build directory first")
     ap.add_argument("--run", action="store_true", help="run build/native/dw2 after the build")
     ap.add_argument("--vblanks", type=int, default=0, help="with --run: stop after N VBlank waits")
@@ -119,6 +131,15 @@ def main():
         sdl3 = os.environ.get("DW2_SDL3", "D:/tools/SDL3")
         if not os.path.exists(os.path.join(sdl3, SDL3_TRIPLET[args.arch], "lib", "cmake", "SDL3", "SDL3Config.cmake")):
             sys.exit("BUILD FAILED: no SDL3 MinGW release at %s (set DW2_SDL3)" % sdl3)
+    elif MACOS:
+        mingw = None
+        gcc = shutil.which("clang") or shutil.which("cc")
+        gxx = shutil.which("clang++") or shutil.which("c++")
+        ld = None
+        if args.arch != "arm64":
+            sys.exit("BUILD FAILED: macOS native build supports only --arch arm64")
+        if gcc is None or gxx is None:
+            sys.exit("BUILD FAILED: no clang / clang++ in PATH (install Xcode Command Line Tools)")
     else:
         mingw = None
         gcc = shutil.which("gcc")
@@ -155,12 +176,15 @@ def main():
         cmd = ["cmake", "-G", "Ninja", "-S", ROOT, "-B", build,
                "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
                "-DCMAKE_C_COMPILER=" + gcc.replace("\\", "/"),
-               "-DCMAKE_LINKER=" + ld.replace("\\", "/"),
                "-DCMAKE_MAKE_PROGRAM=" + ninja.replace("\\", "/"),
                "-DDW2_DEV=" + ("OFF" if args.release else "ON")]
+        if ld is not None:
+            cmd.append("-DCMAKE_LINKER=" + ld.replace("\\", "/"))
         cmd.append("-DCMAKE_CXX_COMPILER=" + gxx.replace("\\", "/"))
         if WINDOWS:
             cmd.append("-DDW2_SDL3=" + sdl3.replace("\\", "/"))
+        elif MACOS:
+            cmd.append("-DCMAKE_OSX_ARCHITECTURES=arm64")
         if subprocess.call(cmd, env=env) != 0:
             sys.exit("BUILD FAILED: cmake configure")
 

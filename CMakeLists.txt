@@ -22,11 +22,12 @@ else()
     set(DW2_DEV_VALUE 0)
 endif()
 
-# Target: 32-bit (-m32, MinGW i686) or 64-bit (-m64, MinGW x86_64 or Linux gcc), picked by the
-# compiler tools/build_native.py configures (--arch). Every build keeps the "low window" layout:
-# the image, its globals, Ps1_Ram and the heap lie in one 16 MB window below 2 GB (fixed base,
-# no ASLR), so the 24-bit OT links resolve and a pointer kept in a 32-bit game int round-trips.
-if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+# Target flags by platform. Windows keeps x86/x64 switches from tools/build_native.py.
+# Linux keeps -m64 for the native x64 build. macOS arm64 leaves arch flags to
+# CMAKE_OSX_ARCHITECTURES (set by tools/build_native.py).
+if(APPLE)
+    set(DW2_ARCH_FLAG)
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
     # The i686 GCC keeps only a 4-byte aligned stack by default; SDL3.dll's SSE code needs 16 at
     # every call into it (PR.14). Keep 16 everywhere; the entry points realign (HOST_ENTRY).
     set(DW2_ARCH_FLAG -m32 -mpreferred-stack-boundary=4)
@@ -44,12 +45,22 @@ if(WIN32)
         set(DW2_MINGW_TRIPLET x86_64-w64-mingw32)
     endif()
     set(DW2_PIE_FLAGS)
+elseif(APPLE)
+    # Mach-O: keep toolchain default PIE handling for now.
+    set(DW2_PIE_FLAGS)
 else()
     # ELF: a position-dependent executable, so the fixed base below holds.
     set(DW2_PIE_FLAGS -fno-pie)
 endif()
 
 set(OVERLAYS stag0000 stag1000 stag1100 stag2000 stag3000 stag3500 stag4000)
+set(OVERLAYS_MACHO_STAG0000 "__dw2ovl0")
+set(OVERLAYS_MACHO_STAG1000 "__dw2ovl1")
+set(OVERLAYS_MACHO_STAG1100 "__dw2ovl2")
+set(OVERLAYS_MACHO_STAG2000 "__dw2ovl3")
+set(OVERLAYS_MACHO_STAG3000 "__dw2ovl4")
+set(OVERLAYS_MACHO_STAG3500 "__dw2ovl5")
+set(OVERLAYS_MACHO_STAG4000 "__dw2ovl6")
 
 # Flags for the game C. -funsigned-char: PS1 GCC char is unsigned. -fpermissive: GCC 14+ makes
 # implicit declarations, int <-> pointer conversions and pointer type mismatches errors; the
@@ -98,6 +109,27 @@ foreach(unit ${OVERLAYS})
 "
             "}
 ")
+    elseif(APPLE)
+        string(TOUPPER ${unit} unit_upper)
+        set(macho_section ${OVERLAYS_MACHO_${unit_upper}})
+        if(macho_section STREQUAL "")
+            message(FATAL_ERROR "no Mach-O overlay section name for ${unit}")
+        endif()
+        # Mach-O: relink each overlay into one relocatable object and fold both __data and __bss
+        # into one private section per overlay. host/overlay.c uses section$start$/section$end$
+        # linker symbols for these sections.
+        set(out ${CMAKE_BINARY_DIR}/ovl_${unit}.o)
+        add_custom_command(
+            OUTPUT ${out}
+            COMMAND ${CMAKE_LINKER} -r -o ${out}
+                -rename_section __DATA __data __DATA ${macho_section}
+                -rename_section __DATA __bss __DATA ${macho_section}
+                $<TARGET_OBJECTS:dw2_${unit}>
+            DEPENDS dw2_${unit} $<TARGET_OBJECTS:dw2_${unit}>
+            COMMAND_EXPAND_LISTS
+            COMMENT "Relinking ${unit} (overlay data range, Mach-O)")
+        list(APPEND OVL_OBJECTS ${out})
+        continue()
     else()
         # ELF: one section per overlay with a C-identifier name, so the final link defines
         # __start_dw2ovl_<unit> / __stop_dw2ovl_<unit> (host/overlay.c). The .bss goes in with
@@ -214,6 +246,9 @@ if(WIN32)
     target_link_options(dw2 PRIVATE ${DW2_ARCH_FLAG} -Wl,--image-base=0x01000000 -Wl,--disable-dynamicbase
         $<$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>:-Wl,--disable-high-entropy-va>
         -Wl,-Map=${CMAKE_BINARY_DIR}/dw2.map)
+elseif(APPLE)
+    # macOS: temporary scaffolding while low-address and overlay relink behavior are ported.
+    target_link_libraries(dw2 PRIVATE m ${CMAKE_DL_LIBS})
 else()
     # ELF: no PIE, first segment at 0x01000000 (same window as the PE builds).
     # dl: PR.30 update check loads libcurl.so.4 at run time (no link-time dependency).

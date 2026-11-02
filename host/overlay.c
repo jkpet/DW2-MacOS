@@ -14,6 +14,14 @@
     __attribute__((section(".data$dw2ovl_" #unit "_3"))) u8 Ovl_DataEnd_##unit[1] = { 0 };
 #define OVL_START(unit) Ovl_DataStart_##unit
 #define OVL_END(unit) Ovl_DataEnd_##unit
+#elif defined(__APPLE__)
+/* Overlay data ranges (Mach-O). CMakeLists.txt relinks each overlay so its __data and __bss are
+ * one private __DATA section; the linker defines section$start$... and section$end$... symbols. */
+#define OVL_MARKERS(unit, sect)                                              \
+    extern u8 Ovl_DataStart_##unit[] __asm("section$start$__DATA$" sect);    \
+    extern u8 Ovl_DataEnd_##unit[] __asm("section$end$__DATA$" sect);
+#define OVL_START(unit) Ovl_DataStart_##unit
+#define OVL_END(unit) Ovl_DataEnd_##unit
 #else
 /* Overlay data ranges (ELF). CMakeLists.txt relinks each overlay so its .data and .bss are one
  * section dw2ovl_<unit>; the linker defines __start_ / __stop_ around a section with a C name. */
@@ -22,6 +30,15 @@
 #define OVL_END(unit) __stop_dw2ovl_##unit
 #endif
 
+#if defined(__APPLE__)
+OVL_MARKERS(stag0000, "__dw2ovl0")
+OVL_MARKERS(stag1000, "__dw2ovl1")
+OVL_MARKERS(stag1100, "__dw2ovl2")
+OVL_MARKERS(stag2000, "__dw2ovl3")
+OVL_MARKERS(stag3000, "__dw2ovl4")
+OVL_MARKERS(stag3500, "__dw2ovl5")
+OVL_MARKERS(stag4000, "__dw2ovl6")
+#else
 OVL_MARKERS(stag0000)
 OVL_MARKERS(stag1000)
 OVL_MARKERS(stag1100)
@@ -29,6 +46,7 @@ OVL_MARKERS(stag2000)
 OVL_MARKERS(stag3000)
 OVL_MARKERS(stag3500)
 OVL_MARKERS(stag4000)
+#endif
 
 /* Boot image: the exe's initial bytes of the retail overlay area (Ovl_LoadArea), a TIM at +4
  * that Sys_Main shows at boot. Extracted by splat (assets/Ovl_LoadArea.bin). */
