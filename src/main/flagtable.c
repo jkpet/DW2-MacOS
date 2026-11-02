@@ -27,11 +27,10 @@
 #include "main/parts.h"
 #include "main/digibase.h"
 #include "main/gamedata.h"
-#include "main/flagtable.h"
 
 #ifdef DW2_NATIVE
 extern void Stg20_DebugFlagEntry(s32 tableFile, s32 entryIndex, s32 digiId, s32 facing, s32 blockIndex,
-                                 s32 condIndex, s32 passes, const u8 *positions);
+                                 s32 condIndex, s32 passes);
 #endif
 
 /* .bss */
@@ -65,8 +64,7 @@ s32 Flag_NextPassingEntry(void) {
         if (Flag_EntryIter.fileId == 0xC26 || Flag_EntryIter.fileId == 0xC2A) {
             FlagBranchEntry *entry = Flag_EntryIter.cursor;
             Stg20_DebugFlagEntry(Flag_EntryIter.fileId, Flag_EntryIter.entryIndex, entry->digiId, entry->dir,
-                                 entry->blockIndex, ((FlagEntryIdx *)entry)->condIdx, passes,
-                                 (const u8 *)Flag_GetEntryPosList(Flag_EntryIter.entryIndex));
+                                 entry->blockIndex, ((FlagEntryIdx *)entry)->condIdx, passes);
         }
 #endif
         if (passes != 0) {

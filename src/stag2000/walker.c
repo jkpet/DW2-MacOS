@@ -102,15 +102,9 @@ void Stg20_DebugModelProbe(s32 gameMode, s32 modeArg, s32 digiId, s32 modelId, s
 }
 
 void Stg20_DebugFlagEntry(s32 tableFile, s32 entryIndex, s32 digiId, s32 facing, s32 blockIndex, s32 condIndex,
-                          s32 passes, const u8 *positions) {
-    s32 i;
-
-    printf("[flag-probe] table=%03X entry=%d digi=%03X facing=%d block=%d cond=%d passes=%d path=", tableFile,
+                          s32 passes) {
+    printf("[flag-probe] table=%03X entry=%d digi=%03X facing=%d block=%d cond=%d passes=%d\n", tableFile,
            entryIndex, digiId, facing, blockIndex, condIndex, passes);
-    for (i = 0; i < 6; i++) {
-        printf("%s%02X,%02X", i == 0 ? "" : ";", positions[i * 2], positions[i * 2 + 1]);
-    }
-    printf("\n");
 }
 #endif
 
