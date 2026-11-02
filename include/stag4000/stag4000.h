@@ -691,8 +691,8 @@ void Stg40_DamageBeetle(s32 n);
 s32 Stg40_AddEntity(s32 kind, s32 a1, s32 a2, s32 a3, s32 x, s32 y); /* K&R definition (a3, x, y are s16) */
 void Stg40_AutomapDrawWindow(Stg40AutomapWork *w, s32 a1, s32 a2, s32 a3, s32 a4, s32 a5, s32 a6, s32 a7, s32 a8);
 u8 *Stg40_NumToDigits(s32 i, s32 v);
-s32 Stg40_DrawTileTop(Stg40FloorWork *w, s32 pkt, s32 x, s32 y);
-s32 Stg40_DrawTileWalls(Stg40FloorWork *w, s32 pkt, s32 x, s32 y);
+u8 *Stg40_DrawTileTop(Stg40FloorWork *w, u8 *pkt, s32 x, s32 y);
+u8 *Stg40_DrawTileWalls(Stg40FloorWork *w, u8 *pkt, s32 x, s32 y);
 s32 Stg40_PickRandomPoint(Stg40CellPos *out, Stg40CellPoint *e, u8 key);
 
 /* overlay functions */

@@ -304,4 +304,12 @@ if(APPLE)
     target_compile_definitions(spawn_hazard_free_test PRIVATE ${DW2_DEFS})
     target_include_directories(spawn_hazard_free_test PRIVATE ${DW2_INCLUDES})
     target_link_options(spawn_hazard_free_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for the floor renderer's packet cursor and fixed-width OT link.
+    add_executable(floor_packet_cursor_test ${CMAKE_SOURCE_DIR}/tests/floor_packet_cursor_test.c
+        ${CMAKE_SOURCE_DIR}/src/stag4000/floor.c)
+    target_compile_options(floor_packet_cursor_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(floor_packet_cursor_test PRIVATE ${DW2_DEFS})
+    target_include_directories(floor_packet_cursor_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(floor_packet_cursor_test PRIVATE -Wl,-dead_strip)
 endif()

@@ -106,7 +106,7 @@ void Stg40_DrawEntityShadow(Stg40Loc *loc) {
             pkt->x3 = b[1].s[0].x;
             pkt->y3 = b[1].s[0].y;
             pkt->tag.f.addr = ((Stg40OTag *)Sys_State.otLayers.u[4])->addr;
-            ((Stg40OTag *)Sys_State.otLayers.u[4])->addr = (u32)pkt;
+            ((Stg40OTag *)Sys_State.otLayers.u[4])->addr = P32_SET(pkt);
             pkt++;
             Sys_State.packet.addr = (sptr)pkt;
         }
@@ -158,7 +158,7 @@ void Stg40_DrawEntityShadow(Stg40Loc *loc) {
         pkt->x3 = out[3].x;
         pkt->y3 = out[3].y;
         pkt->tag.f.addr = ((Stg40OTag *)Sys_State.otLayers.u[4])->addr;
-        ((Stg40OTag *)Sys_State.otLayers.u[4])->addr = (u32)pkt;
+        ((Stg40OTag *)Sys_State.otLayers.u[4])->addr = P32_SET(pkt);
         pkt++;
         Sys_State.packet.addr = (sptr)pkt;
     }
@@ -506,7 +506,7 @@ void Stg40_MapPosToWorld(s32 x, s32 z, s32 y, Stg40Vec3 *out) {
     out->vx = t * 40;
 }
 
-s32 Stg40_DrawTileWalls(Stg40FloorWork *w, s32 pkt, s32 x, s32 y)
+u8 *Stg40_DrawTileWalls(Stg40FloorWork *w, u8 *pkt, s32 x, s32 y)
 {
     Stg40Tile *tile = &w->tiles[y][x];
     Stg40WallSide *rec;
@@ -521,6 +521,8 @@ s32 Stg40_DrawTileWalls(Stg40FloorWork *w, s32 pkt, s32 x, s32 y)
     s32 n;
     s32 m;
     Stg40FT4 *src;
+    Stg40FT4 *packet;
+    Stg40OTag *packetTag;
 
     base = &Stg40_WallPrimIdx[(u16)Dung_StatePtr->floorHdr->wallStyle * 5];
 
@@ -547,67 +549,73 @@ s32 Stg40_DrawTileWalls(Stg40FloorWork *w, s32 pkt, s32 x, s32 y)
         }
         ot = &Sys_State.otLayers.u[3][w->verts[y + rec->otY][x + rec->otX].otzDown];
         src = &w->prims[base[k]];
-        *(Stg40FT4 *)pkt = *src;
-        ((Stg40FT4 *)pkt)->x0 = a->s[1].x;
-        ((Stg40FT4 *)pkt)->y0 = a->s[1].y;
-        ((Stg40FT4 *)pkt)->x1 = b->s[1].x;
-        ((Stg40FT4 *)pkt)->y1 = b->s[1].y;
-        ((Stg40FT4 *)pkt)->x2 = a->s[0].x;
-        ((Stg40FT4 *)pkt)->y2 = a->s[0].y;
-        ((Stg40FT4 *)pkt)->x3 = b->s[0].x;
-        ((Stg40FT4 *)pkt)->y3 = b->s[0].y;
-        ((Stg40FT4 *)pkt)->r0 = rec->shade;
-        ((Stg40FT4 *)pkt)->g0 = rec->shade;
-        ((Stg40FT4 *)pkt)->b0 = rec->shade;
-        ((Stg40OTag *)pkt)->addr = ((Stg40OTag *)ot)->addr;
-        ((Stg40OTag *)ot)->addr = pkt;
-        pkt += sizeof(Stg40FT4);
+        packet = (Stg40FT4 *)pkt;
+        packetTag = (Stg40OTag *)pkt;
+        *packet = *src;
+        packet->x0 = a->s[1].x;
+        packet->y0 = a->s[1].y;
+        packet->x1 = b->s[1].x;
+        packet->y1 = b->s[1].y;
+        packet->x2 = a->s[0].x;
+        packet->y2 = a->s[0].y;
+        packet->x3 = b->s[0].x;
+        packet->y3 = b->s[0].y;
+        packet->r0 = rec->shade;
+        packet->g0 = rec->shade;
+        packet->b0 = rec->shade;
+        packetTag->addr = ((Stg40OTag *)ot)->addr;
+        ((Stg40OTag *)ot)->addr = P32_SET(pkt);
+        pkt += sizeof(*packet);
     }
     return pkt;
 }
 
-s32 Stg40_DrawTileTop(Stg40FloorWork *w, s32 pkt, s32 x, s32 y) {
+u8 *Stg40_DrawTileTop(Stg40FloorWork *w, u8 *pkt, s32 x, s32 y) {
     Stg40Vtx *a = &w->verts[y][x];
     Stg40Vtx *b = &w->verts[y + 1][x];
     Stg40Tile *t = &w->tiles[y][x];
     s32 k = t->flags == 0;
     u32 *ot;
+    Stg40FT4 *texturedPacket;
+    Stg40F4 *flatPacket;
 
     if (a[0].s[k].flag + a[1].s[k].flag + b[0].s[k].flag + b[1].s[k].flag == 0) {
         return pkt;
     }
     if (t->flags != 0) {
         ot = Sys_State.otLayers.u[6];
-        *(Stg40FT4 *)pkt = w->prims[Stg40_FloorPrimIdx[t->primIdx & 0x7F]];
-        ((Stg40FT4 *)pkt)->x0 = a[0].s[0].x;
-        ((Stg40FT4 *)pkt)->y0 = a[0].s[0].y;
-        ((Stg40FT4 *)pkt)->x1 = a[1].s[0].x;
-        ((Stg40FT4 *)pkt)->y1 = a[1].s[0].y;
-        ((Stg40FT4 *)pkt)->x2 = b[0].s[0].x;
-        ((Stg40FT4 *)pkt)->y2 = b[0].s[0].y;
-        ((Stg40FT4 *)pkt)->x3 = b[1].s[0].x;
-        ((Stg40FT4 *)pkt)->y3 = b[1].s[0].y;
-        ((Stg40FT4 *)pkt)->tag.word = (((Stg40FT4 *)pkt)->tag.word & 0xFF000000) | (*ot & 0xFFFFFF);
-        *ot = (*ot & 0xFF000000) | ((u32)pkt & 0xFFFFFF);
-        pkt += sizeof(Stg40FT4);
+        texturedPacket = (Stg40FT4 *)pkt;
+        *texturedPacket = w->prims[Stg40_FloorPrimIdx[t->primIdx & 0x7F]];
+        texturedPacket->x0 = a[0].s[0].x;
+        texturedPacket->y0 = a[0].s[0].y;
+        texturedPacket->x1 = a[1].s[0].x;
+        texturedPacket->y1 = a[1].s[0].y;
+        texturedPacket->x2 = b[0].s[0].x;
+        texturedPacket->y2 = b[0].s[0].y;
+        texturedPacket->x3 = b[1].s[0].x;
+        texturedPacket->y3 = b[1].s[0].y;
+        texturedPacket->tag.word = (texturedPacket->tag.word & 0xFF000000) | (*ot & 0xFFFFFF);
+        *ot = (*ot & 0xFF000000) | (P32_SET(pkt) & 0xFFFFFF);
+        pkt += sizeof(*texturedPacket);
     } else {
         ot = &Sys_State.otLayers.u[3][w->tiles[y][x].otz];
-        ((Stg40F4 *)pkt)->tag.b.len = 5;
-        ((Stg40F4 *)pkt)->code = 0x28;
-        ((Stg40F4 *)pkt)->r0 = 0;
-        ((Stg40F4 *)pkt)->g0 = 0;
-        ((Stg40F4 *)pkt)->b0 = 0;
-        ((Stg40F4 *)pkt)->x0 = a[0].s[1].x;
-        ((Stg40F4 *)pkt)->y0 = a[0].s[1].y;
-        ((Stg40F4 *)pkt)->x1 = a[1].s[1].x;
-        ((Stg40F4 *)pkt)->y1 = a[1].s[1].y;
-        ((Stg40F4 *)pkt)->x2 = b[0].s[1].x;
-        ((Stg40F4 *)pkt)->y2 = b[0].s[1].y;
-        ((Stg40F4 *)pkt)->x3 = b[1].s[1].x;
-        ((Stg40F4 *)pkt)->y3 = b[1].s[1].y;
-        ((Stg40F4 *)pkt)->tag.word = (((Stg40F4 *)pkt)->tag.word & 0xFF000000) | (*ot & 0xFFFFFF);
-        *ot = (*ot & 0xFF000000) | ((u32)pkt & 0xFFFFFF);
-        pkt += sizeof(Stg40F4);
+        flatPacket = (Stg40F4 *)pkt;
+        flatPacket->tag.b.len = 5;
+        flatPacket->code = 0x28;
+        flatPacket->r0 = 0;
+        flatPacket->g0 = 0;
+        flatPacket->b0 = 0;
+        flatPacket->x0 = a[0].s[1].x;
+        flatPacket->y0 = a[0].s[1].y;
+        flatPacket->x1 = a[1].s[1].x;
+        flatPacket->y1 = a[1].s[1].y;
+        flatPacket->x2 = b[0].s[1].x;
+        flatPacket->y2 = b[0].s[1].y;
+        flatPacket->x3 = b[1].s[1].x;
+        flatPacket->y3 = b[1].s[1].y;
+        flatPacket->tag.word = (flatPacket->tag.word & 0xFF000000) | (*ot & 0xFFFFFF);
+        *ot = (*ot & 0xFF000000) | (P32_SET(pkt) & 0xFFFFFF);
+        pkt += sizeof(*flatPacket);
     }
     return pkt;
 }
@@ -617,11 +625,11 @@ void Stg40_DrawFloorTiles(Stg40FloorWork *w) {
     s32 cols;
     s32 y;
     s32 x;
-    s32 pkt;
+    u8 *pkt;
 
     rows = (Stg40_RootState->viewY & 0x3F) ? 10 : 9;
     cols = ((Stg40_RootState->viewX & 0x3F) ? 10 : 9) + 2 * STG40_WIDE;
-    pkt = Sys_State.packet.addr;
+    pkt = (u8 *)(uptr)Sys_State.packet.addr;
     for (y = 0; y < rows; y++) {
         for (x = 0; x < cols; x++) {
             pkt = Stg40_DrawTileTop(w, pkt, x, y);
@@ -630,7 +638,7 @@ void Stg40_DrawFloorTiles(Stg40FloorWork *w) {
             }
         }
     }
-    Sys_State.packet.addr = pkt;
+    Sys_State.packet.addr = (sptr)pkt;
 }
 
 void Stg40_FloorInit(Actor *a0, s32 *ids) {

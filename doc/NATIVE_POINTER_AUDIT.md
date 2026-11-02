@@ -1,9 +1,9 @@
 # Native Pointer-Width Audit
 
-Audit results for the macOS arm64 native build. The dungeon relocation and room-label flood-fill
-crashes were reproduced and fixed with focused arm64 regression tests. This audit broadens the scan
-to pointer-sized integer narrowing and records remaining candidates and planned fixes. The
-random-hazard buffer candidate has since been fixed after a runtime crash confirmed it.
+Audit results for the macOS arm64 native build. Dungeon relocation, room-label flood-fill,
+random-hazard cleanup, and floor packet cursor crashes were reproduced and fixed with focused arm64
+regression tests. This audit broadens the scan to pointer-sized integer narrowing and records
+remaining candidates and planned fixes.
 
 ## Audit method
 
@@ -73,6 +73,22 @@ and compile/dependency options with `-fsyntax-only`.
 - The arm64 release build and all three focused dungeon pointer tests pass. The full user-driven
   dungeon-entry route still needs to be rerun.
 
+### Floor rendering narrowed the packet cursor to `s32`
+
+- The user's next dungeon-entry trace stopped in `Stg40_DrawTileTop` while writing the flat floor
+  packet: `pkt=269507596` (`0x10105c0c`), with the fault at `0x10105c13`. `Sys_State.packet.addr`
+  is `sptr`, but `Stg40_DrawFloorTiles` copied it into `s32` and both tile helpers took/returned
+  `s32`, discarding the host address's upper bits.
+- The cursor now remains a `u8 *` through `Stg40_DrawFloorTiles`, `Stg40_DrawTileTop`, and
+  `Stg40_DrawTileWalls`. OT link words are converted explicitly with `P32_SET`, retaining the
+  existing low-24-bit link encoding where required.
+- Added `tests/floor_packet_cursor_test.c`, which calls the production tile-top helper with a packet
+  buffer above 4 GB and checks the flat packet write, cursor advance, and OT link. Before the fix,
+  LLDB showed `pkt=0x10000000` and `EXC_BAD_ACCESS` at `0x10000007`; after the fix it prints
+  `floor_packet_cursor_test: PASS`.
+- The arm64 release build and all four focused dungeon pointer tests pass. The full user-driven
+  dungeon-entry route still needs to be rerun.
+
 ## Deferred candidates and planned fixes
 
 These findings are recorded for a later implementation pass. Preserve fixed-width PS1/file/GPU data
@@ -83,7 +99,6 @@ must retain the PS1 32-bit behavior and add a regression test where a focused se
 
 | Candidate | Evidence | Planned fix and validation |
 | --- | --- | --- |
-| Dungeon floor packet cursor — `src/stag4000/floor.c:509-634` | `Sys_State.packet.addr` is `sptr`; `Stg40_DrawFloorTiles` and both helpers take/return `s32`, then cast that narrowed cursor back to packet pointers. OT entries also encode low 24-bit links. | Carry the cursor as a typed byte/packet pointer through the helper chain; use one explicit helper for the intentional OT-link encoding. Add a high-address packet-buffer test that checks writes, cursor advance, and encoded OT link. Retest dungeon rendering. |
 | Side-model cached file pointer — `src/stag4000/obj.c:208-219,253-291` | `CdCacheEntry.data` is `sptr`, but `Stg40_SideModelFor` stores it in `s32 file` and the native-only side-model cache record. | Change the native-only cache member and local to `sptr` or a typed pointer; keep `fileId` separate. Validate cache hit/reload identity and side-model rendering with the cache above 4 GB. |
 | Map background smoothing range — `src/stag2000/mapbg.c:127,159-162,203-218` | `layerStart` is `s32`, assigned from `Sys_State.packet.addr`, then converted through `u32` to pointers passed to `Host_SmoothLayer`. | Retain the start/end cursors as pointer-width values and pass them as pointers without the `u32` round-trip. Keep the OT packet-link conversions explicit. Test smoothing with a packet buffer above 4 GB and verify the range endpoints. |
 | Stag0000 dungeon relocation — `src/stag0000/dungsel.c:23-50,126,403` | `Stg00_RelocDungFile` narrows the loaded file base to `u32`, then dereferences relocated `u32` words as host pointers (`h = (Stg00DungFloor *)*arg0`); related fields are later restored inconsistently. This is the same file-pointer pattern as the fixed STAG4000 crash. | Keep the loaded file base as `uptr`; resolve file-relative offsets against that host base and encode only the 32-bit file words with `P32_SET`. Add a synthetic >4 GB test for the production STAG0000 relocator and test the dungeon-selection route. |
@@ -130,7 +145,7 @@ implementation pass must trace each listed expression to its actual consumer bef
 
 ## Planned implementation order
 
-1. Fix the remaining high-confidence pointer truncations in `floor.c`, `obj.c`, `mapbg.c`, and
+1. Fix the remaining high-confidence pointer truncations in `obj.c`, `mapbg.c`, and
    `stag0000/dungsel.c`, with focused high-address tests and dungeon/map runtime validation.
 2. Resolve legacy text/file-reference sites in `flagtable.c`, `gamedata.c`, `skill.c`, and
    `warppad.c`; verify their fixed-width consumers before changing representation.
@@ -152,7 +167,7 @@ implementation pass must trace each listed expression to its actual consumer bef
 
 ## Current status
 
-The dungeon relocation, room-label flood-fill, and random-hazard allocation fixes and focused
-regressions are verified. The expanded static audit is recorded above; remaining candidate fixes are
-deferred. The actual dungeon route still needs validation after the remaining pointer-width
+The dungeon relocation, room-label flood-fill, random-hazard allocation, and floor packet cursor fixes
+and focused regressions are verified. The expanded static audit is recorded above; remaining candidate
+fixes are deferred. The actual dungeon route still needs validation after the remaining pointer-width
 candidates are addressed.
