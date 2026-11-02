@@ -47,12 +47,19 @@
 #if defined(_WIN32) && defined(_WIN64)
 #define ASSET "DW2-PC-windows-x64.zip"
 #define EXE_NAME "dw2.exe"
+#define UPDATER_BUILD_NOTE "windows-x64"
 #elif defined(__linux__) && defined(__x86_64__)
 #define ASSET "DW2-PC-linux-x64.zip"
 #define EXE_NAME "dw2"
+#define UPDATER_BUILD_NOTE "linux-x64"
+#elif defined(__APPLE__) && (defined(__aarch64__) || defined(__arm64__))
+#define ASSET NULL
+#define EXE_NAME "dw2"
+#define UPDATER_BUILD_NOTE "macos-arm64 packages are not published yet"
 #else
 #define ASSET NULL
 #define EXE_NAME ""
+#define UPDATER_BUILD_NOTE "this platform"
 #endif
 
 /* Public half of the release signing key (the private half is never in the repo). */
@@ -69,6 +76,7 @@ static char g_tag[32];
 static int g_disabled;
 static int g_auto; /* --update-auto: "Update now" without the box (tests) */
 static const char *g_local = DW2_VERSION;
+static int g_no_asset_note_logged;
 
 typedef struct {
     char *data;
@@ -213,8 +221,29 @@ static size_t curl_write(char *p, size_t size, size_t n, void *user) {
     return size * n;
 }
 
+static void *open_libcurl(void) {
+#if defined(__APPLE__)
+    static const char *const names[] = {
+        "libcurl.4.dylib",
+        "/usr/lib/libcurl.4.dylib",
+        "libcurl.dylib",
+    };
+    size_t i;
+
+    for (i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
+        void *lib = dlopen(names[i], RTLD_NOW | RTLD_LOCAL);
+        if (lib != NULL) {
+            return lib;
+        }
+    }
+    return NULL;
+#else
+    return dlopen("libcurl.so.4", RTLD_NOW | RTLD_LOCAL);
+#endif
+}
+
 static int http_get(const char *host, const char *path, int api, Reply *r, ProgressFn prog) {
-    void *lib = dlopen("libcurl.so.4", RTLD_NOW | RTLD_LOCAL);
+    void *lib = open_libcurl();
     void *(*easy_init)(void);
     int (*easy_setopt)(void *, int, ...);
     int (*easy_perform)(void *);
@@ -226,7 +255,11 @@ static int http_get(const char *host, const char *path, int api, Reply *r, Progr
 
     (void)api;
     if (lib == NULL) {
+#if defined(__APPLE__)
+        printf("[update] no libcurl dylib, no update check\n");
+#else
         printf("[update] no libcurl.so.4, no update check\n");
+#endif
         return 0;
     }
     *(void **)&easy_init = dlsym(lib, "curl_easy_init");
@@ -664,7 +697,7 @@ static int update_now(int no_window) {
 
     g_err[0] = 0;
     if (ASSET == NULL) {
-        return fail("no updater for this build%s", "");
+        return fail("no updater for this build (%s)", UPDATER_BUILD_NOTE);
     }
     if (dir == NULL) {
         return fail("no program folder%s", "");
@@ -745,6 +778,10 @@ void Update_Start(int no_window, int force) {
     cleanup();
     if (!force && (g_disabled || no_window || !Settings_Get(SET_UPDATE_CHECK))) {
         return;
+    }
+    if (ASSET == NULL && !g_no_asset_note_logged) {
+        g_no_asset_note_logged = 1;
+        printf("[update] self-updater is disabled for %s; download-page updates only\n", UPDATER_BUILD_NOTE);
     }
     SDL_SetAtomicInt(&g_state, ST_CHECKING);
     g_done = SDL_CreateSemaphore(0);

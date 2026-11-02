@@ -25,6 +25,9 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 - 2026-11-02: **Phase 2 initial implementation started**
   - `host/main.c` now adds a macOS-specific low-stack strategy using `mmap` low-address probing plus `pthread_attr_setstack`.
   - Both headless path and threaded/window path now run `game_main` on a thread whose stack is explicitly reserved below 2 GB (or fail fast with a clear error).
+- 2026-11-02: **Phase 4 partial progress**
+  - `host/update.c` now makes macOS updater state explicit: self-updater disabled with a clear startup log, while update checking continues where libcurl is available.
+  - macOS libcurl loading now probes `.dylib` names; Linux keeps `libcurl.so.4`.
 
 ---
 
@@ -91,7 +94,7 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 
 - [ ] Add macOS updater asset mapping in `host/update.c` (if release artifacts are planned).
 - [ ] Define naming convention for macOS release package.
-- [ ] Verify updater is disabled gracefully until release pipeline is ready.
+- [x] Verify updater is disabled gracefully until release pipeline is ready.
 
 **Exit criteria:** updater behavior is explicit and non-broken on macOS (enabled with valid asset, or clearly disabled).
 

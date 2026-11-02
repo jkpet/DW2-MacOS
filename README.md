@@ -308,7 +308,8 @@ python3 tools/build_native.py --arch arm64 --release # -> build/macos-arm64_rel/
 ```
 
 The macOS path is still being ported. Some steps fail fast with explicit messages while Mach-O
-overlay relink and low-address runtime behavior are being validated.
+overlay relink and low-address runtime behavior are being validated. The in-app updater currently
+stays in download-page mode on macOS (no self-update package yet).
 
 A few data tables are taken from your disc while building (`configs/USA/include_bin.txt`), so
 the build also needs the disc's files extracted to `dumps/disc/` with `dumpsxiso -pt`. Builds
