@@ -63,11 +63,10 @@ s32 Digi_GetAnimFile(s32 arg0, s32 arg1) {
 }
 
 u8 *Digi_GetDefaultName(s32 id) {
-    s32 v;
+    DigiData *data = Digi_FindDataById(id);
+    u8 *base = (u8 *)(uptr)Cd_GetFileOrNull(Digi_GetDataFileId(id));
 
-    v = Digi_FindDataById(id)->nameOffset;
-    v += Cd_GetFileOrNull(Digi_GetDataFileId(id));
-    return (u8 *)v;
+    return base + data->nameOffset;
 }
 
 /* Unnamed: DigiData field_1E (MODELDTx), subtracted with +0x280 from fx Y, lineup sort key,
