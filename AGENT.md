@@ -28,13 +28,16 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 - 2026-11-02: **Phase 4 partial progress**
   - `host/update.c` now makes macOS updater state explicit: self-updater disabled with a clear startup log, while update checking continues where libcurl is available.
   - macOS libcurl loading now probes `.dylib` names; Linux keeps `libcurl.so.4`.
+- 2026-11-02: **Phase 1 verification hooks added**
+  - `host/overlay.c` now validates overlay ranges at startup (bad range and overlap checks) before snapshotting data.
+  - `CMakeLists.txt` now emits a macOS linker map (`build/.../dw2.map`) to inspect Mach-O overlay section layout.
 
 ---
 
 ## Known blockers (current state)
 
 1. **Mach-O overlay relink verification**
-   - `CMakeLists.txt` now has a first Mach-O relink attempt, but section behavior must be validated on real macOS builds.
+   - `CMakeLists.txt` now has a first Mach-O relink attempt plus map output, but section behavior still needs validation on real macOS builds.
 2. **Low-address stack strategy verification**
    - `host/main.c` now has a macOS low-stack path, but success/reliability must be validated on real hardware and scenes.
 3. **macOS toolchain/SDK dependency**
@@ -64,6 +67,9 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 - [ ] Keep current overlay data reset semantics:
   - Preserve section bracketing behavior used by `host/overlay.c`.
   - If section naming differs on Mach-O, adapt marker/export strategy accordingly.
+- [x] Add overlay verification hooks for bring-up diagnostics:
+  - runtime range validation in `host/overlay.c`
+  - linker map output on macOS (`dw2.map`)
 - [ ] Ensure SDL3 package discovery works on macOS:
   - Prefer CMake config package from Homebrew or explicit path.
 

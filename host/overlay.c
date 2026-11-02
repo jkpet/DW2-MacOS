@@ -66,19 +66,51 @@ static OvlRange ovl_ranges[7] = {
     OVL_RANGE(stag3000), OVL_RANGE(stag1100), OVL_RANGE(stag3500),
 };
 
+static void check_ovl_ranges(void) {
+    int i, j;
+
+    for (i = 0; i < 7; i++) {
+        const OvlRange *a = &ovl_ranges[i];
+
+        if (a->end <= a->start) {
+            fprintf(stderr, "[host] overlay %s: bad data range %p..%p\n", a->name, (void *)a->start, (void *)a->end);
+            exit(1);
+        }
+    }
+    for (i = 0; i < 7; i++) {
+        const OvlRange *a = &ovl_ranges[i];
+
+        for (j = i + 1; j < 7; j++) {
+            const OvlRange *b = &ovl_ranges[j];
+            u8 *start = a->start > b->start ? a->start : b->start;
+            u8 *end = a->end < b->end ? a->end : b->end;
+
+            if (start < end) {
+                fprintf(stderr, "[host] overlay ranges overlap: %s %p..%p and %s %p..%p\n", a->name, (void *)a->start,
+                        (void *)a->end, b->name, (void *)b->start, (void *)b->end);
+                exit(1);
+            }
+        }
+    }
+}
+
 /* Before any game code runs: keep the initial bytes of every overlay range. */
 void Host_OvlSnapshot(void) {
     int i;
 
+    check_ovl_ranges();
+#ifdef __APPLE__
+    printf("[host] overlay layout source: Mach-O section$start/section$end markers\n");
+#endif
     for (i = 0; i < 7; i++) {
         OvlRange *r = &ovl_ranges[i];
         size_t n = (size_t)(r->end - r->start);
 
-        if (r->end <= r->start) {
-            fprintf(stderr, "[host] overlay %s: bad data range %p..%p\n", r->name, (void *)r->start, (void *)r->end);
+        r->pristine = malloc(n);
+        if (r->pristine == NULL) {
+            fprintf(stderr, "[host] overlay %s: out of memory for 0x%X bytes\n", r->name, (unsigned)n);
             exit(1);
         }
-        r->pristine = malloc(n);
         memcpy(r->pristine, r->start, n);
         printf("[host] overlay %d %s: data+bss %p..%p (0x%X bytes)\n", i, r->name, (void *)r->start, (void *)r->end,
                (unsigned)n);

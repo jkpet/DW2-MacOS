@@ -247,8 +247,9 @@ if(WIN32)
         $<$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>:-Wl,--disable-high-entropy-va>
         -Wl,-Map=${CMAKE_BINARY_DIR}/dw2.map)
 elseif(APPLE)
-    # macOS: temporary scaffolding while low-address and overlay relink behavior are ported.
+    # macOS: bring-up path. Keep a linker map for overlay section verification.
     target_link_libraries(dw2 PRIVATE m ${CMAKE_DL_LIBS})
+    target_link_options(dw2 PRIVATE -Wl,-map,${CMAKE_BINARY_DIR}/dw2.map)
 else()
     # ELF: no PIE, first segment at 0x01000000 (same window as the PE builds).
     # dl: PR.30 update check loads libcurl.so.4 at run time (no link-time dependency).
