@@ -20,8 +20,11 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
   - `CMakeLists.txt` now separates Linux and macOS link behavior (`elseif(APPLE)` branches).
   - macOS overlay relink now has an initial Mach-O implementation attempt (`ld -r` + `-rename_section` for `__data`/`__bss` per overlay).
   - `host/overlay.c` now has a macOS marker path based on `section$start$...` / `section$end$...` symbols for the relinked overlay sections.
-  - `host/main.c` now fails fast on macOS at runtime thread start with an explicit Phase 2 message instead of relying on Linux-only `MAP_32BIT` code paths.
+  - `host/main.c` no longer uses Linux-only `MAP_32BIT` paths on macOS.
   - `tools/build_native.py` docs now mention macOS arm64 bring-up status and expected build directory.
+- 2026-11-02: **Phase 2 initial implementation started**
+  - `host/main.c` now adds a macOS-specific low-stack strategy using `mmap` low-address probing plus `pthread_attr_setstack`.
+  - Both headless path and threaded/window path now run `game_main` on a thread whose stack is explicitly reserved below 2 GB (or fail fast with a clear error).
 
 ---
 

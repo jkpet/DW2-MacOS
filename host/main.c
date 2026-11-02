@@ -8,6 +8,9 @@
 #if !defined(_WIN32) && !defined(__APPLE__)
 #include <sys/mman.h>
 #include <ucontext.h>
+#elif defined(__APPLE__)
+#include <pthread.h>
+#include <sys/mman.h>
 #endif
 
 #include "common.h"
@@ -342,29 +345,135 @@ static void run_on_low_stack(void) {
 }
 #endif
 
+#ifdef __APPLE__
+/* macOS: keep the game stack below 2 GB for the same int<->pointer assumptions as Linux/Windows.
+ * There is no MAP_32BIT, so reserve stack memory with low-address hints and run game_main on a
+ * pthread with that stack. */
+#define GAME_STACK_SIZE (8u << 20)
+#define LOW_STACK_MIN 0x10000000u
+#define LOW_STACK_MAX 0x78000000u
+#define LOW_STACK_STEP (16u << 20)
+
+typedef struct {
+    void *stack;
+} LowStackThreadData;
+
+static void *alloc_low_stack(void) {
+    uintptr_t addr;
+
+    for (addr = LOW_STACK_MIN; addr + GAME_STACK_SIZE <= LOW_STACK_MAX; addr += LOW_STACK_STEP) {
+        void *p = mmap((void *)addr, GAME_STACK_SIZE, PROT_READ | PROT_WRITE,
+#ifdef MAP_FIXED_NOREPLACE
+                       MAP_PRIVATE | MAP_ANON | MAP_FIXED_NOREPLACE,
+#else
+                       MAP_PRIVATE | MAP_ANON,
+#endif
+                       -1, 0);
+
+        if (p == MAP_FAILED) {
+            continue;
+        }
+        if ((uintptr_t)p < 0x80000000u) {
+            return p;
+        }
+        munmap(p, GAME_STACK_SIZE);
+    }
+    return NULL;
+}
+
+static void *game_main_thread_start(void *arg) {
+    (void)arg;
+    game_main();
+    return NULL;
+}
+
+static void run_on_low_stack_macos(void) {
+    pthread_t th;
+    pthread_attr_t attr;
+    LowStackThreadData data = { 0 };
+    int rc;
+
+    data.stack = alloc_low_stack();
+    if (data.stack == NULL) {
+        fprintf(stderr, "[host] macOS: could not reserve a game stack below 2 GB\n");
+        exit(1);
+    }
+    printf("[host] macOS low stack %p..%p\n", data.stack, (u8 *)data.stack + GAME_STACK_SIZE);
+    rc = pthread_attr_init(&attr);
+    if (rc != 0) {
+        fprintf(stderr, "[host] pthread_attr_init failed (%d)\n", rc);
+        exit(1);
+    }
+    rc = pthread_attr_setstack(&attr, data.stack, GAME_STACK_SIZE);
+    if (rc != 0) {
+        fprintf(stderr, "[host] pthread_attr_setstack failed (%d)\n", rc);
+        exit(1);
+    }
+    rc = pthread_create(&th, &attr, game_main_thread_start, &data);
+    pthread_attr_destroy(&attr);
+    if (rc != 0) {
+        fprintf(stderr, "[host] pthread_create failed (%d)\n", rc);
+        exit(1);
+    }
+    pthread_join(th, NULL);
+}
+#endif
+
 /* PG.10 b3: the game thread; check_window checks its stack too (Windows: the low range, as for
  * the main thread; Linux: the same switch to the MAP_32BIT stack). */
+#ifndef __APPLE__
 static HOST_ENTRY int game_thread(void *arg) {
     (void)arg;
 #ifdef _WIN32
     game_main();
-#elif defined(__APPLE__)
-    fprintf(stderr, "[host] macOS stack strategy not implemented yet (see AGENT.md Phase 2)\n");
-    exit(1);
 #else
     run_on_low_stack();
 #endif
     return 0;
 }
+#endif
 
 /* With a visible window the game gets its own thread; the main thread keeps the window. */
 static void run_threaded(void) {
-    SDL_PropertiesID props = SDL_CreateProperties();
-    SDL_Thread *t;
-
     Host_SetThreaded(1);
     init_req = SDL_CreateSemaphore(0);
     init_done = SDL_CreateSemaphore(0);
+#ifdef __APPLE__
+    LowStackThreadData data = { 0 };
+    /* SDL's thread API does not expose stack address control; run the game thread with pthread
+     * so its stack can be forced below 2 GB. */
+    {
+        pthread_t th;
+        pthread_attr_t attr;
+        int rc;
+
+        data.stack = alloc_low_stack();
+        if (data.stack == NULL) {
+            fprintf(stderr, "[host] game thread: no low stack below 2 GB on macOS\n");
+            exit(1);
+        }
+        printf("[host] macOS threaded low stack %p..%p\n", data.stack, (u8 *)data.stack + GAME_STACK_SIZE);
+        rc = pthread_attr_init(&attr);
+        if (rc != 0) {
+            fprintf(stderr, "[host] game thread: pthread_attr_init failed (%d)\n", rc);
+            exit(1);
+        }
+        rc = pthread_attr_setstack(&attr, data.stack, GAME_STACK_SIZE);
+        if (rc != 0) {
+            fprintf(stderr, "[host] game thread: pthread_attr_setstack failed (%d)\n", rc);
+            exit(1);
+        }
+        rc = pthread_create(&th, &attr, game_main_thread_start, &data);
+        pthread_attr_destroy(&attr);
+        if (rc != 0) {
+            fprintf(stderr, "[host] game thread: pthread_create failed (%d)\n", rc);
+            exit(1);
+        }
+        pthread_detach(th);
+    }
+#else
+    SDL_Thread *t;
+    SDL_PropertiesID props = SDL_CreateProperties();
     SDL_SetPointerProperty(props, SDL_PROP_THREAD_CREATE_ENTRY_FUNCTION_POINTER, (void *)game_thread);
     SDL_SetStringProperty(props, SDL_PROP_THREAD_CREATE_NAME_STRING, "game");
     SDL_SetNumberProperty(props, SDL_PROP_THREAD_CREATE_STACKSIZE_NUMBER, 16 << 20);
@@ -375,6 +484,7 @@ static void run_threaded(void) {
         exit(1);
     }
     SDL_DetachThread(t);
+#endif
     SDL_WaitSemaphore(init_req);
     Host_InitWindow(0);
     SDL_SignalSemaphore(init_done);
@@ -551,6 +661,8 @@ HOST_ENTRY int main(int argc, char **argv) {
     }
 #ifdef _WIN32
     game_main();
+#elif defined(__APPLE__)
+    run_on_low_stack_macos();
 #else
     run_on_low_stack();
 #endif
