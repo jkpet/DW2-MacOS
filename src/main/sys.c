@@ -38,6 +38,7 @@
 #include "main/savedata.h"
 #include "main/mem.h"
 #include "main/pad.h"
+#include "main/sys.h"
 
 /* RCS id of the original sys.c. */
 const char Sys_RcsId[] = "$Id: sys.c,v 1.140 1998/01/12 07:52:27 noda Exp yos $";

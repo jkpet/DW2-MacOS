@@ -32,6 +32,7 @@
 #include "main/shadow.h"
 #include "main/skill.h"
 #include "main/anim.h"
+#include "main/model.h"
 
 ActorModel *Gfx_AttachModel(Actor *a0, s32 id) {
     s32 fresh = 0;

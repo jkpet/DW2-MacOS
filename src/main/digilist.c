@@ -12,6 +12,7 @@
 #include "main/status.h"
 #include "main/itemuse.h"
 #include "main/itemmenu.h"
+#include "main/digilist.h"
 #ifdef DW2_NATIVE
 /* declared with its return type (an implicit int declaration reads the unextended high bits
  * natively) */

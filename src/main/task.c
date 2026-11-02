@@ -22,6 +22,9 @@ TaskFindFilter Task_FindFilter;
 
 /* Defined further down. */
 void Task_DefaultDestroy(Actor *arg0);
+/* Legacy non-prototype declarations used by dead/retail call sites above their definitions. */
+void Task_Free();
+void Task_NextState0();
 
 void Task_Create(u32 id, s32 *slot, s32 arg) {
     TaskDesc *d;

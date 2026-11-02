@@ -1,5 +1,6 @@
 #include "common.h"
 #include "stag4000/stag4000.h"
+#include "stag4000/stag4000_funcs.h"
 
 /* Task callbacks this unit defines further down (the descriptors come first). Not
  * stag4000_funcs.h: Stg40_SetupStage calls Stg40_InitDungeonEntry before its K&R definition. */
