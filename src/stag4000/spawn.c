@@ -135,7 +135,7 @@ void Stg40_SpawnEnemyParties(void) {
             break;
         }
         if (k != 0) {
-            id = k[((Stg40DungFloor *)Stg40_RootState->floorMap)->enemySets];
+            id = k[P32(Stg40DungFloor, Stg40_RootState->floorMap)->enemySets];
             Enemy_GetSetSummary(id, &out);
             c = out.mapDigiId;
             Stg40_AddEntity(1, 0, c, 0, r->x, r->y);
@@ -175,7 +175,7 @@ void Stg40_SpawnEnemyParties(void) {
 }
 
 void Stg40_SpawnChests(void) {
-    Stg40ChestDef *pos = ((Stg40DungFloor *)Stg40_RootState->floorMap)->chests;
+    Stg40ChestDef *pos = P32(Stg40DungFloor, Stg40_RootState->floorMap)->chests;
     Stg40Drop *r;
     s32 k;
     u8 *d;
@@ -373,7 +373,7 @@ void Stg40_SpawnHazardAtRandom(u8 (*tbl)[2], s32 a1, s32 a2) {
 
 const Stg40Ids5 Stg40_RandomHazardKinds = { { 4, 5, 6, 7, 8 } };
 void Stg40_SpawnRandomHazards(void) {
-    Stg40DungFloor *m = (Stg40DungFloor *)Stg40_RootState->floorMap;
+    Stg40DungFloor *m = P32(Stg40DungFloor, Stg40_RootState->floorMap);
     Stg40Ids5 ids = Stg40_RandomHazardKinds;
     Stg40MapGen *g = m->hazardGroups;
     s32 buf;

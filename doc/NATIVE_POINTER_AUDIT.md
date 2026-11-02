@@ -1,35 +1,41 @@
 # Native Pointer-Width Audit Candidates
 
-Report-only findings from the macOS arm64 native build. These are candidates for future
-investigation; none of the dungeon/menu paths below has yet been confirmed by a runtime
-reproduction.
+Findings from the macOS arm64 native build. The dungeon relocation crash was reproduced from the
+user's trace and fixed with a focused regression test. The other listed candidates still need
+runtime investigation.
 
 ## Audit method
 
-Used the release build's Ninja compilation database and Clang's pointer-size diagnostics
-(`-Wpointer-to-int-cast` and `-Wint-to-pointer-cast`) with the existing arm64 compile flags, in
-`-fsyntax-only` mode. Checked 163 C translation units under `src/`; all passed syntax checking.
+The initial scan used the release build's Ninja compilation database and Clang's pointer-size
+diagnostics (`-Wpointer-to-int-cast` and `-Wint-to-pointer-cast`) with the existing arm64 compile
+flags, in `-fsyntax-only` mode. Checked 163 C translation units under `src/`; all passed syntax
+checking.
 The pass emitted 253 pointer-to-integer and 73 integer-to-pointer diagnostic occurrences across
 70 files. These are diagnostic occurrences, not unique bugs: intentional PS1 ABI representations,
 GPU packet links, and known recovery paths account for many matches.
 
-## Higher-priority candidates
+## Resolved finding
 
-### 1. Dungeon `floorMap` is stored as a 32-bit relocated pointer, then directly cast back
+### Dungeon relocation dereferenced 32-bit file pointers as host pointers
 
-- `include/stag4000/stag4000.h:321` declares `floorMap` as `s32`.
-- `src/stag4000/dungfile.c:71-89` relocates file-relative values using a `u32` base. At line 26,
-  `Stg40_LoadDungFile` stores an entry from that relocated table in `floorMap`.
-- The value is directly cast to `Stg40DungFloor *` at `src/stag4000/dungfile.c:45`,
-  `src/stag4000/cellgrid.c:71`, `src/stag4000/spawn.c:138,178,376`, and
-  `src/stag4000/stag4000.c:125`.
-- The same dungeon code uses `P32` for relocated members such as `m->layouts`, `m->name`, and
-  `layout->spawnPoints`. That suggests `floorMap` may need the same native pointer restoration
-  before dereference.
-- **Follow-up:** exercise dungeon loading and check that the restored pointer falls inside the
-  loaded dungeon file; inspect all `floorMap` reads for the appropriate typed accessor.
+- The user-reported crash loaded the file at `0x110ad0d8`, then faulted at `0x100ad714` while
+  writing `m->name` in `src/stag4000/dungfile.c:84`. The fault address is the relocated floor
+  structure's low-32-bit address without the host region.
+- `Stg40_RelocDungFile` now restores the relocated `Stg40DungFloorRel *` and each
+  `Stg40DungLayoutRel *` through `P32` before dereferencing them.
+- The loaded `floorMap` is also a legacy 32-bit pointer (`include/stag4000/stag4000.h:321`). Its
+  direct casts in `dungfile.c`, `cellgrid.c`, `spawn.c`, and `stag4000.c` now use `P32` as well.
+- Added `tests/dungfile_reloc_test.c`, which calls the production relocation function on a synthetic
+  file buffer above 4 GB. Before the fix LLDB stopped at `EXC_BAD_ACCESS` on `0x10000020`; after
+  the fix it prints `dungfile_reloc_test: PASS`.
+- The arm64 release build succeeds after the fix (incremental build: 57 warnings across 6 files).
+  A headless movie-enabled startup smoke completed 600 requested VBlank waits and exited normally.
+- **Remaining validation:** the synthetic test verifies the real relocator and pointer restoration;
+  the full user-driven dungeon-entry route has not yet been rerun.
 
-### 2. Dungeon floor rendering narrows the packet cursor to `s32`
+## Open candidates
+
+### 1. Dungeon floor rendering narrows the packet cursor to `s32`
 
 - `Sys_State.packet.addr` is `sptr` in the native layout (`include/main/156C.h:2284-2286`).
 - `src/stag4000/floor.c:615-633` copies it into `s32 pkt`, passes that value through
@@ -41,7 +47,7 @@ GPU packet links, and known recovery paths account for many matches.
 - **Follow-up:** run a dungeon-floor render under LLDB and compare `packet.addr` with `pkt` at the
   first helper call.
 
-### 3. Room-label flood fill narrows a heap allocation to `s32`
+### 2. Room-label flood fill narrows a heap allocation to `s32`
 
 - `Mem_Alloc` returns `sptr` (`src/main/mem.c:143-148`), which is pointer-sized in the native
   build.
@@ -54,7 +60,7 @@ GPU packet links, and known recovery paths account for many matches.
 
 ## Additional candidate
 
-### 4. Digimon-transfer rows round-trip pointers through fixed-width record fields
+### 3. Digimon-transfer rows round-trip pointers through fixed-width record fields
 
 - `MenuDigiPickRow.record` and `MenuCtx.transferRecord` are fixed `s32` fields
   (`include/main/156C.h:1234,1762-1769`).
@@ -76,5 +82,5 @@ GPU packet links, and known recovery paths account for many matches.
 
 ## Current status
 
-No code changes were made as part of this audit. The strongest candidates above have not yet been
-tested by a runtime route into the dungeon or transfer-pick flows.
+The relocation fix and test are in the working tree. The open candidates above have not yet been
+confirmed by runtime reproduction.

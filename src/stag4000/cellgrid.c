@@ -68,7 +68,7 @@ void Stg40_FillCellGrid(void) {
     u16 v;
 
     cell = (Stg40Cell *)g->cells;
-    map = (Stg40DungFloor *)Stg40_RootState->floorMap;
+    map = P32(Stg40DungFloor, Stg40_RootState->floorMap);
     dims = g->floorHdr;
     cols = dims->cols;
     rows = dims->rows;

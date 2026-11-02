@@ -42,7 +42,7 @@ void Stg40_PickFloorLayout(void) {
 void Stg40_ApplyFloorLayout(void) {
     Stg40B60 *b = Stg40_RootState;
     DungState *g = Dung_StatePtr;
-    Stg40DungFloor *m = (Stg40DungFloor *)b->floorMap;
+    Stg40DungFloor *m = P32(Stg40DungFloor, b->floorMap);
     u8 *src;
     u8 *dst;
 
@@ -80,12 +80,12 @@ s32 Stg40_RelocDungFile(s32 *p) {
     while (*tbl != 0) {
         if (*tbl < base) {
             *tbl += base;
-            m = (Stg40DungFloorRel *)*tbl;
+            m = P32(Stg40DungFloorRel, *tbl);
             m->name += base;
             for (i = 0; i < 8; i++) {
                 q = &m->layouts[i];
                 *q += base;
-                r = (Stg40DungLayoutRel *)*q;
+                r = P32(Stg40DungLayoutRel, *q);
                 Stg40_RelocPtr(&r->offsets[0], base);
                 Stg40_RelocPtr(&r->offsets[1], base);
                 Stg40_RelocPtr(&r->offsets[2], base);
