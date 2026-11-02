@@ -711,7 +711,7 @@ void Text_UpdateAllBoxes(Actor *a0) {
             } while (r->charDelay == 0 || ++line < r->visibleChars);
         }
     } while (++row < 0x32);
-    Sys_State.packet.addr = (s32)pkt;
+    Sys_State.packet.addr = (sptr)pkt;
 }
 
 void Text_Close(s32 *slot) {

@@ -130,7 +130,7 @@ extern void DrawSync();
 extern void LoadImage();
 #endif
 extern void Gpu_ClearScreens(void);
-extern void Gfx_DrawPartsNoResScale(s32);
+extern void Gfx_DrawPartsNoResScale(void *);
 #ifndef DW2_NATIVE /* Psy-Q: psyq/ headers in the native build */
 extern void StCdInterrupt(void);
 #endif

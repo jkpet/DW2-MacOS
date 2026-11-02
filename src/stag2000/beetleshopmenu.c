@@ -74,5 +74,5 @@ void Stg20_BeetleShopMenuDraw(Actor *a) {
             q->y = -0x62;
         }
     }
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }

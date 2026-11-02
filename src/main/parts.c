@@ -69,10 +69,10 @@ void Gfx_DrawPartSprites(GfxPartSprite *s, GfxPartOTag *ot) {
         ot->addr = (u32)p;
         p = (GfxPartPkt *)(&p->t + 1);
     }
-    Sys_State.packet.addr = (s32)p;
+    Sys_State.packet.addr = (sptr)p;
 }
 
-void Gfx_DrawPartQuadsRot(void *arg0, void *arg1, s32 arg2, s32 arg3) {
+void Gfx_DrawPartQuadsRot(void *arg0, void *arg1, GfxPartOTag *arg2, s32 arg3) {
     GfxPartCell *e;
     GfxPartTexSlot *t;
     GfxPartPolyFT4 *p;
@@ -146,11 +146,11 @@ void Gfx_DrawPartQuadsRot(void *arg0, void *arg1, s32 arg2, s32 arg3) {
             p->v[2].y *= 2;
             p->v[3].y *= 2;
         }
-        p->tag.addr = ((GfxPartOTag *)arg2)->addr;
-        ((GfxPartOTag *)arg2)->addr = (u32)p;
+        p->tag.addr = arg2->addr;
+        arg2->addr = (u32)p;
         p++;
     }
-    Sys_State.packet.addr = (s32)p;
+    Sys_State.packet.addr = (sptr)p;
 }
 
 void Gfx_HidePartsByMask(GfxPartMaskView *p, s32 mask) {
@@ -221,7 +221,7 @@ void Gfx_SetPartsNumber(GfxPart *p, s32 mask, s32 n, s32 val) {
     }
 } /* identity matrix */
 extern void Gfx_DrawPartSprites(GfxPartSprite *, GfxPartOTag *);
-extern void Gfx_DrawPartQuadsRot(void *, void *, s32, s32);
+extern void Gfx_DrawPartQuadsRot(void *, void *, GfxPartOTag *, s32);
 #ifndef DW2_NATIVE /* Psy-Q: psyq/ headers in the native build */
 extern void ScaleMatrix(Obj209 *, s32 *);
 #endif
@@ -229,7 +229,7 @@ extern void ScaleMatrix(Obj209 *, s32 *);
 void Gfx_DrawPartsEx(void *arg0, s32 arg1) {
     Rec1D6B4 *s2 = (Rec1D6B4 *)arg0;
     s32 s3 = 0;
-    s32 s4;
+    GfxPartOTag *s4;
 
     if (arg1 != 0) {
         s32 f114 = Sys_State.centerY.s;
@@ -243,7 +243,7 @@ void Gfx_DrawPartsEx(void *arg0, s32 arg1) {
         return;
     }
     do {
-        s4 = Sys_State.otLayers.addr[s2->otLayer];
+        s4 = (GfxPartOTag *)Sys_State.otLayers.addr[s2->otLayer];
         if (s2->visible != 0) {
             if (s2->unscaled != 0) {
                 if (s3 != 0) {
@@ -253,7 +253,7 @@ void Gfx_DrawPartsEx(void *arg0, s32 arg1) {
                     s2->scaleX = 0x1000;
                     s2->scaleY = 0x1000;
                 } else {
-                    Gfx_DrawPartSprites((GfxPartSprite *)s2, (GfxPartOTag *)s4);
+                    Gfx_DrawPartSprites((GfxPartSprite *)s2, s4);
                     goto Ladv;
                 }
             }
@@ -275,10 +275,10 @@ void Gfx_DrawPartsEx(void *arg0, s32 arg1) {
     } while (s2->fileId != 0);
 }
 
-void Gfx_DrawParts(s32 arg0) {
+void Gfx_DrawParts(void *arg0) {
     Gfx_DrawPartsEx(arg0, 1);
 }
 
-void Gfx_DrawPartsNoResScale(s32 arg0) {
+void Gfx_DrawPartsNoResScale(void *arg0) {
     Gfx_DrawPartsEx(arg0, 0);
 }

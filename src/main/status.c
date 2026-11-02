@@ -133,6 +133,6 @@ void Menu_StatusDraw(Actor *actor) {
             Gfx_HidePartsByMask(obj, 0xFFFF);
         }
         Gfx_SetPartsScale((GfxPartScaleView *)obj, 0x1000, w->scale);
-        Gfx_DrawParts((s32)obj);
+        Gfx_DrawParts(obj);
     }
 }

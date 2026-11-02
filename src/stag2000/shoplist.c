@@ -540,10 +540,10 @@ void Stg20_ShopListDraw(Actor *a) {
     }
     Gfx_SetPartsNumber(p, 4, 2, w->page + 1);
     Gfx_SetPartsNumber(p, 8, 2, w->pages + 1);
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
     if (Stg20_MenuState.sellMode == 0) {
         p = (GfxPart *)Cd_GetFileEntry(0xDD60003);
         Gfx_SetPartsNumber(p, 2, 2, w->ownedCount);
-        Gfx_DrawParts((s32)p);
+        Gfx_DrawParts(p);
     }
 }

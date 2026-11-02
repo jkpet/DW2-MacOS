@@ -66,7 +66,7 @@ void Gfx_LoadTexSlotImage(GfxTexSlot *a0) {
             clut.y = a0->index + 0x1E0;
             clut.w = 0x100;
             clut.h = 1;
-            LoadImage((s32)&clut, (s32)((TimBlk *)p + 1));
+            LoadImage(&clut, (u_long *)((TimBlk *)p + 1));
         }
         p = (u32 *)((u8 *)p + *p);
     }
@@ -74,7 +74,7 @@ void Gfx_LoadTexSlotImage(GfxTexSlot *a0) {
     img.y = a0->vramY;
     img.w = ((TimBlk *)p)->rect.w;
     img.h = ((TimBlk *)p)->rect.h;
-    LoadImage((s32)&img, (s32)((TimBlk *)p + 1));
+    LoadImage(&img, (u_long *)((TimBlk *)p + 1));
 }
 
 GfxTexSlot *Gfx_FindOrLoadTexSlot(s32 id) {

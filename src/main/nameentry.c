@@ -354,5 +354,5 @@ void Menu_NameEntryDrawParts(Actor *a) {
             p->visible = 1;
         }
     }
-    Gfx_DrawParts((s32)base);
+    Gfx_DrawParts(base);
 }

@@ -319,7 +319,7 @@ extern Halves Stg11_TransferCountPos;
 s32 Stg11_CardAsyncOp(Stg11SaveWork *arg0, s32 arg1, s32 arg2);
 s32 Stg11_CardFileOp(Stg11SaveWork *arg0, s32 arg1, s32 arg2);
 extern s32 Math_CycleRange(s32, s32, s32, s32);
-extern void Gfx_DrawParts(s32 arg0);
+extern void Gfx_DrawParts(void *arg0);
 extern void Menu_SetPartsGridPos(void *, s32, s32 *, s16 *);
 extern void Gfx_SetPartsPalette(GfxPart *, s32, s32);
 extern void Gfx_HidePartsByMask(GfxPartMaskView *, s32);

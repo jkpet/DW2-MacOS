@@ -85,7 +85,7 @@ extern void Text_CloseArray(s32 *arg0, s32 arg1);
 #ifndef DW2_NATIVE /* Psy-Q: psyq/ headers in the native build */
 extern s32 CdControlF(s32, s32);
 #endif
-extern void Gfx_DrawParts(s32);
+extern void Gfx_DrawParts(void *);
 extern void Gfx_SetPartsNumber(GfxPart *, s32, s32, s32);
 extern void Anim_SetModelAnim(Actor *, s32);
 extern ActorModel *Gfx_AttachModel(Actor *, s32);

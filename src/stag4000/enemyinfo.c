@@ -113,7 +113,7 @@ void Stg40_EnemyInfoDraw(Actor *a0) {
                 Gfx_HidePartsByMask((GfxPartMaskView *)p, 0);
                 Gfx_SetPartsScale((GfxPartScaleView *)p, 0x1000, w->field_0);
             }
-            Gfx_DrawParts((s32)p);
+            Gfx_DrawParts(p);
         }
     }
 }

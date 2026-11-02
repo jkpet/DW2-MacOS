@@ -1102,6 +1102,6 @@ void Stg11_CardMenuDraw(Actor *arg0) {
         p->y3 = 0x35;
         p->tag.word = (p->tag.word & 0xFF000000) | (*ot & 0xFFFFFF);
         *ot = (*ot & 0xFF000000) | ((u32)p & 0xFFFFFF);
-        Sys_State.packet.addr = (s32)(p + 1);
+        Sys_State.packet.addr = (sptr)(p + 1);
     }
 }

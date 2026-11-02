@@ -27,5 +27,5 @@ void Stg20_ShopBgDraw(Actor *a) {
             q->palette = Math_CycleRange(a->elapsed, 6, 0, 7);
         }
     }
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }

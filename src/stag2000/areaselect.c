@@ -702,7 +702,7 @@ void Stg20_AreaSelectDraw(Actor *a) {
                 q->y = w->recs[i].cell.y;
             }
         }
-        Gfx_DrawParts((s32)p);
+        Gfx_DrawParts(p);
     }
     p = (GfxPart *)Cd_GetFileEntry(0x4100000);
     for (q = p; q->fileId != 0; q++) {
@@ -714,7 +714,7 @@ void Stg20_AreaSelectDraw(Actor *a) {
     }
     Gfx_HidePartsByMask((GfxPartMaskView *)p, Stg20_AreaIconHideMasks[Sys_State.gameMode - 0x32A]);
     do {
-        Gfx_DrawParts((s32)p);
+        Gfx_DrawParts(p);
     } while (0);
     p = (GfxPart *)Cd_GetFileEntry(Stg20_AreaScreenPartsIds[Sys_State.gameMode - 0x32A]);
     for (q = p; q->fileId != 0; q++) {
@@ -722,7 +722,7 @@ void Stg20_AreaSelectDraw(Actor *a) {
             q->palette = Math_CycleRange(a->elapsed, 4, 0, 0xF);
         }
     }
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }
 
 void Stg20_AreaSelectShowName(Actor *a, s32 open) {

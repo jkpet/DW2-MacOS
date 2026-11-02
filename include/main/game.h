@@ -145,7 +145,7 @@ extern s32 func_8001E134(void);
 extern s32 *Item_GetEffectRec(s32);
 extern s32 Text_WinFrameParts[];
 extern void Gfx_SetPartsScale(GfxPartScaleView *, s32, s32);
-extern void Gfx_DrawParts(s32);
+extern void Gfx_DrawParts(void *);
 extern void Text_Open(void *, TextOpenArgs *);
 extern void Flag_Set(s32, s32);
 extern void Gfx_SetPartsNumber(GfxPart *, s32, s32, s32);

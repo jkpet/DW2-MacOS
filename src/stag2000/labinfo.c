@@ -188,5 +188,5 @@ void Stg20_LabInfoDraw(Actor *a) {
     Gfx_SetPartsNumber(p, 0x200, 8, w->digi->exp);
     Gfx_SetPartsNumber(p, 0x400, 8, Digi_GetExpToNextLevel(w->digi->level, w->digi->maxLevel, w->digi->exp));
     Gfx_SetPartsNumber(p, 0x800, 2, w->digi->dp);
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }

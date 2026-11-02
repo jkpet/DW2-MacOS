@@ -124,7 +124,7 @@ void Text_PortraitDraw(Actor *a0) {
             }
         }
     }
-    Gfx_DrawParts((s32)e);
+    Gfx_DrawParts(e);
     Gfx_FindOrLoadImageSlot(w->field_0, &tex, &pos, &clut);
     s = 1;
     if (w->field_4 != 0) {
@@ -158,7 +158,7 @@ void Text_PortraitDraw(Actor *a0) {
             p++;
         }
     }
-    Sys_State.packet.addr = (s32)p;
+    Sys_State.packet.addr = (sptr)p;
 }
 
 void Text_PortraitSetImage(Actor *arg0, s32 arg1) {

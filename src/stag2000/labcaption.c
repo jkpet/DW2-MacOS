@@ -53,5 +53,5 @@ void Stg20_LabCaptionDraw(void) {
             }
         }
     }
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }

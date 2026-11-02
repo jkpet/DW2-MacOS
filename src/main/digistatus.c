@@ -207,7 +207,7 @@ void Menu_DigiStatusDraw(Actor *actor) {
             Gfx_SetPartsNumber(obj, 0x200, 8, rec->exp);
             Gfx_SetPartsNumber(obj, 0x400, 8, Digi_GetExpToNextLevel(rec->level, rec->maxLevel, rec->exp));
             Gfx_SetPartsScale((GfxPartScaleView *)obj, 0x1000, work->ramp);
-            Gfx_DrawParts((s32)obj);
+            Gfx_DrawParts(obj);
         }
     }
     work->field_148 = 0;

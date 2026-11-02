@@ -577,7 +577,7 @@ extern void Anim_SetModelAnim(Actor *, s32);
 extern s32 func_8001E8D0(s32 id);
 extern s32 Skill_GetRank(s32 id);
 extern void Snd_PlayById(s32, s32);
-extern void Gfx_DrawParts(s32 arg0);
+extern void Gfx_DrawParts(void *arg0);
 extern ActorModel *Gfx_AttachModel(Actor *, s32);
 extern void Actor_UpdateTransform(Actor *);
 extern void Gfx_CalcModelBoneMatrices(Actor *);

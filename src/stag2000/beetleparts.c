@@ -636,10 +636,10 @@ void Stg20_BeetlePartsDraw(Actor *a) {
     Stg20_CalcBeetleHideMasks(a);
     p = (GfxPart *)Cd_GetFileEntry(Stg20_BodyDiagramParts[0][w->bodyType]);
     Gfx_HidePartsByMask((GfxPartMaskView *)p, w->hideMask0);
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
     p = (GfxPart *)Cd_GetFileEntry(Stg20_BodyDiagramParts[1][w->bodyType]);
     Gfx_HidePartsByMask((GfxPartMaskView *)p, w->hideMask1);
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
     p = (GfxPart *)Cd_GetFileEntry(0xC93000A);
     for (q = p; q->fileId != 0; q++) {
         switch (w->frameMode) {
@@ -661,8 +661,8 @@ void Stg20_BeetlePartsDraw(Actor *a) {
             q->visible = 0;
         }
     }
-    Gfx_DrawParts((s32)p);
-    Gfx_DrawParts((s32)Cd_GetFileEntry(0xC930009));
+    Gfx_DrawParts(p);
+    Gfx_DrawParts(Cd_GetFileEntry(0xC930009));
     if (w->listShown != 0) {
         p = (GfxPart *)Cd_GetFileEntry(0xC93000B);
         for (q = p; q->fileId != 0; q++) {
@@ -679,6 +679,6 @@ void Stg20_BeetlePartsDraw(Actor *a) {
                 q->visible = w->count - 1 >= w->top + 10;
             }
         }
-        Gfx_DrawParts((s32)p);
+        Gfx_DrawParts(p);
     }
 }

@@ -270,7 +270,7 @@ extern Stg00Pos Stg00_LineupLayouts[][9];
 extern u8 Stg00_SoundLabelBuf[2][10];
 
 extern void Gfx_HidePartsByMask(GfxPartMaskView *p, s32 mask);
-extern void Gfx_DrawParts(s32 arg0);
+extern void Gfx_DrawParts(void *arg0);
 extern void Actor_InitTransform(ContC40 *a0, s32 *a1, u16 a2);
 extern void Gfx_ResetModelBones(Actor *);
 extern void Task_NextState0(Actor *);

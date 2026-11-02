@@ -103,7 +103,7 @@ void Stg35_PartsDraw(Stg35PartsHandle *arg0) {
             }
         }
     }
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }
 
 void Stg35_PartsHideByMask(Stg35PartsHandle *arg0, s32 arg1) {

@@ -603,7 +603,7 @@ extern s32 Item_GetLevel(s32 item); /* main defines it (void); the overlay passe
 extern void Task_NextState0(Actor *arg0);
 extern void Gfx_SetPartsNumber(GfxPart *, s32, s32, s32);
 extern void Gfx_SetPartsScale(GfxPartScaleView *, s32, s32);
-extern void Gfx_DrawParts(s32);
+extern void Gfx_DrawParts(void *);
 #ifndef DW2_NATIVE /* Psy-Q: psyq/ headers in the native build */
 extern s32 GsSetFlatLight(s32, Blk16 *);
 extern void GsSetAmbient(s32, s32, s32);

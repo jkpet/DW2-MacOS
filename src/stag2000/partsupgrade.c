@@ -295,5 +295,5 @@ void Stg20_PartsUpgradeDraw(Actor *a) {
             q->y = w->index * 12 - 0x34;
         }
     }
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }

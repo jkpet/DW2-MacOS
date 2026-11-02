@@ -68,7 +68,7 @@ void Stg20_MsgWinDraw(Actor *a) {
     for (q = p; q->fileId != 0; q++) {
         q->unscaled = 1;
     }
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }
 
 void Stg20_MsgWinClear(void) {

@@ -815,5 +815,5 @@ void Stg20_DigiLabDraw(Actor *a) {
         }
     }
     w->scroll = w->scroll == -0xEC ? 0 : w->scroll - 1;
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }

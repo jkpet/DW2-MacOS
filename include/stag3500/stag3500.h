@@ -495,7 +495,7 @@ extern void Gpu_ClearScreens(void);
 extern void Gfx_FadeInFromBlack(s32 arg0);
 extern void Gfx_FadeOutToBlack(s32 arg0);
 extern void Gfx_InitLights(void);
-extern void Gfx_DrawParts(s32);
+extern void Gfx_DrawParts(void *);
 extern void Gfx_DrawWireModel(Actor *a0, s32 mode, CVECTOR *col);
 #ifndef DW2_NATIVE /* Psy-Q: psyq/ headers in the native build */
 extern void SetDrawMode(Stg35DrMode *p, s32 dfe, s32 dtd, s32 tpage, s32 tw);

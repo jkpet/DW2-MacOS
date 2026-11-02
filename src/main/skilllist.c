@@ -288,6 +288,6 @@ void Menu_SkillListDraw(Actor *actor) {
             break;
         }
         Gfx_SetPartsScale(obj, 0x1000, w->ramp);
-        Gfx_DrawParts((s32)obj);
+        Gfx_DrawParts(obj);
     }
 }

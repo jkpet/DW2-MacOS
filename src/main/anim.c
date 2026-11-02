@@ -340,5 +340,5 @@ void Gfx_AnimateModelTex(Actor *a0) {
             prim++;
         }
     }
-    Sys_State.packet.addr = (s32)prim;
+    Sys_State.packet.addr = (sptr)prim;
 }

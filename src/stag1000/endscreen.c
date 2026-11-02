@@ -50,5 +50,5 @@ void Stg10_EndScreenDraw(Actor *arg0) {
     for (p = e; p->fileId != 0; p++) {
         p->palette = w->byte;
     }
-    Gfx_DrawPartsNoResScale((s32)e);
+    Gfx_DrawPartsNoResScale(e);
 }

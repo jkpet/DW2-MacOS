@@ -200,7 +200,7 @@ void Stg20_MapBgDraw(Actor *a) {
             } while (0);
         }
     }
-    Sys_State.packet.addr = (s32)p;
+    Sys_State.packet.addr = (sptr)p;
     if (Stg20_GetMapInfo()->overlayParts != 0) {
         parts = (GfxPart *)Cd_GetFileEntry(Stg20_GetMapInfo()->overlayParts);
         for (q = parts; q->fileId != 0; q++) {
@@ -210,7 +210,7 @@ void Stg20_MapBgDraw(Actor *a) {
             q->x = gx + 0xA0;
             q->y = gy;
         }
-        Gfx_DrawParts((s32)parts);
+        Gfx_DrawParts(parts);
     }
 #ifdef DW2_NATIVE
     /* PR.34 smooth frames: the strips and the overlay parts scroll by gx, gy (host side only) */

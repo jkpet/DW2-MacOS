@@ -108,7 +108,7 @@ void Stg40_DrawEntityShadow(Stg40Loc *loc) {
             pkt->tag.f.addr = ((Stg40OTag *)Sys_State.otLayers.u[4])->addr;
             ((Stg40OTag *)Sys_State.otLayers.u[4])->addr = (u32)pkt;
             pkt++;
-            Sys_State.packet.addr = (s32)pkt;
+            Sys_State.packet.addr = (sptr)pkt;
         }
         return;
     }
@@ -160,7 +160,7 @@ void Stg40_DrawEntityShadow(Stg40Loc *loc) {
         pkt->tag.f.addr = ((Stg40OTag *)Sys_State.otLayers.u[4])->addr;
         ((Stg40OTag *)Sys_State.otLayers.u[4])->addr = (u32)pkt;
         pkt++;
-        Sys_State.packet.addr = (s32)pkt;
+        Sys_State.packet.addr = (sptr)pkt;
     }
     PopMatrix();
 }

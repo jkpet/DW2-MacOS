@@ -186,7 +186,7 @@ void Stg20_LabSkillsDraw(Actor *a) {
             q->y = Stg20_LabSkillsCursorPos[w->col].hi + w->cursor[w->col] * 11;
         }
     }
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
     p = (GfxPart *)Cd_GetFileEntry(0xD12000A);
     m = 0;
     bit = 2;
@@ -225,5 +225,5 @@ void Stg20_LabSkillsDraw(Actor *a) {
             q->palette = Math_PingPongRange(a->elapsed, 4, 0, 3);
         }
     }
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }

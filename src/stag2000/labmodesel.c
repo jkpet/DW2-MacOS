@@ -78,5 +78,5 @@ void Stg20_LabModeSelDraw(Actor *a) {
             q->visible = ((t->frameCount >> 4) ^ 1) & 1;
         }
     }
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }

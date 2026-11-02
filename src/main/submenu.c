@@ -194,6 +194,6 @@ void Menu_SubMenuDraw(Actor *actor) {
             Gfx_HidePartsByMask(obj, 2);
         }
         Gfx_SetPartsScale(obj, 0x1000, w->subMenuRamp);
-        Gfx_DrawParts((s32)obj);
+        Gfx_DrawParts(obj);
     }
 }

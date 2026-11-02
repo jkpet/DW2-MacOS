@@ -229,7 +229,7 @@ sptr Cd_GetFileEntrySubPtr(s32 arg0, s32 arg1) {
     s32 *p = (s32 *)Cd_GetFileEntry(arg0);
     sptr r = Cd_GetFileOrNull(arg0 >> 16);
 #ifdef DW2_NATIVE
-    return (sptr)((uptr)r + (u32)p[arg1]);
+    return r + p[arg1];
 #else
     return p[arg1] + r;
 #endif
@@ -452,7 +452,7 @@ void Menu_TopMenuDraw(Actor *actor) {
                 }
                 Gfx_SetPartsScale(obj, 0x1000, w->ramp);
                 list++;
-                Gfx_DrawParts((s32)obj);
+                Gfx_DrawParts(obj);
                 i++;
             } while (*list != 0);
         }
@@ -483,5 +483,5 @@ void Menu_TopMenuDraw(Actor *actor) {
             break;
         }
     }
-    Gfx_DrawParts((s32)base);
+    Gfx_DrawParts(base);
 }

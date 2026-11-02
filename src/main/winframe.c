@@ -61,5 +61,5 @@ void Text_WinFrameDraw(Actor *arg0) {
     ActorWork *w = arg0->work;
     void *e = Cd_GetFileEntry(Text_WinFrameParts[arg0->param]);
     Gfx_SetPartsScale(e, 0x1000, *(s16 *)w);
-    Gfx_DrawParts((s32)e);
+    Gfx_DrawParts(e);
 }

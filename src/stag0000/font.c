@@ -147,7 +147,7 @@ void Stg00_FontDrawStr(s32 arg0, s32 arg1, u8 *arg2)
         arg2++;
         x += 8;
     }
-    Sys_State.packet.addr = (s32) poly;
+    Sys_State.packet.addr = (sptr)poly;
 }
 
 void Stg00_FontDrawSheet(void) {

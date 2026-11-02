@@ -147,7 +147,7 @@ void Stg20_LabRosterDraw(Actor *a) {
                 q->visible = Stg20_MenuState.rosterTop + 4 < w->count;
             }
         }
-        Gfx_DrawParts((s32)p);
+        Gfx_DrawParts(p);
         for (i = 0; i < 4; i++) {
             ros = Save_GameState.elems;
             r = (GfxPart *)Cd_GetFileEntry(Stg20_LabRosterPanelIds[i]);
@@ -165,7 +165,7 @@ void Stg20_LabRosterDraw(Actor *a) {
                 }
             }
             Gfx_SetPartsNumber(r, 8, 2, ros[i + Stg20_MenuState.rosterTop].level);
-            Gfx_DrawParts((s32)r);
+            Gfx_DrawParts(r);
         }
     } while (0);
 }

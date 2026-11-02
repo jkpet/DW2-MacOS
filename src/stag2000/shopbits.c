@@ -30,5 +30,5 @@ void Stg20_ShopBitsDraw(void) {
     GfxPart *p = (GfxPart *)Cd_GetFileEntry(0xDD60000);
 
     Gfx_SetPartsNumber(p, 2, 8, Save_GameState.bits);
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }

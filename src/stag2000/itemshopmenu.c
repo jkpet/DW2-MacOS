@@ -70,5 +70,5 @@ void Stg20_ItemShopMenuDraw(Actor *a) {
             q->y = -0x62;
         }
     }
-    Gfx_DrawParts((s32)p);
+    Gfx_DrawParts(p);
 }

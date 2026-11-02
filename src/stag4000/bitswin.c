@@ -63,6 +63,6 @@ void Stg40_BitsWinDraw(Actor *a0) {
         p = Cd_GetFileEntry(0x7D40002);
         Gfx_SetPartsNumber((GfxPart *)p, 2, 8, w->field_8);
         Gfx_SetPartsScale((GfxPartScaleView *)p, 0x1000, w->field_4);
-        Gfx_DrawParts((s32)p);
+        Gfx_DrawParts(p);
     }
 }

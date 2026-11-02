@@ -569,7 +569,7 @@ void Gfx_AddTrisGT3(GfxModelTriGT3 *t, s32 n, ActorModel *s, s32 mode) {
             p++;
         } while (0);
     }
-    Sys_State.packet.addr = (s32)p;
+    Sys_State.packet.addr = (sptr)p;
 }
 
 void Gfx_AddQuadsGT4(ModelQuadGT4 *t, s32 n, ActorModel *s, s32 mode) {
@@ -646,7 +646,7 @@ void Gfx_AddQuadsGT4(ModelQuadGT4 *t, s32 n, ActorModel *s, s32 mode) {
             p++;
         } while (0);
     }
-    Sys_State.packet.addr = (s32)p;
+    Sys_State.packet.addr = (sptr)p;
 }
 
 s32 Gfx_ProjectModelVerts(Vert6Pmv *v, ModelProjView *o, s32 noCheck) {
@@ -771,7 +771,7 @@ void Gfx_DrawWireTris(ModelWireTri *t, s32 n, ModelProjView *o, CVECTOR *col) {
             pk = (GfxModelOTag *)((Tpage21ABC *)pk + 1);
         } while (0);
     }
-    Sys_State.packet.addr = (s32)pk;
+    Sys_State.packet.addr = (sptr)pk;
 }
 
 void Gfx_DrawWireQuads(GfxModelQuad *q, s32 n, ModelProjView *o, CVECTOR *col) {
@@ -833,5 +833,5 @@ void Gfx_DrawWireQuads(GfxModelQuad *q, s32 n, ModelProjView *o, CVECTOR *col) {
             pk = (GfxModelOTag *)((Tpage21ABC *)pk + 1);
         } while (0);
     }
-    Sys_State.packet.addr = (s32)pk;
+    Sys_State.packet.addr = (sptr)pk;
 }

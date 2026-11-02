@@ -248,5 +248,5 @@ void Stg10_TitleDraw(Actor *a0) {
         p->unscaled = 1;
         p++;
     }
-    Gfx_DrawPartsNoResScale((s32)list);
+    Gfx_DrawPartsNoResScale(list);
 }

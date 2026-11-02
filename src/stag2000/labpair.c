@@ -29,5 +29,5 @@ void Stg20_LabPairUpdate(Actor *a) {
 }
 
 void Stg20_LabPairDraw(void) {
-    Gfx_DrawParts((s32)Cd_GetFileEntry(0xD120007));
+    Gfx_DrawParts(Cd_GetFileEntry(0xD120007));
 }

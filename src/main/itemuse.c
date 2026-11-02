@@ -440,7 +440,7 @@ void Menu_ItemUseDraw(Actor *actor) {
                     break;
                 }
                 Gfx_SetPartsScale(obj, 0x1000, w->useRamp);
-                Gfx_DrawParts((s32)obj);
+                Gfx_DrawParts(obj);
             }
         }
     }

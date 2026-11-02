@@ -134,7 +134,7 @@ void Stg40_HudDraw(Actor *a0) {
                 break;
             }
             Gfx_SetPartsScale((GfxPartScaleView *)p, 0x1000, w->scale);
-            Gfx_DrawParts((s32)p);
+            Gfx_DrawParts(p);
         }
     }
 }
