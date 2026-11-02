@@ -36,12 +36,81 @@ static s32 Stg20_DebugWalkerFirstDraw(Actor *a) {
     return 1;
 }
 
+static s32 Stg20_DebugTrackWalkerDraw(Actor *a, s32 offscreen) {
+    typedef struct {
+        Actor *actor;
+        s32 x;
+        s32 y;
+        s32 offscreen;
+    } TrackEntry;
+    static TrackEntry tracked[16];
+    static s32 count;
+    static s32 lastMode = -1;
+    static s32 lastModeArg = -1;
+    static s32 lastBgFile = -1;
+    Stg20MapFile *map = Stg20_GetMapInfo();
+    Stg20Cell *cell = Stg20_GetActorCell(a);
+    s32 i;
+
+    if (Sys_State.gameMode != lastMode || Sys_State.modeArg != lastModeArg || map->bgFileId != lastBgFile) {
+        count = 0;
+        lastMode = Sys_State.gameMode;
+        lastModeArg = Sys_State.modeArg;
+        lastBgFile = map->bgFileId;
+    }
+    for (i = 0; i < count; i++) {
+        if (tracked[i].actor == a) {
+            if (tracked[i].x == cell->x && tracked[i].y == cell->y && tracked[i].offscreen == offscreen) {
+                return 0;
+            }
+            tracked[i].x = cell->x;
+            tracked[i].y = cell->y;
+            tracked[i].offscreen = offscreen;
+            return 1;
+        }
+    }
+    if (count == sizeof(tracked) / sizeof(tracked[0])) {
+        return 0;
+    }
+    tracked[count].actor = a;
+    tracked[count].x = cell->x;
+    tracked[count].y = cell->y;
+    tracked[count].offscreen = offscreen;
+    count++;
+    return 1;
+}
+
+static void Stg20_DebugWalkerTalk(Actor *a, const char *phase) {
+    Stg20NpcWork *work = (Stg20NpcWork *)a->work;
+    Stg20Cell *cell = Stg20_GetActorCell(a);
+    s32 model = work->visible != 0 ? work->modelId : Digi_GetModelFile(a->digiId);
+
+    if (a->digiId == 0x191 || a->digiId == 0x194 || a->digiId == 0x1AD || a->digiId == 0x1F3) {
+        printf("[walker-talk] phase=%s mode=%03X frame=%d digi=%03X model=%03X entry=%d visible=%d kind=%d cell=%d,%d\n",
+               phase, Sys_State.gameMode & 0xFFF, Sys_State.frameCount, a->digiId, model,
+               a->digiId == 0x1F4 ? -1 : work->flagEntry, work->visible,
+               ((Stg20ModelTask *)a)->walkerKind, cell->x, cell->y);
+    }
+}
+
 void Stg20_DebugModelProbe(s32 gameMode, s32 modeArg, s32 digiId, s32 modelId, s32 boneCount, s32 acceptedBones,
                            s32 originCulled, s32 projectionCulled, s32 quadInputs, s32 triInputs, s32 maxVerts,
                            s32 maxNormals, s32 submittedQuads, s32 submittedTris) {
     printf("[model-probe] mode=%03X modeArg=%d digi=%03X model=%03X bones=%d accepted=%d origin-cull=%d projection-cull=%d quad-inputs=%d tri-inputs=%d submitted-quads=%d submitted-tris=%d maxVerts=%d maxNormals=%d\n",
            gameMode & 0xFFF, modeArg, digiId, modelId, boneCount, acceptedBones, originCulled,
            projectionCulled, quadInputs, triInputs, submittedQuads, submittedTris, maxVerts, maxNormals);
+}
+
+void Stg20_DebugFlagEntry(s32 tableFile, s32 entryIndex, s32 digiId, s32 facing, s32 blockIndex, s32 condIndex,
+                          s32 passes, const u8 *positions) {
+    s32 i;
+
+    printf("[flag-probe] table=%03X entry=%d digi=%03X facing=%d block=%d cond=%d passes=%d path=", tableFile,
+           entryIndex, digiId, facing, blockIndex, condIndex, passes);
+    for (i = 0; i < 6; i++) {
+        printf("%s%02X,%02X", i == 0 ? "" : ";", positions[i * 2], positions[i * 2 + 1]);
+    }
+    printf("\n");
 }
 #endif
 
@@ -137,6 +206,14 @@ void Stg20_WalkerInit(Actor *a, Stg20Spawn *s) {
                Sys_State.gameMode & 0xFFF, Sys_State.modeArg, map->bgFileId, map->flagTableFile,
                s->id == 0x1F4 ? -1 : s->flagEntry, s->id, Digi_GetModelFile(s->id), w->visible,
                ((Stg20ModelTask *)a)->walkerKind, s->facing, s->blk[0].x, s->blk[0].y);
+        if (s->id == 0x191 || s->id == 0x194) {
+            printf("[walker-path] mode=%03X modeArg=%d entry=%d digi=%03X model=%03X path=", Sys_State.gameMode & 0xFFF,
+                   Sys_State.modeArg, s->flagEntry, s->id, Digi_GetModelFile(s->id));
+            for (i = 0; i < 6; i++) {
+                printf("%s%d,%d", i == 0 ? "" : ";", s->blk[i].x, s->blk[i].y);
+            }
+            printf("\n");
+        }
     }
 #endif
 }
@@ -291,6 +368,9 @@ void Stg20_WalkerUpdate(Actor *a) {
                 }
                 c = *Stg20_GetActorCell(p);
                 if (w->blk[0].x == c.x && w->blk[0].y == c.y && Stg20_IsOnCellCenter(p) != 0) {
+#ifdef DW2_NATIVE
+                    Stg20_DebugWalkerTalk(a, "trigger-start");
+#endif
                     Text_OpenMsgClearChoice(&w->text, Flag_SelectBranch(w->flagEntry));
                     w->target = p;
                     Stg20_WalkerHalt(p);
@@ -304,6 +384,9 @@ void Stg20_WalkerUpdate(Actor *a) {
                 if (Text_IsFinished(w->text) != 0) {
                     Text_Close(&w->text);
                     if (Flag_Test(0x10) != 0) {
+#ifdef DW2_NATIVE
+                        Stg20_DebugWalkerTalk(a, "trigger-continue");
+#endif
                         Text_OpenMsgClearChoice(&w->text, Flag_SelectBranch(w->flagEntry));
                         break;
                     }
@@ -391,6 +474,9 @@ void Stg20_WalkerUpdate(Actor *a) {
                     case 0:
                     default:
                         Stg20_WalkerSetAnim(a, 0x20);
+#ifdef DW2_NATIVE
+                        Stg20_DebugWalkerTalk(a, "npc-start");
+#endif
                         Text_OpenMsgClearChoice(&w->text, Flag_SelectBranch(w->flagEntry));
                         Task_NextState3(a);
                         break;
@@ -516,6 +602,16 @@ void Stg20_WalkerDraw(Actor *a) {
                        Sys_State.gameMode & 0xFFF, Sys_State.modeArg, a->digiId, w->modelId, w->visible,
                        offscreen, a->stateLevel0, a->digiId == 0x1F4 ? -1 : npc->flagEntry, cell->x, cell->y,
                        transform->posX, transform->posY, transform->posZ);
+            }
+            if ((a->digiId == 0x191 || a->digiId == 0x194) && Stg20_DebugTrackWalkerDraw(a, offscreen)) {
+                Stg20NpcWork *npc = (Stg20NpcWork *)a->work;
+                Stg20Cell *cell = Stg20_GetActorCell(a);
+                Stg20Rot *transform = (Stg20Rot *)a->u38.ptr38;
+                Stg20MapFile *map = Stg20_GetMapInfo();
+                printf("[walker-track] mode=%03X frame=%d bgFile=%03X flagFile=%03X digi=%03X model=%03X entry=%d visible=%d offscreen=%d cell=%d,%d state=%d anim=%d pos=%d,%d,%d\n",
+                       Sys_State.gameMode & 0xFFF, Sys_State.frameCount, map->bgFileId, map->flagTableFile,
+                       a->digiId, w->modelId, npc->flagEntry, w->visible, offscreen, cell->x, cell->y,
+                       a->stateLevel0, npc->anim, transform->posX, transform->posY, transform->posZ);
             }
 #endif
             if (offscreen == 0) {

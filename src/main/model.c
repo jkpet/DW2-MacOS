@@ -270,7 +270,8 @@ void Gfx_DrawTexModel(Actor *a0, s32 mode) {
 
     s = a0->model;
 #ifdef DW2_NATIVE
-    if (mode == 0 && a0->digiId == 0x1AD && (Sys_State.gameMode == 0x301 || Sys_State.gameMode == 0x308)
+    if (mode == 0 && ((Sys_State.gameMode == 0x308 && a0->digiId == 0x191)
+                      || (Sys_State.gameMode == 0x301 && a0->digiId == 0x194))
         && Gfx_DebugFirstWalkerModelDraw(a0)) {
         probeThisDraw = 1;
         Gfx_DebugTrackedModelFile = s->fileId;

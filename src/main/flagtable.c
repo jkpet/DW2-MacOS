@@ -27,6 +27,12 @@
 #include "main/parts.h"
 #include "main/digibase.h"
 #include "main/gamedata.h"
+#include "main/flagtable.h"
+
+#ifdef DW2_NATIVE
+extern void Stg20_DebugFlagEntry(s32 tableFile, s32 entryIndex, s32 digiId, s32 facing, s32 blockIndex,
+                                 s32 condIndex, s32 passes, const u8 *positions);
+#endif
 
 /* .bss */
 FlagEntryState Flag_EntryIter;
@@ -51,8 +57,19 @@ Blk18 *Flag_GetBranchSetBlock(FlagEntryIdx *arg0, s32 arg1) {
 }
 
 s32 Flag_NextPassingEntry(void) {
+    s32 passes;
+
     while (Flag_EntryIter.cursor->digiId != 0) {
-        if (Flag_TestConds(Flag_GetEntryCondBlock((FlagEntryIdx *)Flag_EntryIter.cursor)) != 0) {
+        passes = Flag_TestConds(Flag_GetEntryCondBlock((FlagEntryIdx *)Flag_EntryIter.cursor));
+#ifdef DW2_NATIVE
+        if (Flag_EntryIter.fileId == 0xC26 || Flag_EntryIter.fileId == 0xC2A) {
+            FlagBranchEntry *entry = Flag_EntryIter.cursor;
+            Stg20_DebugFlagEntry(Flag_EntryIter.fileId, Flag_EntryIter.entryIndex, entry->digiId, entry->dir,
+                                 entry->blockIndex, ((FlagEntryIdx *)entry)->condIdx, passes,
+                                 (const u8 *)Flag_GetEntryPosList(Flag_EntryIter.entryIndex));
+        }
+#endif
+        if (passes != 0) {
             Flag_EntryIter.match = *Flag_EntryIter.cursor;
             {
                 s32 r = Flag_EntryIter.entryIndex;
