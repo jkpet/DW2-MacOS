@@ -9,8 +9,10 @@
 #include <sys/mman.h>
 #include <ucontext.h>
 #elif defined(__APPLE__)
+#include <errno.h>
 #include <pthread.h>
 #include <sys/mman.h>
+#include <unistd.h>
 #endif
 
 #include "common.h"
@@ -350,9 +352,9 @@ static void run_on_low_stack(void) {
  * There is no MAP_32BIT, so reserve stack memory with low-address hints and run game_main on a
  * pthread with that stack. */
 #define GAME_STACK_SIZE (8u << 20)
-#define LOW_STACK_MIN 0x10000000u
-#define LOW_STACK_MAX 0x78000000u
-#define LOW_STACK_STEP (16u << 20)
+#define LOW_STACK_MIN 0x01000000u
+#define LOW_STACK_MAX 0x7E000000u
+#define LOW_STACK_STEP (1u << 20)
 
 typedef struct {
     void *stack;
@@ -360,23 +362,69 @@ typedef struct {
 
 static void *alloc_low_stack(void) {
     uintptr_t addr;
+    int first_err = 0;
+    int forced_first_err = 0;
+    long page_size = sysconf(_SC_PAGESIZE);
+    size_t align = page_size > 0 ? (size_t)page_size : (size_t)4096;
 
+    if (align != 0 && (GAME_STACK_SIZE % align) != 0) {
+        fprintf(stderr, "[host] macOS low stack: stack size %u is not page-aligned (page=%zu)\n",
+                (unsigned int)GAME_STACK_SIZE, align);
+        return NULL;
+    }
+
+    /* Pass 1: low-address hints (best-effort, non-destructive). */
     for (addr = LOW_STACK_MIN; addr + GAME_STACK_SIZE <= LOW_STACK_MAX; addr += LOW_STACK_STEP) {
+#if defined(MAP_FIXED_NOREPLACE)
         void *p = mmap((void *)addr, GAME_STACK_SIZE, PROT_READ | PROT_WRITE,
-#ifdef MAP_FIXED_NOREPLACE
-                       MAP_PRIVATE | MAP_ANON | MAP_FIXED_NOREPLACE,
+                       MAP_PRIVATE | MAP_ANON | MAP_FIXED_NOREPLACE, -1, 0);
+        if (p == MAP_FAILED && (errno == EINVAL || errno == ENOTSUP || errno == EOPNOTSUPP)) {
+            /* Some macOS environments expose MAP_FIXED_NOREPLACE but reject it at runtime. */
+            p = mmap((void *)addr, GAME_STACK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+        }
 #else
+        void *p = mmap((void *)addr, GAME_STACK_SIZE, PROT_READ | PROT_WRITE,
                        MAP_PRIVATE | MAP_ANON,
-#endif
                        -1, 0);
+#endif
 
         if (p == MAP_FAILED) {
+            if (first_err == 0) {
+                first_err = errno;
+            }
             continue;
         }
         if ((uintptr_t)p < 0x80000000u) {
             return p;
         }
         munmap(p, GAME_STACK_SIZE);
+    }
+
+    /* Pass 2: force a low-address mapping if hinting always lands high. */
+    for (addr = LOW_STACK_MIN; addr + GAME_STACK_SIZE <= LOW_STACK_MAX; addr += LOW_STACK_STEP) {
+        void *p = mmap((void *)addr, GAME_STACK_SIZE, PROT_READ | PROT_WRITE,
+                       MAP_PRIVATE | MAP_ANON | MAP_FIXED, -1, 0);
+
+        if (p == MAP_FAILED) {
+            if (forced_first_err == 0) {
+                forced_first_err = errno;
+            }
+            continue;
+        }
+        if ((uintptr_t)p < 0x80000000u) {
+            printf("[host] macOS low stack: using MAP_FIXED fallback at %p\n", p);
+            return p;
+        }
+        munmap(p, GAME_STACK_SIZE);
+    }
+
+    if (first_err != 0) {
+        fprintf(stderr, "[host] macOS low stack mmap failed first with errno=%d (%s)\n", first_err,
+                strerror(first_err));
+    }
+    if (forced_first_err != 0) {
+        fprintf(stderr, "[host] macOS low stack MAP_FIXED failed first with errno=%d (%s)\n",
+                forced_first_err, strerror(forced_first_err));
     }
     return NULL;
 }
