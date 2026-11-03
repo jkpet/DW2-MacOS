@@ -91,6 +91,19 @@ void Stg20_StageMain(Actor *a) {
             }
 #ifdef DW2_NATIVE
             if (Stg20_GetMapInfo()->flagTableFile == 0xC2A || Stg20_GetMapInfo()->flagTableFile == 0xC26) {
+                printf("[spawn-audit] mode=%03X table=%03X count=%d\n", Sys_State.gameMode & 0xFFF,
+                       Stg20_GetMapInfo()->flagTableFile, n);
+                for (k = 0; k < n; k++) {
+                    Actor *spawned = Task_GetActor(slot[6 + k]);
+                    if (spawned != NULL) {
+                        Stg20NpcWork *npc = (Stg20NpcWork *)spawned->work;
+                        printf("[spawn-audit] slot=%d ref=%08X digi=%03X model=%03X visible=%d kind=%d entry=%d cell=%d,%d\n",
+                               k, slot[6 + k], spawned->digiId, Digi_GetModelFile(spawned->digiId), npc->visible,
+                               ((Stg20ModelTask *)spawned)->walkerKind, npc->flagEntry, npc->blk[0].x, npc->blk[0].y);
+                    } else {
+                        printf("[spawn-audit] slot=%d ref=%08X actor=null\n", k, slot[6 + k]);
+                    }
+                }
                 Stg20_DebugAuditFlagEntries(Stg20_GetMapInfo()->flagTableFile);
             }
 #endif
