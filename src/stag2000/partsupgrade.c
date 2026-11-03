@@ -82,7 +82,7 @@ void Stg20_BuildUpgradeList(Actor *a) {
         id = Save_GameState.slotItems[Stg20_UpgradeSlots[i]];
         w->recs[i].item = id;
         if (id != 0) {
-            name = (u8 *)Item_GetNameText(id);
+            name = P32(u8, Item_GetNameText(id));
             j = 0;
             while (*name != 0xFF) {
                 w->recs[i].name[j++] = *name++;

@@ -339,4 +339,12 @@ if(APPLE)
     target_compile_definitions(card_filename_pointer_test PRIVATE ${DW2_DEFS})
     target_include_directories(card_filename_pointer_test PRIVATE ${DW2_INCLUDES})
     target_link_options(card_filename_pointer_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for restoring packed item-name pointers in vendor list loading.
+    add_executable(shop_item_name_pointer_test ${CMAKE_SOURCE_DIR}/tests/shop_item_name_pointer_test.c
+        ${CMAKE_SOURCE_DIR}/src/stag2000/shoplist.c ${CMAKE_SOURCE_DIR}/src/stag2000/partsupgrade.c)
+    target_compile_options(shop_item_name_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(shop_item_name_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(shop_item_name_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(shop_item_name_pointer_test PRIVATE -Wl,-dead_strip)
 endif()

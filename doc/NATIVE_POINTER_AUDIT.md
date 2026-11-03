@@ -116,6 +116,19 @@ and compile/dependency options with `-fsyntax-only`.
   It reproduced the `strncpy` fault before the fix and passes through the completed write afterward.
 - The user confirmed both saving and loading work in-game after the fix.
 
+### Vendor and upgrade lists dereferenced legacy item-name address words directly
+
+- The user's item-vendor trace stopped at `Stg20_LoadShopBuyList` while reading `*name`.
+  `Item_GetNameText` returns the packed 32-bit address format consumed by the text system; casting
+  that `s32` directly to `u8 *` dropped the host address region.
+  `Text_GetPointer` already restores this same format, and `P32` provides the shared native restore.
+- Both buy/sell list loaders in `src/stag2000/shoplist.c` and the parts-upgrade loader in
+  `src/stag2000/partsupgrade.c` now use `P32(u8, Item_GetNameText(...))` before reading the name.
+- Added `tests/shop_item_name_pointer_test.c`, which runs the production buy-list and upgrade-list
+  functions with name bytes above 4 GB. LLDB reproduced the exact `Stg20_LoadShopBuyList` invalid read
+  before the fix; the regression passes and confirms both name copies afterward.
+- Full in-game vendor confirmation remains with the user.
+
 ## Deferred candidates and planned fixes
 
 These findings are recorded for a later implementation pass. Preserve fixed-width PS1/file/GPU data
@@ -195,6 +208,6 @@ implementation pass must trace each listed expression to its actual consumer bef
 ## Current status
 
 The dungeon relocation, room-label flood-fill, random-hazard allocation, floor packet cursor, menu
-cursor, battle action-script, and memory-card save pointer fixes and focused regressions are verified.
-The expanded static audit is recorded above; remaining candidates are deferred. The full user-driven
-dungeon and battle routes still need validation; the user confirmed the save and load routes work.
+cursor, battle action-script, memory-card save, and item-name pointer fixes and focused regressions are
+verified. The expanded static audit is recorded above; remaining candidates are deferred. Full
+user-driven dungeon and battle routes still need validation; the user confirmed saving and loading.

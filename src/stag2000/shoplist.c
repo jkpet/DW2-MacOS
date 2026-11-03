@@ -207,7 +207,7 @@ void Stg20_LoadShopBuyList(Actor *a, s32 id) {
             break;
         }
         Stg20_ShopItems.items[i] = list[i];
-        name = (u8 *)Item_GetNameText(list[i]);
+        name = P32(u8, Item_GetNameText(list[i]));
         for (j = 0; j < 10; j++) {
             if (*name == 0xFF) {
                 break;
@@ -245,7 +245,7 @@ void Stg20_LoadShopSellList(Actor *a) {
             break;
         }
         Stg20_ShopItems.items[k] = list[i];
-        name = (u8 *)Item_GetNameText(list[i]);
+        name = P32(u8, Item_GetNameText(list[i]));
         for (j = 0; j < 10; j++) {
             if (*name == 0xFF) {
                 break;
