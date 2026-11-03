@@ -331,4 +331,12 @@ if(APPLE)
     target_compile_definitions(actionload_script_pointer_test PRIVATE ${DW2_DEFS})
     target_include_directories(actionload_script_pointer_test PRIVATE ${DW2_INCLUDES})
     target_link_options(actionload_script_pointer_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for save-file creation retaining the memory-card work filename pointer.
+    add_executable(card_filename_pointer_test ${CMAKE_SOURCE_DIR}/tests/card_filename_pointer_test.c
+        ${CMAKE_SOURCE_DIR}/src/stag1100/card.c ${CMAKE_SOURCE_DIR}/psyq/libmcrd.c)
+    target_compile_options(card_filename_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(card_filename_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(card_filename_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(card_filename_pointer_test PRIVATE -Wl,-dead_strip)
 endif()

@@ -102,6 +102,20 @@ and compile/dependency options with `-fsyntax-only`.
 - The arm64 release build and this regression plus all five existing focused pointer tests pass. The
   user's full battle route still needs confirmation.
 
+### Save-file operations narrowed filename and data-buffer pointers to `s32`
+
+- The user's save trace faulted in `_platform_strncpy + 32`. A regression through
+  `Stg11_CardFileOp` reproduced it at `MemCardCreateFile`: the card-image destination was valid, but
+  the filename source had been narrowed by `(s32)Stg11_CardWork->fileName` before reaching
+  `strncpy`. LLDB showed the same `EXC_BAD_ACCESS` in `_platform_strncpy` as the user's trace.
+- The same native-only pointer truncation affected filename and data-buffer arguments at the
+  `MemCardOpen`, `MemCardReadFile`, and `MemCardWriteFile` call sites. They now pass typed `char *`
+  and `u_long *` pointers without routing addresses through `s32`.
+- Added `tests/card_filename_pointer_test.c`, which uses save work above 4 GB, creates a memory-card
+  save file through the production file-op path, then completes the asynchronous 0x4000-byte write.
+  It reproduced the `strncpy` fault before the fix and passes through the completed write afterward.
+- Full in-game save confirmation remains with the user.
+
 ## Deferred candidates and planned fixes
 
 These findings are recorded for a later implementation pass. Preserve fixed-width PS1/file/GPU data
@@ -181,6 +195,6 @@ implementation pass must trace each listed expression to its actual consumer bef
 ## Current status
 
 The dungeon relocation, room-label flood-fill, random-hazard allocation, floor packet cursor, menu
-cursor, and battle action-script pointer fixes and focused regressions are verified. The expanded static
-audit is recorded above; remaining candidates are deferred. The full user-driven dungeon and battle
-routes still need validation.
+cursor, battle action-script, and memory-card save pointer fixes and focused regressions are verified.
+The expanded static audit is recorded above; remaining candidates are deferred. The full user-driven
+dungeon, battle, and save routes still need validation.

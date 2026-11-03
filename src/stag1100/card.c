@@ -6,6 +6,15 @@
 #include "stag1100/cardmenu.h"
 #include "stag1100/card.h"
 
+/* libmcrd takes native pointers, but the matching PS1 declarations use 32-bit words. */
+#ifdef DW2_NATIVE
+#define STG11_CARD_FILE_ARG(p) ((char *)(p))
+#define STG11_CARD_DATA_ARG(p) ((u_long *)(p))
+#else
+#define STG11_CARD_FILE_ARG(p) ((s32)(p))
+#define STG11_CARD_DATA_ARG(p) ((s32)(p))
+#endif
+
 /* Memory card icon frames (TIM files). */
 INCLUDE_BIN(Stg11_CardIconTim1, "assets/stag1100/card_icon1.tim");
 INCLUDE_BIN(Stg11_CardIconTim2, "assets/stag1100/card_icon2.tim");
@@ -141,7 +150,7 @@ s32 Stg11_CardFileOp(Stg11SaveWork *arg0, s32 arg1, s32 arg2) {
     if (MemCardSync(1, &cmd, &st) == -1) {
         switch (arg1) {
         case 6:
-            st = MemCardCreateFile(chan, (s32)Stg11_CardWork->fileName, 2);
+            st = MemCardCreateFile(chan, STG11_CARD_FILE_ARG(Stg11_CardWork->fileName), 2);
             switch (st) {
             case 1:
                 r = 0;
@@ -168,7 +177,7 @@ s32 Stg11_CardFileOp(Stg11SaveWork *arg0, s32 arg1, s32 arg2) {
             }
             break;
         case 7:
-            st = MemCardOpen(chan, (s32)Stg11_CardWork->fileName, 1);
+            st = MemCardOpen(chan, STG11_CARD_FILE_ARG(Stg11_CardWork->fileName), 1);
             switch (st) {
             case 0:
                 r = 9;
@@ -246,15 +255,18 @@ s32 Stg11_CardAsyncOp(Stg11SaveWork *arg0, s32 arg1, s32 arg2) {
         case 3:
             arg0->progressTotal = 0x83;
             arg0->u34.s.checksum = Stg11_CardChecksum(arg0);
-            MemCardWriteFile(chan, (s32)arg0->fileName, (s32)&arg0->u34, 0, 0x4000);
+            MemCardWriteFile(chan, STG11_CARD_FILE_ARG(arg0->fileName), STG11_CARD_DATA_ARG(&arg0->u34),
+                             0, 0x4000);
             break;
         case 4:
             if (arg0->isTransferFile == 0) {
                 arg0->progressTotal = 0x81;
-                MemCardReadFile(chan, (s32)arg0->fileName, (s32)&arg0->u34, 0, 0x4000);
+                MemCardReadFile(chan, STG11_CARD_FILE_ARG(arg0->fileName), STG11_CARD_DATA_ARG(&arg0->u34),
+                                0, 0x4000);
             } else {
                 arg0->progressTotal = 0x3C8;
-                MemCardReadFile(chan, (s32)arg0->fileName, (s32)arg0->transferBuf, 0, 0x1E000);
+                MemCardReadFile(chan, STG11_CARD_FILE_ARG(arg0->fileName), STG11_CARD_DATA_ARG(arg0->transferBuf),
+                                0, 0x1E000);
             }
             break;
         }
