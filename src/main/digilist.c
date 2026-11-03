@@ -51,7 +51,7 @@ void Menu_DigiTransferPlace(Actor *a0) {
 
     e = &w->rows[Menu_GridIndexColMajor(w->cursor, w->gridSize)];
     n = Pad_State[0].cross;
-    g = (DigiRosterSwapRec *)Menu_Ctx->transferRecord;
+    g = P32(DigiRosterSwapRec, Menu_Ctx->transferRecord);
     if (n > 0) {
         switch (e->kind) {
         case 0:
@@ -65,7 +65,7 @@ void Menu_DigiTransferPlace(Actor *a0) {
             g->state = w->pickedIndices[3] != 0 ? 1 : 2;
             d = &w->rows[w->cursor[1]];
             d->kind = 1;
-            d->record = (s32)g;
+            d->record = (s32)P32_SET(g);
             d->pickState = g->state;
             Text_OpenPacked(w->msgText, Cd_GetFileEntry(0x1FD0110), 0x81, Menu_DigiMsgPos);
             Menu_Ctx->transferDone = -1;
@@ -75,10 +75,10 @@ void Menu_DigiTransferPlace(Actor *a0) {
             return;
         case 1:
             k = g->state;
-            tmp = *(DigiRosterSwapRec *)e->record;
+            tmp = *P32(DigiRosterSwapRec, e->record);
             g->state = tmp.state;
             tmp.state = k;
-            *(DigiRosterSwapRec *)e->record = *g;
+            *P32(DigiRosterSwapRec, e->record) = *g;
             *g = tmp;
             Text_OpenPacked(w->msgText, Cd_GetFileEntry(0x1FD0112), 0x81, Menu_DigiMsgPos);
             Menu_Ctx->transferDone = -1;
@@ -606,7 +606,7 @@ void Menu_DigiListTask(Actor *a0) {
                 break;
             case 8:
                 if (r == 1) {
-                    p = (u8 *)Menu_Ctx->transferRecord;
+                    p = P32(u8, Menu_Ctx->transferRecord);
                     Text_OpenPacked(&w->promptText, (s32)Cd_GetFileEntry(0x1FD0113), 0x81, Menu_DigiMsgPos);
                     *p = 0;
                     Menu_Ctx->transferDone = -1;

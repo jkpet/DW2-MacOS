@@ -393,6 +393,14 @@ if(APPLE)
     target_include_directories(digistatus_record_pointer_test PRIVATE ${DW2_INCLUDES})
     target_link_options(digistatus_record_pointer_test PRIVATE -Wl,-dead_strip)
 
+    # Native regression for the fixed-width transfer-record pointer passed between Digi-Beetle lists.
+    add_executable(digi_transfer_pointer_test ${CMAKE_SOURCE_DIR}/tests/digi_transfer_pointer_test.c
+        ${CMAKE_SOURCE_DIR}/src/main/digilist.c)
+    target_compile_options(digi_transfer_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(digi_transfer_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(digi_transfer_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(digi_transfer_pointer_test PRIVATE -Wl,-dead_strip)
+
     # Native regression for side-model cache identity after a high-address CD file reload.
     add_executable(side_model_cache_pointer_test ${CMAKE_SOURCE_DIR}/tests/side_model_cache_pointer_test.c)
     target_compile_options(side_model_cache_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
