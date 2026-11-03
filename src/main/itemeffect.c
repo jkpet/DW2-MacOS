@@ -183,7 +183,7 @@ s32 Item_UseOnBeetle(s32 a0, s32 a1, s32 a2, s32 a3) {
 }
 
 s32 Item_ApplyToDigi(s32 a0, s32 a1, s32 a2, s32 a3) {
-    DigiRosterItemView *o = (DigiRosterItemView *)a3;
+    DigiRosterItemView *o = P32(DigiRosterItemView, a3);
     ItemEffect *r = (ItemEffect *)Item_GetEffectRec(a0);
     s16 *cur;
     s16 *lim;
@@ -222,7 +222,7 @@ s32 Item_ApplyToDigi(s32 a0, s32 a1, s32 a2, s32 a3) {
 }
 
 s32 Item_UseStatBoost(s32 a0, s32 a1, s32 a2, s32 a3) {
-    DigiRosterBoostView *dg = (DigiRosterBoostView *)a3;
+    DigiRosterBoostView *dg = P32(DigiRosterBoostView, a3);
     ItemStatEffect *rec;
     s16 *p;
     s32 d;

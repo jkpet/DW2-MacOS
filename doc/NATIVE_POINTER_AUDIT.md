@@ -157,6 +157,7 @@ must retain the PS1 32-bit behavior and add a regression test where a focused se
 | Side-model cached file pointer — `src/stag4000/obj.c:208-219,253-291` | `CdCacheEntry.data` is `sptr`, but `Stg40_SideModelFor` stored it in `s32 file` and the native-only side-model cache record. | **Fixed:** widened the native-only cache member and local to `sptr`, leaving `fileId` separate. `tests/side_model_cache_pointer_test.c` changes the cached host pointer while retaining the same low 32 bits and verifies the side model rebuilds. |
 | Map background smoothing range — `src/stag2000/mapbg.c:127,159-162,203-218` | `layerStart` was `s32`, assigned from `Sys_State.packet.addr`, then converted through `u32` to pointers passed to `Host_SmoothLayer`. | **Fixed:** `layerStart` is now a pointer and both smoothing endpoints are passed without the `u32` round-trip. `tests/mapbg_smoothing_pointer_test.c` verifies the production draw function passes the full high-address packet range. OT links remain explicitly fixed-width. |
 | Stag0000 dungeon relocation — `src/stag0000/dungsel.c:23-50,126,403` | Relocated floor and command-list words were cast directly to host pointers in the relocator and floor-selection path. | **Fixed:** kept serialized pointer words 32-bit and restored floor, layout, and command-list pointers with `P32` at their dereference boundaries. `tests/dungsel_reloc_pointer_test.c` relocates a synthetic >4 GB file, then runs production floor selection and layout-mask calculation. It caught the truncation in the relocator and the two downstream reads before their restorations. |
+| Digimon item target records — `src/main/itemeffect.c:185-186,224-225` | `MenuDigiPickRow.record` stores a fixed-width pointer word (`P32_SET` in `Menu_BuildDigiList`), but `Item_ApplyToDigi` and `Item_UseStatBoost` treated their `s32 a3` argument as a native pointer. | **Fixed:** both item-effect paths restore the selected roster view with `P32`. `tests/item_use_digi_pointer_test.c` drives the production menu handler and `Item_Use` with a roster record above 4 GB; it verifies health changes from 40 to 65 and attack from 20 to 21. The health path reproduced the reported fault before the fix; after that correction the same regression exposed the parallel stat-boost cast. |
 
 ### B. Fixed-width text and file pointer words
 
@@ -221,8 +222,9 @@ implementation pass must trace each listed expression to its actual consumer bef
 ## Current status
 
 The dungeon relocation (STAG4000 and STAG0000), room-label flood-fill, random-hazard allocation, floor
-packet cursor, map-background smoothing range, side-model cache identity, menu cursor, battle
-action-script, memory-card save, item-name pointer, and Digimon status selection fixes and focused
-regressions are verified. The expanded static audit is recorded above; remaining candidates are
-deferred. Full user-driven dungeon and battle routes still need validation; the user confirmed saving,
-loading, the vendor purchase, and Digimon information access.
+packet cursor, map-background smoothing range, side-model cache identity, Digimon item target records,
+menu cursor, battle action-script, memory-card save, item-name pointer, and Digimon status selection
+fixes and focused regressions are verified. The expanded static audit is recorded above; remaining
+candidates are deferred. Full user-driven dungeon and battle routes, plus Digimon health/stat item use,
+still need validation; the user confirmed saving, loading, the vendor purchase, and Digimon information
+access.

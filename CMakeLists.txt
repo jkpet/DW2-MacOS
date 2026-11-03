@@ -378,4 +378,12 @@ if(APPLE)
     target_compile_definitions(dungsel_reloc_pointer_test PRIVATE ${DW2_DEFS})
     target_include_directories(dungsel_reloc_pointer_test PRIVATE ${DW2_INCLUDES})
     target_link_options(dungsel_reloc_pointer_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for applying a health item to a high-address roster record from the menu.
+    add_executable(item_use_digi_pointer_test ${CMAKE_SOURCE_DIR}/tests/item_use_digi_pointer_test.c
+        ${CMAKE_SOURCE_DIR}/src/main/digilist.c ${CMAKE_SOURCE_DIR}/src/main/itemeffect.c)
+    target_compile_options(item_use_digi_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(item_use_digi_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(item_use_digi_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(item_use_digi_pointer_test PRIVATE -Wl,-dead_strip)
 endif()
