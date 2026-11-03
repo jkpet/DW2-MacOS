@@ -46,7 +46,7 @@ typedef struct {
     u8 _pad26[0x02];
 } Stg30Part; /* size 0x28 */
 
-/* Work of task D_80073040 (init Stg30_ActionLoadInit) and D_800730D0 (init Stg30_ItemMenuInit). */
+/* One-word work/argument view used by the command-input, item-menu, and join-prompt tasks. */
 typedef struct {
     /* 0x00 */ s32 field_0;
 } Stg30WorkWord;

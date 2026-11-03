@@ -1,9 +1,9 @@
 # Native Pointer-Width Audit
 
 Audit results for the macOS arm64 native build. Dungeon relocation, room-label flood-fill,
-random-hazard cleanup, and floor packet cursor crashes were reproduced and fixed with focused arm64
-regression tests. This audit broadens the scan to pointer-sized integer narrowing and records
-remaining candidates and planned fixes.
+random-hazard cleanup, floor packet rendering, menu cursor movement, and battle action loading pointer
+crashes were reproduced and fixed with focused arm64 regression tests. This audit broadens the scan to
+pointer-sized integer narrowing and records remaining candidates and planned fixes.
 
 ## Audit method
 
@@ -89,6 +89,19 @@ and compile/dependency options with `-fsyntax-only`.
 - The arm64 release build and all four focused dungeon pointer tests pass. The full user-driven
   dungeon-entry route still needs to be rerun.
 
+### Battle action loading narrowed the script pointer to `s32`
+
+- The user's battle trace stopped at `while (*p != 0x18)` in `Stg30_ActionLoadUpdate`, with an invalid
+  script address. `Stg30_BattleScriptTask` put `(s32)Stg30_BattleScript` in `h[1]` before creating
+  task `0x50E`; `Stg30_ActionLoadInit` then copied that 32-bit word into the script-pointer field.
+- `Task_Create` now receives `Stg30_BattleScript` directly as its pointer-width `sptr` argument, and
+  `Stg30_ActionLoadInit` takes that same `sptr` and stores it as `s16 *` in `Stg30ActionLoadWork`.
+- Added `tests/actionload_script_pointer_test.c`, which invokes the production initializer and parser
+  with a script above 4 GB. It failed on the truncated pointer before the fix and passes after parsing
+  the script terminator.
+- The arm64 release build and this regression plus all five existing focused pointer tests pass. The
+  user's full battle route still needs confirmation.
+
 ## Deferred candidates and planned fixes
 
 These findings are recorded for a later implementation pass. Preserve fixed-width PS1/file/GPU data
@@ -167,7 +180,7 @@ implementation pass must trace each listed expression to its actual consumer bef
 
 ## Current status
 
-The dungeon relocation, room-label flood-fill, random-hazard allocation, and floor packet cursor fixes
-and focused regressions are verified. The expanded static audit is recorded above; remaining candidate
-fixes are deferred. The actual dungeon route still needs validation after the remaining pointer-width
-candidates are addressed.
+The dungeon relocation, room-label flood-fill, random-hazard allocation, floor packet cursor, menu
+cursor, and battle action-script pointer fixes and focused regressions are verified. The expanded static
+audit is recorded above; remaining candidates are deferred. The full user-driven dungeon and battle
+routes still need validation.

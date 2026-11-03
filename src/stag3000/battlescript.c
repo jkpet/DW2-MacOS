@@ -60,7 +60,6 @@ void Stg30_BattleScriptTask(Actor *a0) {
     s32 e[3];
     s32 f[3];
     s32 g[3];
-    s32 h[1];
     TaskEntry *t;
     s32 *q;
     s32 cont;
@@ -245,8 +244,7 @@ void Stg30_BattleScriptTask(Actor *a0) {
                 w->pc += 4;
                 break;
             case 21:
-                h[0] = (s32)Stg30_BattleScript;
-                Task_Create(0x50E, (s32 *)&sl->actionLoadTask, (sptr)h);
+                Task_Create(0x50E, (s32 *)&sl->actionLoadTask, (sptr)Stg30_BattleScript);
                 w->pc += 1;
                 break;
             case 22:

@@ -2,7 +2,7 @@
 #include "stag3000/stag3000.h"
 
 /* Task callbacks the descriptors below need (defined further down). */
-void Stg30_ActionLoadInit(Actor *a0, s32 *args);
+void Stg30_ActionLoadInit(Actor *a0, sptr script);
 void Stg30_ActionLoadUpdate(Actor *a0);
 void Stg30_ActionLoadDestroy(Actor *a0);
 
@@ -10,8 +10,8 @@ TaskDesc Stg30_ActionLoadDesc = {
     (TaskInitFn)Stg30_ActionLoadInit, Stg30_ActionLoadUpdate, Stg30_ActionLoadDestroy, 0, 0x324, 0,
 };
 
-void Stg30_ActionLoadInit(Actor *a0, s32 *args) {
-    ((Stg30WorkWord *)a0->work)->field_0 = args[0];
+void Stg30_ActionLoadInit(Actor *a0, sptr script) {
+    ((Stg30ActionLoadWork *)a0->work)->script = (s16 *)script;
 }
 
 void Stg30_ActionLoadAddSorted(Actor *a0, s32 file, s32 lba) {

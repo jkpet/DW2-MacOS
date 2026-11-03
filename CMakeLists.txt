@@ -323,4 +323,12 @@ if(APPLE)
     target_compile_definitions(topmenu_cursor_pointer_test PRIVATE ${DW2_DEFS})
     target_include_directories(topmenu_cursor_pointer_test PRIVATE ${DW2_INCLUDES})
     target_link_options(topmenu_cursor_pointer_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for the battle action-loader script pointer passed through task init.
+    add_executable(actionload_script_pointer_test ${CMAKE_SOURCE_DIR}/tests/actionload_script_pointer_test.c
+        ${CMAKE_SOURCE_DIR}/src/stag3000/actionload.c)
+    target_compile_options(actionload_script_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(actionload_script_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(actionload_script_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(actionload_script_pointer_test PRIVATE -Wl,-dead_strip)
 endif()
