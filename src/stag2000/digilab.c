@@ -280,10 +280,10 @@ void Stg20_LabDnaDigivolve(Actor *a) {
             nd.level = t * 10 + 1;
             nd.digiId = Stg20_MenuState.evoTargetId;
             nd.dp = (p->dp > q->dp ? p->dp : q->dp) + 1;
-            if (p->level > q->level) {
-                ml = p->level + q->level / 2 + 1;
+            if (p->maxLevel > q->maxLevel) {
+                ml = p->maxLevel + q->maxLevel / 2 + 1;
             } else {
-                ml = q->level + p->level / 2 + 1;
+                ml = q->maxLevel + p->maxLevel / 2 + 1;
             }
             nd.maxLevel = ml;
             if (ml >= 99) {
