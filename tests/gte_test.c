@@ -57,6 +57,12 @@ static uint32_t rnd(void) {
 }
 static int32_t rnd_range(int32_t lo, int32_t hi) { return lo + (int32_t)(rnd() % (uint32_t)(hi - lo + 1)); }
 static uint32_t pair(int32_t a, int32_t b) { return ((uint32_t)b << 16) | ((uint32_t)a & 0xFFFF); }
+static uint32_t rnd_pair(int32_t lo, int32_t hi) {
+    /* Match the reference's high-half-first draw order, without unsequenced RNG calls. */
+    int32_t b = rnd_range(lo, hi);
+    int32_t a = rnd_range(lo, hi);
+    return pair(a, b);
+}
 
 /* One case: wide = 0 typical game ranges, 1 full range, 2 extremes (translations near the
  * 32-bit ends, large matrix and vector elements: the 44-bit MAC overflow flags). */
@@ -66,7 +72,7 @@ static void make_case(uint32_t *w, int op_index, int wide) {
     memset(w, 0, CASE_WORDS * 4);
     for (i = 0; i < 31; i++) {
         uint32_t *c = &w[i];
-        if (i < 5 || (i >= 8 && i < 13) || (i >= 16 && i < 21)) *c = pair(rnd_range(-m, m), rnd_range(-m, m));
+        if (i < 5 || (i >= 8 && i < 13) || (i >= 16 && i < 21)) *c = rnd_pair(-m, m);
         else if (i < 8 || (i >= 13 && i < 16) || (i >= 21 && i < 24))
             *c = (uint32_t)(wide ? (int32_t)rnd() : rnd_range(-0x8000, 0x8000));
         else if (i == GTE_OFX || i == GTE_OFY) *c = (uint32_t)(wide ? (int32_t)rnd() : rnd_range(-0x200, 0x200) << 16);
@@ -79,20 +85,27 @@ static void make_case(uint32_t *w, int op_index, int wide) {
         uint32_t *d = &w[31 + i];
         int32_t v = wide ? 0x7FFF : 0x400;
         if (i == GTE_SXYP || i == GTE_IRGB || i == GTE_ORGB) continue;
-        if (i == GTE_VXY0 || i == GTE_VXY1 || i == GTE_VXY2) *d = pair(rnd_range(-v, v), rnd_range(-v, v));
+        if (i == GTE_VXY0 || i == GTE_VXY1 || i == GTE_VXY2) *d = rnd_pair(-v, v);
         else if (i == GTE_VZ0 || i == GTE_VZ1 || i == GTE_VZ2)
             *d = (uint32_t)(wide ? (int32_t)rnd() : rnd_range(-v, v));
         else if (i >= GTE_IR0 && i <= GTE_IR3) *d = (uint32_t)(wide ? (int32_t)rnd() : rnd_range(-0x1000, 0x1000));
-        else if (i >= GTE_SXY0 && i <= GTE_SXY2) *d = pair(rnd_range(-0x400, 0x3FF), rnd_range(-0x400, 0x3FF));
+        else if (i >= GTE_SXY0 && i <= GTE_SXY2) *d = rnd_pair(-0x400, 0x3FF);
         else *d = rnd();
     }
     if (wide == 2) {
         for (i = 0; i < 31; i++) {
             int32_t big = (int32_t)(0x7FF00000u | (rnd() & 0xFFFFF));
-            if (i < 5 || (i >= 8 && i < 13) || (i >= 16 && i < 21))
-                w[i] = (rnd() & 1) ? pair(0x7FFF - (int32_t)(rnd() & 0xFF), 0x7FFF - (int32_t)(rnd() & 0xFF))
-                                   : pair(-0x8000 + (int32_t)(rnd() & 0xFF), -0x8000 + (int32_t)(rnd() & 0xFF));
-            else if (i < 8 || (i >= 13 && i < 16) || (i >= 21 && i < 24)) w[i] = (uint32_t)((rnd() & 1) ? big : -big);
+            if (i < 5 || (i >= 8 && i < 13) || (i >= 16 && i < 21)) {
+                int32_t b, a;
+                if (rnd() & 1) {
+                    b = 0x7FFF - (int32_t)(rnd() & 0xFF);
+                    a = 0x7FFF - (int32_t)(rnd() & 0xFF);
+                } else {
+                    b = -0x8000 + (int32_t)(rnd() & 0xFF);
+                    a = -0x8000 + (int32_t)(rnd() & 0xFF);
+                }
+                w[i] = pair(a, b);
+            } else if (i < 8 || (i >= 13 && i < 16) || (i >= 21 && i < 24)) w[i] = (uint32_t)((rnd() & 1) ? big : -big);
         }
         for (i = GTE_VXY0; i <= GTE_VZ2; i++) w[31 + i] = (rnd() & 1) ? 0x7FFF7FFFu : 0x80008000u;
         for (i = GTE_IR1; i <= GTE_IR3; i++) w[31 + i] = (rnd() & 1) ? 0x7FFFu : 0xFFFF8000u;

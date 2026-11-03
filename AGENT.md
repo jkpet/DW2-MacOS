@@ -56,7 +56,7 @@ Produce a native macOS arm64 build of the DW2 native client (`dw2`) that:
 ### Latest verified runtime state (current macOS arm64 machine)
 
 - macOS arm64 release build succeeds (`./.venv/bin/python tools/build_native.py --arch arm64 --release`; latest full rebuild reported 1435 warnings across 127 files).
-- Running `build/macos-arm64_rel/gte_test` currently exits with 1248 GTE command-reference mismatches; the test and GTE implementation were not changed in this investigation, and this result has not been compared with another platform.
+- `build/macos-arm64_rel/gte_test` passes all 1248 GTE command-reference cases. The failures were caused by the case generator calling the stateful RNG twice in `pair()` arguments, whose evaluation order differs across compilers; the generator now sequences the draws to match the checked-in PCSX-Redux reference.
 - `alloc_low_stack()` still fails with `MAP_FIXED` errno 12, so runtime uses the experimental default-stack path.
 - macOS arm64 now reserves a 16 MB-aligned, non-fixed `mmap` arena within the executable's 4 GB pointer region. `Ps1_Ram` occupies its first 2 MB and the three `Gpu_OtBufs` follow it; runtime checks ensure both ranges share the OT-link window and that legacy `P32` pointers still share a 4 GB region with the image. Twelve fresh one-VBlank launches passed with the arena at `0x110000000`.
 - A scripted new-game smoke (`Start`, `Up`, `Cross`) reached game mode `0x307`, loaded city assets, and completed 600 VBlank waits. Verified after the scratchpad-region check: exit 0, 607 total waits, 7,669 Psy-Q calls, 302 flips. Full log: `/var/folders/5s/p6dvxjss1h1d672sc1njbb780000gp/T/opencode/dw2-city-smoke.log`.
