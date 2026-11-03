@@ -36,7 +36,7 @@ s32 Stg00_RelocDungFile(u32 *arg0) {
             s32 i;
 
             *arg0 += base;
-            h = (Stg00DungFloor *)*arg0;
+            h = P32(Stg00DungFloor, *arg0);
             h->name += base;
             for (i = 0; i < 8; i++) {
                 PTR32(Stg00DungLayout) *pe = &h->layouts[i];
@@ -123,7 +123,7 @@ void Stg00_DungSelPickFloor(Actor *arg0, Stg00SelWork *arg1_) {
         return;
     }
     for (i = 0; i < 8; i++) {
-        arg1->layoutMasks[i] = Stg00_CalcLayoutMask((Stg00DungFloor *)arg1->floorTable[arg1->floor], i);
+        arg1->layoutMasks[i] = Stg00_CalcLayoutMask(P32(Stg00DungFloor, arg1->floorTable[arg1->floor]), i);
         arg1->maskBitCounts[i] = 0;
         for (j = 0; j < 32; j++) {
             bit = 1 << j;
@@ -400,7 +400,7 @@ s32 Stg00_CalcLayoutMask(Stg00DungFloor *arg0, s32 arg1) {
             result |= tbl.bits[i][val];
         }
     }
-    cmd = (Stg00RelocCmd *)P32(Stg00DungLayout, arg0->layouts[arg1])->cmdList;
+    cmd = P32(Stg00RelocCmd, P32(Stg00DungLayout, arg0->layouts[arg1])->cmdList);
     while (cmd->posPicks01.tag != 0xFF) {
         for (i = 0; i < 4; i++) {
             switch (i) {

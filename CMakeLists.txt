@@ -355,4 +355,27 @@ if(APPLE)
     target_compile_definitions(digistatus_record_pointer_test PRIVATE ${DW2_DEFS})
     target_include_directories(digistatus_record_pointer_test PRIVATE ${DW2_INCLUDES})
     target_link_options(digistatus_record_pointer_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for side-model cache identity after a high-address CD file reload.
+    add_executable(side_model_cache_pointer_test ${CMAKE_SOURCE_DIR}/tests/side_model_cache_pointer_test.c)
+    target_compile_options(side_model_cache_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(side_model_cache_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(side_model_cache_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(side_model_cache_pointer_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for retaining the map-background packet range passed to smoothing.
+    add_executable(mapbg_smoothing_pointer_test ${CMAKE_SOURCE_DIR}/tests/mapbg_smoothing_pointer_test.c
+        ${CMAKE_SOURCE_DIR}/src/stag2000/mapbg.c)
+    target_compile_options(mapbg_smoothing_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(mapbg_smoothing_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(mapbg_smoothing_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(mapbg_smoothing_pointer_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for high-address floor records in the STAG0000 dungeon relocator.
+    add_executable(dungsel_reloc_pointer_test ${CMAKE_SOURCE_DIR}/tests/dungsel_reloc_pointer_test.c
+        ${CMAKE_SOURCE_DIR}/src/stag0000/dungsel.c)
+    target_compile_options(dungsel_reloc_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(dungsel_reloc_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(dungsel_reloc_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(dungsel_reloc_pointer_test PRIVATE -Wl,-dead_strip)
 endif()

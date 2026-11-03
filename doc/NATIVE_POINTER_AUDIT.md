@@ -154,9 +154,9 @@ must retain the PS1 32-bit behavior and add a regression test where a focused se
 
 | Candidate | Evidence | Planned fix and validation |
 | --- | --- | --- |
-| Side-model cached file pointer — `src/stag4000/obj.c:208-219,253-291` | `CdCacheEntry.data` is `sptr`, but `Stg40_SideModelFor` stores it in `s32 file` and the native-only side-model cache record. | Change the native-only cache member and local to `sptr` or a typed pointer; keep `fileId` separate. Validate cache hit/reload identity and side-model rendering with the cache above 4 GB. |
-| Map background smoothing range — `src/stag2000/mapbg.c:127,159-162,203-218` | `layerStart` is `s32`, assigned from `Sys_State.packet.addr`, then converted through `u32` to pointers passed to `Host_SmoothLayer`. | Retain the start/end cursors as pointer-width values and pass them as pointers without the `u32` round-trip. Keep the OT packet-link conversions explicit. Test smoothing with a packet buffer above 4 GB and verify the range endpoints. |
-| Stag0000 dungeon relocation — `src/stag0000/dungsel.c:23-50,126,403` | `Stg00_RelocDungFile` narrows the loaded file base to `u32`, then dereferences relocated `u32` words as host pointers (`h = (Stg00DungFloor *)*arg0`); related fields are later restored inconsistently. This is the same file-pointer pattern as the fixed STAG4000 crash. | Keep the loaded file base as `uptr`; resolve file-relative offsets against that host base and encode only the 32-bit file words with `P32_SET`. Add a synthetic >4 GB test for the production STAG0000 relocator and test the dungeon-selection route. |
+| Side-model cached file pointer — `src/stag4000/obj.c:208-219,253-291` | `CdCacheEntry.data` is `sptr`, but `Stg40_SideModelFor` stored it in `s32 file` and the native-only side-model cache record. | **Fixed:** widened the native-only cache member and local to `sptr`, leaving `fileId` separate. `tests/side_model_cache_pointer_test.c` changes the cached host pointer while retaining the same low 32 bits and verifies the side model rebuilds. |
+| Map background smoothing range — `src/stag2000/mapbg.c:127,159-162,203-218` | `layerStart` was `s32`, assigned from `Sys_State.packet.addr`, then converted through `u32` to pointers passed to `Host_SmoothLayer`. | **Fixed:** `layerStart` is now a pointer and both smoothing endpoints are passed without the `u32` round-trip. `tests/mapbg_smoothing_pointer_test.c` verifies the production draw function passes the full high-address packet range. OT links remain explicitly fixed-width. |
+| Stag0000 dungeon relocation — `src/stag0000/dungsel.c:23-50,126,403` | Relocated floor and command-list words were cast directly to host pointers in the relocator and floor-selection path. | **Fixed:** kept serialized pointer words 32-bit and restored floor, layout, and command-list pointers with `P32` at their dereference boundaries. `tests/dungsel_reloc_pointer_test.c` relocates a synthetic >4 GB file, then runs production floor selection and layout-mask calculation. It caught the truncation in the relocator and the two downstream reads before their restorations. |
 
 ### B. Fixed-width text and file pointer words
 
@@ -200,14 +200,12 @@ implementation pass must trace each listed expression to its actual consumer bef
 
 ## Planned implementation order
 
-1. Fix the remaining high-confidence pointer truncations in `obj.c`, `mapbg.c`, and
-   `stag0000/dungsel.c`, with focused high-address tests and dungeon/map runtime validation.
-2. Resolve legacy text/file-reference sites in `flagtable.c`, `gamedata.c`, `skill.c`, and
+1. Resolve legacy text/file-reference sites in `flagtable.c`, `gamedata.c`, `skill.c`, and
    `warppad.c`; verify their fixed-width consumers before changing representation.
-3. Fix the Digimon-transfer record round-trip with `P32_SET`/`P32` and a transfer-flow regression.
-4. Triage the remaining pointer-cast inventory by actor/task, GPU-link, file-offset, and heap-arithmetic
+2. Fix the Digimon-transfer record round-trip with `P32_SET`/`P32` and a transfer-flow regression.
+3. Triage the remaining pointer-cast inventory by actor/task, GPU-link, file-offset, and heap-arithmetic
    families; resolve each native pointer-valued call chain and document intentional conversions.
-5. Add a repeatable diagnostic gate for the compile-database scan, with reviewed exceptions for
+4. Add a repeatable diagnostic gate for the compile-database scan, with reviewed exceptions for
    intentional fixed-width encodings, then run release build, focused tests, PS1 layout/build checks,
    and the user-driven dungeon route.
 
@@ -222,8 +220,9 @@ implementation pass must trace each listed expression to its actual consumer bef
 
 ## Current status
 
-The dungeon relocation, room-label flood-fill, random-hazard allocation, floor packet cursor, menu
-cursor, battle action-script, memory-card save, item-name pointer, and Digimon status selection fixes
-and focused regressions are verified. The expanded static audit is recorded above; remaining
-candidates are deferred. Full user-driven dungeon and battle routes still need validation; the user
-confirmed saving, loading, the vendor purchase, and Digimon information access.
+The dungeon relocation (STAG4000 and STAG0000), room-label flood-fill, random-hazard allocation, floor
+packet cursor, map-background smoothing range, side-model cache identity, menu cursor, battle
+action-script, memory-card save, item-name pointer, and Digimon status selection fixes and focused
+regressions are verified. The expanded static audit is recorded above; remaining candidates are
+deferred. Full user-driven dungeon and battle routes still need validation; the user confirmed saving,
+loading, the vendor purchase, and Digimon information access.

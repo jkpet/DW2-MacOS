@@ -208,7 +208,7 @@ extern CdCacheEntry Cd_FileCache[0x50];
 typedef struct {
     Actor *owner;  /* game actor drawn by this copy, NULL = free */
     s32 fileId;    /* model file */
-    s32 file;      /* its cached data when built (a reload rebuilds) */
+    sptr file;     /* its cached data when built (a reload rebuilds) */
     s32 lastFrame; /* Sys_State.frameCount of the last draw */
     s32 anim;      /* anim it shows (wanted by the game), -1 none yet */
     s32 fallback;  /* showing anim 0x28 because the wanted anim file is not loaded */
@@ -256,7 +256,7 @@ static Stg40SideModel *Stg40_SideModelFor(Actor *owner, s32 fileId) {
     ActorModel *m;
     ModelQuadSection *p;
     GfxModelTriSec *r;
-    s32 file;
+    sptr file;
     s32 i;
     s32 j;
     s32 v;
