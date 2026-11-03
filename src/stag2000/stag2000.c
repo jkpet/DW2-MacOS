@@ -1,5 +1,38 @@
 #include "common.h"
 #include "stag2000/stag2000.h"
+#ifdef DW2_NATIVE
+#include <stdio.h>
+extern s32 Flag_TestConds(Blk18 *conditions);
+extern s32 Flag_DebugGetScanResult(s32 fileId, s32 entryIndex);
+
+static void Stg20_DebugAuditFlagEntries(s32 fileId) {
+    static const s16 c2aEntries[] = { 1, 2, 3, 22, 29, 44 };
+    static const s16 c26Entries[] = { 0, 1, 9, 28, 41 };
+    const s16 *indices;
+    s32 count;
+    FlagBranchEntry *entries = (FlagBranchEntry *)Cd_GetFileEntry(fileId << 16);
+    Blk18 *conditions = (Blk18 *)Cd_GetFileEntry((fileId << 16) | 2);
+    s32 i;
+
+    if (fileId == 0xC2A) {
+        indices = c2aEntries;
+        count = sizeof(c2aEntries) / sizeof(c2aEntries[0]);
+    } else {
+        indices = c26Entries;
+        count = sizeof(c26Entries) / sizeof(c26Entries[0]);
+    }
+    for (i = 0; i < count; i++) {
+        s32 entryIndex = indices[i];
+        FlagBranchEntry *entry = &entries[entryIndex];
+        s32 conditionIndex = ((FlagEntryIdx *)entry)->condIdx;
+        s32 passes = Flag_TestConds(&conditions[conditionIndex]);
+        s32 scanPasses = Flag_DebugGetScanResult(fileId, entryIndex);
+
+        printf("[flag-audit] table=%03X entry=%d digi=%03X cond=%d scan=%d later=%d\n", fileId, entryIndex,
+               entry->digiId, conditionIndex, scanPasses, passes);
+    }
+}
+#endif
 
 /* Task callbacks the descriptors below need (defined further down). */
 void Stg20_StageMain(Actor *a);
@@ -56,6 +89,11 @@ void Stg20_StageMain(Actor *a) {
                     n++;
                 }
             }
+#ifdef DW2_NATIVE
+            if (Stg20_GetMapInfo()->flagTableFile == 0xC2A || Stg20_GetMapInfo()->flagTableFile == 0xC26) {
+                Stg20_DebugAuditFlagEntries(Stg20_GetMapInfo()->flagTableFile);
+            }
+#endif
             Task_Create(0x304, &slot[26], 0);
             Task_Create(0x301, &slot[2], Stg20_GetMapInfo()->bgFileId);
             switch (Sys_GameMode[0]) {
