@@ -46,16 +46,17 @@ const int Settings_ButtonOrder[16] = {
 static const char *const int_keys[SET_COUNT] = {
     "scale", "wide", "pgxp", "renderer", "volume", "stick_dpad", "window_mode", "fullscreen_display", "window_maximized",
     "sharpen", "title_hint", "speed", "update_check", "smooth",
-    "select_hold_menu",
+    "select_hold_menu", "exp_multiplier",
 };
-static const int int_default[SET_COUNT] = { 1, 0, 0, SET_RENDERER_GPU, 100, 1, SET_WINDOW_WINDOWED, 0, 0, 0, 1, 3, 1, 1, 1 };
-static const int int_min[SET_COUNT] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-static const int int_max[SET_COUNT] = { 8, 1, 1, 1, 100, 1, 2, 16, 1, 100, 1, 8, 1, 1, 1 };
+static const int int_default[SET_COUNT] = { 1, 0, 0, SET_RENDERER_GPU, 100, 1, SET_WINDOW_WINDOWED, 0, 0, 0, 1, 3, 1, 1, 1, SET_EXP_100 };
+static const int int_min[SET_COUNT] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SET_EXP_100 };
+static const int int_max[SET_COUNT] = { 8, 1, 1, 1, 100, 1, 2, 16, 1, 100, 1, 8, 1, 1, 1, SET_EXP_2000 };
 static const char *const renderer_names[] = { "gpu", "soft", NULL };
 static const char *const window_names[] = { "windowed", "borderless", "exclusive", NULL };
+static const char *const exp_multiplier_names[] = { "100%", "200%", "500%", "1000%", "2000%", NULL };
 /* values written as names instead of numbers */
 static const char *const *const int_names[SET_COUNT] = {
-    [SET_RENDERER] = renderer_names, [SET_WINDOW_MODE] = window_names,
+    [SET_RENDERER] = renderer_names, [SET_WINDOW_MODE] = window_names, [SET_EXP_MULTIPLIER] = exp_multiplier_names,
 };
 
 /* Known keys: 0..SET_COUNT-1 the values, then the PR.3 window keys with two or three numbers,
@@ -376,8 +377,9 @@ static int apply_kv(int k, char *v, int as_change, char *why, size_t whylen) {
         if (*v == 0 || *end != 0 || n < int_min[k] || n > int_max[k]) {
             snprintf(why, whylen, "%s: \"%s\" is not %s", int_keys[k], v,
                      k == SET_RENDERER        ? "gpu or soft"
-                     : k == SET_WINDOW_MODE ? "windowed, borderless or exclusive"
-                                            : "a number in range");
+                     : k == SET_WINDOW_MODE  ? "windowed, borderless or exclusive"
+                     : k == SET_EXP_MULTIPLIER ? "100%, 200%, 500%, 1000% or 2000%"
+                                               : "a number in range");
             return 0;
         }
         if (as_change) {
@@ -714,7 +716,8 @@ static int write_line(SDL_IOStream *io, const char *s) {
 static int save(void) {
     static const int order[K_KEY] = {
         SET_SCALE, SET_WIDE, SET_PGXP, SET_SHARPEN, SET_SMOOTH, SET_RENDERER, SET_VOLUME, SET_STICK_DPAD, SET_SELECT_HOLD,
-        SET_TITLE_HINT, SET_SPEED, SET_UPDATE_CHECK, SET_WINDOW_MODE, SET_FS_DISPLAY, K_FSMODE, K_WINSIZE, K_WINPOS, SET_WIN_MAX,
+        SET_TITLE_HINT, SET_EXP_MULTIPLIER, SET_SPEED, SET_UPDATE_CHECK, SET_WINDOW_MODE, SET_FS_DISPLAY, K_FSMODE, K_WINSIZE,
+        K_WINPOS, SET_WIN_MAX,
     };
     char seen[K_COUNT] = { 0 };
     char *tmp = NULL;

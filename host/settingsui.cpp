@@ -324,8 +324,15 @@ void open_releases(void);
 void game_tab(void) {
     static const int values[] = { 2, 3, 4, 5, 6, 8, 0 };
     static const char *const names[] = { "2x", "3x", "4x", "5x", "6x", "8x", "No limit" };
+    static const char *const exp_names[] = { "100%", "200%", "500%", "1000%", "2000%" };
+    int exp_multiplier = Settings_Get(SET_EXP_MULTIPLIER);
     int cur = Settings_Get(SET_SPEED);
     int sel = 1;
+
+    ImGui::SeparatorText("Gameplay");
+    if (ImGui::Combo("Apply EXP multiplier", &exp_multiplier, exp_names, (int)(sizeof(exp_names) / sizeof(exp_names[0])))) {
+        Settings_Set(SET_EXP_MULTIPLIER, exp_multiplier);
+    }
 
     for (int i = 0; i < (int)(sizeof(values) / sizeof(values[0])); i++) {
         if (values[i] == cur) {

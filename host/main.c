@@ -101,7 +101,7 @@
  *     --settings-set KEY=VALUE  set a value as the F1 window does (saved; repeatable; tests)
  *     --settings-ui  the F1 settings window open at start; with --no-window it renders headless
  *                    and each shot adds <tag>_ui.png
- *     --settings-tab T the F1 tab shown first (Display, Controls, Sound; headless checks)
+ *     --settings-tab T the F1 tab shown first (Display, Controls, Game, Sound; headless checks)
  *     --window-mode M windowed, borderless (fullscreen at the desktop resolution) or exclusive
  *                    (fullscreen in the fullscreen_mode of settings.ini); PR.3, F11 toggles in the
  *                    window; overrides the settings file for this run, not saved. Headless runs

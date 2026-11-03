@@ -26,10 +26,12 @@ enum {
     SET_UPDATE_CHECK, /* 0 / 1: PR.30 ask GitHub for a newer release at start */
     SET_SMOOTH,       /* 0 / 1: PR.34 smooth frames (F9), on by default */
     SET_SELECT_HOLD,  /* 0 / 1: PR.38 Select held 1 s opens F1 (issue #5), on by default */
+    SET_EXP_MULTIPLIER, /* selected EXP percentage, default 100% */
     SET_COUNT
 };
 enum { SET_RENDERER_GPU, SET_RENDERER_SOFT };
 enum { SET_WINDOW_WINDOWED, SET_WINDOW_BORDERLESS, SET_WINDOW_EXCLUSIVE };
+enum { SET_EXP_100, SET_EXP_200, SET_EXP_500, SET_EXP_1000, SET_EXP_2000 };
 
 #define SET_KEY_SLOTS 2   /* keyboard keys per pad button */
 #define SET_PAD_NONE -1   /* gamepad binding: SDL_GamepadButton, a trigger code, or none */
