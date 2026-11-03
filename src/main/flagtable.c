@@ -30,56 +30,9 @@
 
 /* .bss */
 FlagEntryState Flag_EntryIter;
-#ifdef DW2_NATIVE
-static u8 Flag_DebugScanSeen[2][128];
-static s8 Flag_DebugScanPasses[2][128];
-
-s32 Flag_DebugGetScanResult(s32 fileId, s32 entryIndex) {
-    s32 table;
-
-    if (entryIndex < 0 || entryIndex >= 128) {
-        return -1;
-    }
-    if (fileId == 0xC2A) {
-        table = 0;
-    } else if (fileId == 0xC26) {
-        table = 1;
-    } else {
-        return -1;
-    }
-    return Flag_DebugScanSeen[table][entryIndex] != 0 ? Flag_DebugScanPasses[table][entryIndex] : -1;
-}
-
-void Flag_DebugResetScan(s32 fileId) {
-    s32 table;
-    s32 i;
-
-    if (fileId == 0xC2A) {
-        table = 0;
-    } else if (fileId == 0xC26) {
-        table = 1;
-    } else {
-        return;
-    }
-    for (i = 0; i < 128; i++) {
-        Flag_DebugScanSeen[table][i] = 0;
-        Flag_DebugScanPasses[table][i] = 0;
-    }
-}
-#endif
 
 void Flag_SetTableFile(s32 arg0) {
     Flag_EntryIter.fileId = arg0;
-#ifdef DW2_NATIVE
-    if (arg0 == 0xC2A || arg0 == 0xC26) {
-        s32 table = arg0 == 0xC2A ? 0 : 1;
-        s32 i;
-        for (i = 0; i < 128; i++) {
-            Flag_DebugScanSeen[table][i] = 0;
-            Flag_DebugScanPasses[table][i] = 0;
-        }
-    }
-#endif
 }
 
 Blk18 *Flag_GetEntryCondBlock(FlagEntryIdx *arg0) {
@@ -100,15 +53,6 @@ Blk18 *Flag_GetBranchSetBlock(FlagEntryIdx *arg0, s32 arg1) {
 s32 Flag_NextPassingEntry(void) {
     while (Flag_EntryIter.cursor->digiId != 0) {
         if (Flag_TestConds(Flag_GetEntryCondBlock((FlagEntryIdx *)Flag_EntryIter.cursor)) != 0) {
-#ifdef DW2_NATIVE
-            if (Flag_EntryIter.fileId == 0xC2A && Flag_EntryIter.entryIndex < 128) {
-                Flag_DebugScanSeen[0][Flag_EntryIter.entryIndex] = 1;
-                Flag_DebugScanPasses[0][Flag_EntryIter.entryIndex] = 1;
-            } else if (Flag_EntryIter.fileId == 0xC26 && Flag_EntryIter.entryIndex < 128) {
-                Flag_DebugScanSeen[1][Flag_EntryIter.entryIndex] = 1;
-                Flag_DebugScanPasses[1][Flag_EntryIter.entryIndex] = 1;
-            }
-#endif
             Flag_EntryIter.match = *Flag_EntryIter.cursor;
             {
                 s32 r = Flag_EntryIter.entryIndex;
@@ -118,26 +62,17 @@ s32 Flag_NextPassingEntry(void) {
                 return r;
             }
         }
-#ifdef DW2_NATIVE
-        if (Flag_EntryIter.fileId == 0xC2A && Flag_EntryIter.entryIndex < 128) {
-            Flag_DebugScanSeen[0][Flag_EntryIter.entryIndex] = 1;
-            Flag_DebugScanPasses[0][Flag_EntryIter.entryIndex] = 0;
-        } else if (Flag_EntryIter.fileId == 0xC26 && Flag_EntryIter.entryIndex < 128) {
-            Flag_DebugScanSeen[1][Flag_EntryIter.entryIndex] = 1;
-            Flag_DebugScanPasses[1][Flag_EntryIter.entryIndex] = 0;
-        }
-#endif
         Flag_EntryIter.cursor++;
         Flag_EntryIter.entryIndex++;
     }
     return -1;
 }
 
-void Flag_FirstPassingEntry(void) {
+s32 Flag_FirstPassingEntry(void) {
     Flag_EntryIter.fileBase = Cd_GetFileOrNull(Flag_EntryIter.fileId);
     Flag_EntryIter.cursor = Cd_GetFileEntry(Flag_EntryIter.fileId << 16);
     Flag_EntryIter.entryIndex = 0;
-    Flag_NextPassingEntry();
+    return Flag_NextPassingEntry();
 }
 
 FlagBranchEntry *Flag_GetEntry(arg0)

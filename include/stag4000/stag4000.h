@@ -623,7 +623,7 @@ extern void Snd_PlayById(s32, s32);
 extern void Task_NextState2(Actor *arg0);
 extern sptr Cd_GetFileOrNull(s32 arg0);
 extern void Flag_SetTableFile(s32 arg0);
-extern s32 Flag_FirstPassingEntry(void); /* main defines it void; its tail call leaves Flag_NextPassingEntry's result in v0 */
+extern s32 Flag_FirstPassingEntry(void);
 extern Blk12 *Flag_GetEntryPosList(); /* main defines it (void); the overlay passes the entry index */
 extern s32 Flag_NextPassingEntry(void);
 extern PadState Pad_State[];

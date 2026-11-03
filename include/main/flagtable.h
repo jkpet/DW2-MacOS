@@ -9,7 +9,7 @@ Blk18 *Flag_GetEntryCondBlock(FlagEntryIdx *arg0);
 Blk18 *Flag_GetBranchCondBlock(FlagEntryIdx *arg0, s32 arg1);
 Blk18 *Flag_GetBranchSetBlock(FlagEntryIdx *arg0, s32 arg1);
 s32 Flag_NextPassingEntry(void);
-void Flag_FirstPassingEntry(void);
+s32 Flag_FirstPassingEntry(void);
 FlagBranchEntry *Flag_GetEntry();
 s32 Flag_SelectBranch(s32 arg0);
 s32 Flag_GetTableBase(void);

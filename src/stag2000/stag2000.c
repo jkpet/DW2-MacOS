@@ -1,39 +1,5 @@
 #include "common.h"
 #include "stag2000/stag2000.h"
-#ifdef DW2_NATIVE
-#include <stdio.h>
-extern s32 Flag_TestConds(Blk18 *conditions);
-extern s32 Flag_DebugGetScanResult(s32 fileId, s32 entryIndex);
-extern void Flag_DebugResetScan(s32 fileId);
-
-static void Stg20_DebugAuditFlagEntries(s32 fileId) {
-    static const s16 c2aEntries[] = { 1, 2, 3, 22, 29, 44 };
-    static const s16 c26Entries[] = { 0, 1, 9, 28, 41 };
-    const s16 *indices;
-    s32 count;
-    FlagBranchEntry *entries = (FlagBranchEntry *)Cd_GetFileEntry(fileId << 16);
-    Blk18 *conditions = (Blk18 *)Cd_GetFileEntry((fileId << 16) | 2);
-    s32 i;
-
-    if (fileId == 0xC2A) {
-        indices = c2aEntries;
-        count = sizeof(c2aEntries) / sizeof(c2aEntries[0]);
-    } else {
-        indices = c26Entries;
-        count = sizeof(c26Entries) / sizeof(c26Entries[0]);
-    }
-    for (i = 0; i < count; i++) {
-        s32 entryIndex = indices[i];
-        FlagBranchEntry *entry = &entries[entryIndex];
-        s32 conditionIndex = ((FlagEntryIdx *)entry)->condIdx;
-        s32 passes = Flag_TestConds(&conditions[conditionIndex]);
-        s32 scanPasses = Flag_DebugGetScanResult(fileId, entryIndex);
-
-        printf("[flag-audit] table=%03X entry=%d digi=%03X cond=%d scan=%d later=%d\n", fileId, entryIndex,
-               entry->digiId, conditionIndex, scanPasses, passes);
-    }
-}
-#endif
 
 /* Task callbacks the descriptors below need (defined further down). */
 void Stg20_StageMain(Actor *a);
@@ -76,9 +42,6 @@ void Stg20_StageMain(Actor *a) {
             sp.facing = st->dir;
             Task_Create(0x302, &slot[4], (sptr)&sp);
             if (Stg20_GetMapInfo()->flagTableFile != 0) {
-#ifdef DW2_NATIVE
-                Flag_DebugResetScan(Stg20_GetMapInfo()->flagTableFile);
-#endif
                 n = 0;
                 for (id = Flag_FirstPassingEntry(); id != -1; id = Flag_NextPassingEntry()) {
                     src = (Stg20BytePair *)Flag_GetEntryPosList(id);
@@ -93,24 +56,6 @@ void Stg20_StageMain(Actor *a) {
                     n++;
                 }
             }
-#ifdef DW2_NATIVE
-            if (Stg20_GetMapInfo()->flagTableFile == 0xC2A || Stg20_GetMapInfo()->flagTableFile == 0xC26) {
-                printf("[spawn-audit] mode=%03X table=%03X count=%d\n", Sys_State.gameMode & 0xFFF,
-                       Stg20_GetMapInfo()->flagTableFile, n);
-                for (k = 0; k < n; k++) {
-                    Actor *spawned = Task_GetActor(slot[6 + k]);
-                    if (spawned != NULL) {
-                        Stg20NpcWork *npc = (Stg20NpcWork *)spawned->work;
-                        printf("[spawn-audit] slot=%d ref=%08X digi=%03X model=%03X visible=%d kind=%d entry=%d cell=%d,%d\n",
-                               k, slot[6 + k], spawned->digiId, Digi_GetModelFile(spawned->digiId), npc->visible,
-                               ((Stg20ModelTask *)spawned)->walkerKind, npc->flagEntry, npc->blk[0].x, npc->blk[0].y);
-                    } else {
-                        printf("[spawn-audit] slot=%d ref=%08X actor=null\n", k, slot[6 + k]);
-                    }
-                }
-                Stg20_DebugAuditFlagEntries(Stg20_GetMapInfo()->flagTableFile);
-            }
-#endif
             Task_Create(0x304, &slot[26], 0);
             Task_Create(0x301, &slot[2], Stg20_GetMapInfo()->bgFileId);
             switch (Sys_GameMode[0]) {

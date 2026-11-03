@@ -806,7 +806,7 @@ extern void Gfx_FadeInFromBlack(s32 arg0);
 extern void Gfx_FadeSetBlack(void);
 extern void Gfx_InitLights(void);
 extern void Flag_SetTableFile(s32 arg0);
-extern s32 Flag_FirstPassingEntry(void); /* main defines it void; its tail call leaves Flag_NextPassingEntry's result in v0 */
+extern s32 Flag_FirstPassingEntry(void);
 extern Blk12 *Flag_GetEntryPosList(s32 id);
 extern s16 Flag_GetEntryDigiId(s32 id);
 extern s16 Flag_GetEntryDir(s32 id);
