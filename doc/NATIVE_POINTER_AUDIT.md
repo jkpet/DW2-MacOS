@@ -114,7 +114,7 @@ and compile/dependency options with `-fsyntax-only`.
 - Added `tests/card_filename_pointer_test.c`, which uses save work above 4 GB, creates a memory-card
   save file through the production file-op path, then completes the asynchronous 0x4000-byte write.
   It reproduced the `strncpy` fault before the fix and passes through the completed write afterward.
-- Full in-game save confirmation remains with the user.
+- The user confirmed both saving and loading work in-game after the fix.
 
 ## Deferred candidates and planned fixes
 
@@ -197,4 +197,4 @@ implementation pass must trace each listed expression to its actual consumer bef
 The dungeon relocation, room-label flood-fill, random-hazard allocation, floor packet cursor, menu
 cursor, battle action-script, and memory-card save pointer fixes and focused regressions are verified.
 The expanded static audit is recorded above; remaining candidates are deferred. The full user-driven
-dungeon, battle, and save routes still need validation.
+dungeon and battle routes still need validation; the user confirmed the save and load routes work.
