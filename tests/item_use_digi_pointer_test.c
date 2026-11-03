@@ -21,8 +21,13 @@ DungState *Dung_StatePtr;
 
 static MenuCtx sMenuContext;
 static ItemEffect sHealthItem = { 1, 0, 25 };
-static ItemStatEffect sStatBoost = { 4, 6, 3 };
+static ItemStatEffect sStatBoosts[] = { { 4, 6, 3 }, { 4, 10, 25 } };
 static sigjmp_buf sFaultJump;
+static int sExpMultiplierPercent = 500;
+
+int Host_ExpMultiplierPercent(void) {
+    return sExpMultiplierPercent;
+}
 
 static void catch_bad_record_access(int signalNumber) {
     (void)signalNumber;
@@ -53,7 +58,7 @@ EntA0 *Cd_GetFileEntry(u32 id) {
         return (EntA0 *)&sHealthItem;
     }
     if (id == 0x5130001) {
-        return (EntA0 *)&sStatBoost;
+        return (EntA0 *)sStatBoosts;
     }
     return NULL;
 }
@@ -114,6 +119,7 @@ int main(void) {
     record->maxHp = 100;
     record->hp = 40;
     record->attack = 20;
+    record->exp = 100;
     pickWork.rows[0].kind = 1;
     pickWork.rows[0].record = (s32)P32_SET(record);
     pickActor.work = (ActorWork *)&pickWork;
@@ -142,6 +148,20 @@ int main(void) {
     if (record->attack != 21) {
         munmap(region, TEST_REGION_SIZE);
         return fail("stat-boost item did not update the selected Digimon's attack");
+    }
+
+    Menu_Ctx->itemId = 0xD1;
+    Menu_UseItemOnDigi(&pickActor);
+    if (record->exp != 225) {
+        munmap(region, TEST_REGION_SIZE);
+        return fail("EXP item did not apply the selected multiplier");
+    }
+    sExpMultiplierPercent = 2000;
+    record->exp = 99999990;
+    Menu_UseItemOnDigi(&pickActor);
+    if (record->exp != 99999999) {
+        munmap(region, TEST_REGION_SIZE);
+        return fail("EXP item did not cap the resulting total");
     }
 
     munmap(region, TEST_REGION_SIZE);

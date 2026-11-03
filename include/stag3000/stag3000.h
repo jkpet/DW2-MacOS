@@ -247,7 +247,7 @@ typedef struct {
     u8 _pad33A[0x06];
     /* 0x340 */ u8 debuffed[6];
     /* 0x346 */ u8 buffed[6];
-    /* 0x34C */ u8 leveledUp[3];
+    /* 0x34C */ u8 leveledUp[3]; /* pending level events (0/1 on PS1; count on native) */
     /* 0x34F */ u8 preventFlags[6];  /* per-slot flag bytes (4 = no status recovery) */
     u8 _pad355[0x01];
     /* 0x356 */ s16 attackCur[6];

@@ -1,4 +1,5 @@
 #include "common.h"
+#include "main/digidata.h"
 #include "stag3000/stag3000.h"
 #include "stag3000/banner.h"
 #include "stag3000/fightbg.h"
@@ -186,10 +187,37 @@ void Stg30_ResultUpdate(Actor *a0) {
     Stg30TextRec *r;
     s32 i;
     s32 j;
+#ifdef DW2_NATIVE
+    s32 levelUps;
+    s32 wasKnockedOut;
+#endif
 
     switch (a0->stateLevel0) {
     case 0:
         Mem_FillWordsNeg1(w->text, 14);
+#ifdef DW2_NATIVE
+        w->pair.field_0 = Digi_ScaleExpGain(w->pair.field_0);
+        for (i = 0; i < 3; i++) {
+            DigiRosterEntry *digi = &Stg30_Battle.digis[i];
+
+            if (digi->digiId != 0) {
+                wasKnockedOut = digi->hp == 0;
+                digi->exp = Digi_AddExp(digi->exp, w->pair.field_0);
+                levelUps = Digi_CountLevelUps(digi->level, digi->maxLevel, digi->exp);
+                Stg30_Battle.leveledUp[i] = (u8)levelUps;
+                while (levelUps-- > 0) {
+                    Stg30_LevelUpStats(digi);
+                }
+                if (wasKnockedOut) {
+                    digi->hp = 0;
+                }
+                w->expToNext[i] = Digi_GetExpToNextLevel(digi->level, digi->maxLevel, digi->exp);
+            } else {
+                Stg30_Battle.leveledUp[i] = 0;
+                w->expToNext[i] = Digi_GetExpToNextLevel(digi->level, digi->maxLevel, digi->exp);
+            }
+        }
+#else
         for (i = 0; i < 3; i++) {
             if (Stg30_Battle.digis[i].hp != 0) {
                 Stg30_Battle.digis[i].exp += w->pair.field_0;
@@ -203,6 +231,7 @@ void Stg30_ResultUpdate(Actor *a0) {
                 Stg30_Battle.leveledUp[i] = 0;
             }
         }
+#endif
         Save_GameState.bits += w->pair.field_4;
         if (Save_GameState.bits > 99999999) {
             Save_GameState.bits = 99999999;

@@ -279,6 +279,35 @@ if(NOT WIN32)
     target_link_libraries(gte_test PRIVATE m)
 endif()
 
+# EXP scaling and multi-level threshold calculations (tests/exp_gain_test.c).
+add_executable(exp_gain_test ${CMAKE_SOURCE_DIR}/tests/exp_gain_test.c ${CMAKE_SOURCE_DIR}/src/main/digidata.c)
+target_compile_options(exp_gain_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+target_compile_definitions(exp_gain_test PRIVATE ${DW2_DEFS})
+target_include_directories(exp_gain_test PRIVATE ${DW2_INCLUDES})
+if(APPLE)
+    target_link_options(exp_gain_test PRIVATE -Wl,-dead_strip)
+else()
+    target_link_options(exp_gain_test PRIVATE -Wl,--gc-sections)
+endif()
+if(NOT WIN32)
+    target_link_libraries(exp_gain_test PRIVATE m)
+endif()
+
+# Battle-result EXP application (defeated party members and multi-level awards).
+add_executable(battle_exp_test ${CMAKE_SOURCE_DIR}/tests/battle_exp_test.c ${CMAKE_SOURCE_DIR}/src/stag3000/result.c
+    ${CMAKE_SOURCE_DIR}/src/stag3000/battle.c ${CMAKE_SOURCE_DIR}/src/main/digidata.c)
+target_compile_options(battle_exp_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+target_compile_definitions(battle_exp_test PRIVATE ${DW2_DEFS})
+target_include_directories(battle_exp_test PRIVATE ${DW2_INCLUDES})
+if(APPLE)
+    target_link_options(battle_exp_test PRIVATE -Wl,-dead_strip)
+else()
+    target_link_options(battle_exp_test PRIVATE -Wl,--gc-sections)
+endif()
+if(NOT WIN32)
+    target_link_libraries(battle_exp_test PRIVATE m)
+endif()
+
 # Native 64-bit regression for legacy file-relative dungeon pointers. Compile the real relocation
 # unit and discard its unrelated functions so the test covers the production implementation.
 if(APPLE)
@@ -381,7 +410,8 @@ if(APPLE)
 
     # Native regression for applying a health item to a high-address roster record from the menu.
     add_executable(item_use_digi_pointer_test ${CMAKE_SOURCE_DIR}/tests/item_use_digi_pointer_test.c
-        ${CMAKE_SOURCE_DIR}/src/main/digilist.c ${CMAKE_SOURCE_DIR}/src/main/itemeffect.c)
+        ${CMAKE_SOURCE_DIR}/src/main/digilist.c ${CMAKE_SOURCE_DIR}/src/main/itemeffect.c
+        ${CMAKE_SOURCE_DIR}/src/main/digidata.c)
     target_compile_options(item_use_digi_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
     target_compile_definitions(item_use_digi_pointer_test PRIVATE ${DW2_DEFS})
     target_include_directories(item_use_digi_pointer_test PRIVATE ${DW2_INCLUDES})

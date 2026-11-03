@@ -31,6 +31,8 @@ void Host_ClockFast(void);
  * and sound in sync). XA voice lines follow the speed (XaDec_SetSpeed). */
 void Host_SpeedSet(int on);
 int Host_SpeedOn(void);
+/* host/settings.c: current Game-tab EXP multiplier as a percentage (100..2000). */
+int Host_ExpMultiplierPercent(void);
 /* host/trace.c: logs game mode changes at VBlank wait `wait` (dev log). */
 void Host_TraceTick(unsigned int wait);
 /* PR.10, game thread: 1 while the title / main menu scene runs (game mode 0x401, stag1000). */

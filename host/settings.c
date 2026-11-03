@@ -149,6 +149,13 @@ int Settings_Get(int id) {
     return SDL_GetAtomicInt(&value[id]);
 }
 
+int Host_ExpMultiplierPercent(void) {
+    static const int percent[] = { 100, 200, 500, 1000, 2000 };
+    int choice = Settings_Get(SET_EXP_MULTIPLIER);
+
+    return choice >= 0 && choice < (int)(sizeof(percent) / sizeof(percent[0])) ? percent[choice] : 100;
+}
+
 void Settings_Set(int id, int v) {
     v = v < int_min[id] ? int_min[id] : v > int_max[id] ? int_max[id] : v;
     SDL_SetAtomicInt(&value[id], v);

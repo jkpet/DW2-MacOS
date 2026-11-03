@@ -80,6 +80,15 @@ s32 Stg30_RankCanLearnSkill(s32 a0, u8 a1) {
     return a0 >= Skill_GetRank(a1);
 }
 
+static void Stg30_BattleLevelEventDone(Actor *a0, s32 slot) {
+    Stg30_Battle.leveledUp[slot]--;
+    if (Stg30_Battle.leveledUp[slot] == 0) {
+        Task_NextState3(a0);
+    } else {
+        Task_SetState4(a0, 0);
+    }
+}
+
 void Stg30_BattleWonUpdate(Actor *a0) {
     Stg30BattleChildren *l = (Stg30BattleChildren *)a0->u34.children;
     Stg30Pair sum;
@@ -101,6 +110,7 @@ void Stg30_BattleWonUpdate(Actor *a0) {
     s32 done;
     s32 j;
     s32 stage2;
+    s32 level;
 
     switch (a0->stateLevel2) {
     case 0:
@@ -176,16 +186,20 @@ void Stg30_BattleWonUpdate(Actor *a0) {
         case 1:
         case 2:
         case 3:
-            if (Stg30_Battle.leveledUp[a0->stateLevel3 - 1] == 0) {
+            i = a0->stateLevel3 - 1;
+            if (Stg30_Battle.leveledUp[i] == 0) {
                 Task_NextState3(a0);
                 break;
             }
             switch (a0->stateLevel4) {
             case 0:
             default:
-                e = &Stg30_Battle.digis[a0->stateLevel3 - 1];
+                e = &Stg30_Battle.digis[i];
+                /* Native results may queue multiple level events. The roster already holds its
+                 * final level; walk the earned levels in order for their level-specific skills. */
+                level = e->level - Stg30_Battle.leveledUp[i] + 1;
                 Mem_Zero(&args, 0x1C);
-                args.slot = a0->stateLevel3 - 1;
+                args.slot = i;
                 flag = 0;
                 cnt = 0;
                 if (e->pendingSkill != 0) {
@@ -207,7 +221,7 @@ void Stg30_BattleWonUpdate(Actor *a0) {
                         }
                     }
                     if (n != 0) {
-                        m = (e->level - 2) % 10;
+                        m = (level - 2) % 10;
                         if (m >= 3) {
                             k = n;
                         } else {
@@ -225,7 +239,7 @@ void Stg30_BattleWonUpdate(Actor *a0) {
                     }
                 } while (0);
                 if (!flag) {
-                    Task_NextState3(a0);
+                    Stg30_BattleLevelEventDone(a0, i);
                     break;
                 }
                 Task_Create(0x512, &l->resultTask, (sptr)&args);
@@ -233,7 +247,7 @@ void Stg30_BattleWonUpdate(Actor *a0) {
                 break;
             case 1:
                 if (l->resultTask == 0) {
-                    Task_NextState3(a0);
+                    Stg30_BattleLevelEventDone(a0, i);
                 }
                 break;
             }

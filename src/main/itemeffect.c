@@ -1,5 +1,6 @@
 #include "common.h"
 #include "main/game.h"
+#include "main/digidata.h"
 
 /* Small data this file defines (.sbss). Retail reaches it with %gp_rel here. */
 u8 Bug_LastZappedLevel;
@@ -245,13 +246,10 @@ s32 Item_UseStatBoost(s32 a0, s32 a1, s32 a2, s32 a3) {
         dg->dp += rec->amount;
         return 1;
     case 10:
-        if (dg->exp == 99999999) {
+        if (dg->exp >= DIGI_EXP_MAX) {
             return 0;
         }
-        d = dg->exp += rec->amount;
-        if (d > 99999999) {
-            d = 99999999;
-        }
+        d = Digi_AddExp(dg->exp, Digi_ScaleExpGain(rec->amount));
         dg->exp = d;
         return 1;
     case 4:

@@ -1,5 +1,6 @@
 #include "common.h"
 #include "main/game.h"
+#include "main/digidata.h"
 #include "main/task.h"
 #include "main/cdpreload.h"
 #include "main/portrait.h"
@@ -141,6 +142,45 @@ s32 Digi_GetExpToNextLevel(s32 lv, s32 max, s32 cur) {
         return 0;
     }
     return exp - cur;
+}
+
+s32 Digi_ScaleExpGain(s32 gain) {
+    s64 scaled;
+    s32 percent = 100;
+
+#ifdef DW2_NATIVE
+    percent = Host_ExpMultiplierPercent();
+#endif
+    if (gain <= 0) {
+        return gain;
+    }
+    if (percent < 100) {
+        percent = 100;
+    }
+    scaled = (s64)gain * percent / 100;
+    return scaled > DIGI_EXP_MAX ? DIGI_EXP_MAX : (s32)scaled;
+}
+
+s32 Digi_AddExp(s32 current, s32 gain) {
+    s64 total = (s64)current + gain;
+
+    if (total > DIGI_EXP_MAX) {
+        return DIGI_EXP_MAX;
+    }
+    if (total < (-2147483647LL - 1LL)) {
+        return -2147483647 - 1;
+    }
+    return (s32)total;
+}
+
+s32 Digi_CountLevelUps(s32 level, s32 maxLevel, s32 exp) {
+    s32 count = 0;
+
+    while (level < maxLevel && Digi_GetExpToNextLevel(level, maxLevel, exp) == 0) {
+        level++;
+        count++;
+    }
+    return count;
 }
 
 s32 Digi_CalcMaxLevel(s32 x) {
