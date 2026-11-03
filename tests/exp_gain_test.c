@@ -4,9 +4,14 @@
 extern int puts(const char *);
 
 static int multiplier_percent = 100;
+static int stop_at_digivolution_levels = 1;
 
 int Host_ExpMultiplierPercent(void) {
     return multiplier_percent;
+}
+
+int Host_StopAtDigivolutionLevels(void) {
+    return stop_at_digivolution_levels;
 }
 
 static int check(const char *name, s32 got, s32 want) {
@@ -35,6 +40,12 @@ int main(void) {
     ok &= check("multi-level threshold count", Digi_CountLevelUps(1, 5, 57), 4);
     ok &= check("max-level threshold stop", Digi_CountLevelUps(1, 4, 57), 3);
     ok &= check("no earned level", Digi_CountLevelUps(1, 100, 5), 0);
+    ok &= check("milestone stop at level 11", Digi_CountLevelUps(9, 40, DIGI_EXP_MAX), 2);
+    ok &= check("milestone stop at level 21", Digi_CountLevelUps(11, 40, DIGI_EXP_MAX), 10);
+    ok &= check("milestone stop at level 31", Digi_CountLevelUps(21, 40, DIGI_EXP_MAX), 10);
+    ok &= check("progress after final milestone", Digi_CountLevelUps(31, 40, DIGI_EXP_MAX), 9);
+    stop_at_digivolution_levels = 0;
+    ok &= check("disabled milestone stops preserve multi-level behavior", Digi_CountLevelUps(9, 40, DIGI_EXP_MAX), 31);
 
     if (!ok) {
         return 1;

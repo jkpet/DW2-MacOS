@@ -13,10 +13,15 @@ DungState Dung_State;
 SysState Sys_State;
 
 static int multiplier_percent = 200;
+static int stop_at_digivolution_levels = 1;
 static Stg30SkillLearnArgs captured_skill_args;
 
 int Host_ExpMultiplierPercent(void) {
     return multiplier_percent;
+}
+
+int Host_StopAtDigivolutionLevels(void) {
+    return stop_at_digivolution_levels;
 }
 
 void Mem_FillWordsNeg1(s32 *words, s32 count) {
@@ -247,6 +252,30 @@ int main(void) {
     }
     if (battle.stateLevel3 != 3) {
         return fail("battle did not advance after all party level events were consumed");
+    }
+
+    standing->level = 9;
+    standing->maxLevel = 40;
+    standing->exp = DIGI_EXP_MAX - 114;
+    result.stateLevel0 = 0;
+    Stg30_ResultUpdate(&result);
+    if (standing->exp != DIGI_EXP_MAX || standing->level != 11 || Stg30_Battle.leveledUp[1] != 2) {
+        return fail("battle level-ups did not stop at level 11 while retaining excess EXP");
+    }
+
+    result.stateLevel0 = 0;
+    Stg30_ResultUpdate(&result);
+    if (standing->level != 21 || Stg30_Battle.leveledUp[1] != 10) {
+        return fail("a later EXP award did not resume progression to the next milestone");
+    }
+
+    stop_at_digivolution_levels = 0;
+    standing->level = 9;
+    standing->exp = DIGI_EXP_MAX - 114;
+    result.stateLevel0 = 0;
+    Stg30_ResultUpdate(&result);
+    if (standing->level != 40 || Stg30_Battle.leveledUp[1] != 31) {
+        return fail("disabled milestone stops did not restore the original multi-level behavior");
     }
 
     puts("battle_exp_test: all passed");

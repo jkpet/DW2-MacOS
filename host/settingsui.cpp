@@ -326,6 +326,7 @@ void game_tab(void) {
     static const char *const names[] = { "2x", "3x", "4x", "5x", "6x", "8x", "No limit" };
     static const char *const exp_names[] = { "100%", "200%", "500%", "1000%", "2000%" };
     int exp_multiplier = Settings_Get(SET_EXP_MULTIPLIER);
+    bool stop_at_digivolution_levels = Settings_Get(SET_STOP_AT_DIGIVOLUTION_LEVELS) != 0;
     int cur = Settings_Get(SET_SPEED);
     int sel = 1;
 
@@ -333,6 +334,10 @@ void game_tab(void) {
     if (ImGui::Combo("Apply EXP multiplier", &exp_multiplier, exp_names, (int)(sizeof(exp_names) / sizeof(exp_names[0])))) {
         Settings_Set(SET_EXP_MULTIPLIER, exp_multiplier);
     }
+    if (ImGui::Checkbox("Stop battle level-ups at digivolution levels", &stop_at_digivolution_levels)) {
+        Settings_Set(SET_STOP_AT_DIGIVOLUTION_LEVELS, stop_at_digivolution_levels);
+    }
+    ImGui::TextWrapped("When enabled, a battle's level-ups stop at levels 11, 21, or 31. Excess EXP is kept.");
 
     for (int i = 0; i < (int)(sizeof(values) / sizeof(values[0])); i++) {
         if (values[i] == cur) {

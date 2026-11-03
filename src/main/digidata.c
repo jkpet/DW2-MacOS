@@ -175,10 +175,18 @@ s32 Digi_AddExp(s32 current, s32 gain) {
 
 s32 Digi_CountLevelUps(s32 level, s32 maxLevel, s32 exp) {
     s32 count = 0;
+#ifdef DW2_NATIVE
+    s32 stopAtDigivolutionLevels = Host_StopAtDigivolutionLevels();
+#else
+    s32 stopAtDigivolutionLevels = 0;
+#endif
 
     while (level < maxLevel && Digi_GetExpToNextLevel(level, maxLevel, exp) == 0) {
         level++;
         count++;
+        if (stopAtDigivolutionLevels && (level == 11 || level == 21 || level == 31)) {
+            break;
+        }
     }
     return count;
 }
