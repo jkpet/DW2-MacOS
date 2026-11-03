@@ -347,4 +347,12 @@ if(APPLE)
     target_compile_definitions(shop_item_name_pointer_test PRIVATE ${DW2_DEFS})
     target_include_directories(shop_item_name_pointer_test PRIVATE ${DW2_INCLUDES})
     target_link_options(shop_item_name_pointer_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for the selected roster record pointer passed to the Digimon status menu.
+    add_executable(digistatus_record_pointer_test ${CMAKE_SOURCE_DIR}/tests/digistatus_record_pointer_test.c
+        ${CMAKE_SOURCE_DIR}/src/main/digilist.c ${CMAKE_SOURCE_DIR}/src/main/digistatus.c)
+    target_compile_options(digistatus_record_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(digistatus_record_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(digistatus_record_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(digistatus_record_pointer_test PRIVATE -Wl,-dead_strip)
 endif()

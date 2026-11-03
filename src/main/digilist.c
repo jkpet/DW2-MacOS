@@ -140,7 +140,7 @@ void Menu_ConfirmMultiPick(Actor *a0) {
             d->pickCount = w->pickMax;
             for (i = 0; i < w->pickMax; i++) {
                 e = &w->rows[w->pickedIndices[i]];
-                d->pickedRecords[i] = e->record;
+                d->pickedRecords[i] = P32(u8, e->record);
             }
             w->subTask = 2;
             Task_SetState1(a0, 3);
@@ -213,7 +213,7 @@ void Menu_ConfirmSinglePick(Actor *a0) {
     if (Pad_State[0].cross > 0) {
         k = Menu_GridIndexColMajor(w->cursor, w->gridSize);
         if ((c = w->rows[k].kind) == 1) {
-            Menu_Ctx->selRecord = (u8 *)w->rows[k].record;
+            Menu_Ctx->selRecord = P32(u8, w->rows[k].record);
             w->subTask = 0;
             Task_SetState1(a0, 3);
             Menu_Ctx->pickResult = c;

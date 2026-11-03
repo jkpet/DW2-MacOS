@@ -127,7 +127,22 @@ and compile/dependency options with `-fsyntax-only`.
 - Added `tests/shop_item_name_pointer_test.c`, which runs the production buy-list and upgrade-list
   functions with name bytes above 4 GB. LLDB reproduced the exact `Stg20_LoadShopBuyList` invalid read
   before the fix; the regression passes and confirms both name copies afterward.
-- Full in-game vendor confirmation remains with the user.
+- The user confirmed the in-game vendor purchase works after the fix.
+
+### Digimon status selection narrowed a roster-record pointer
+
+- The user's stack trace stopped at `Menu_DigiStatusInit` when reading `p[1]`. List rows store
+  selected roster records in fixed-width `PTR32` words, but `Menu_ConfirmSinglePick` cast that word
+  directly to `u8 *` before storing it in `Menu_Ctx->selRecord`. On arm64, this retained only the low
+  32 bits; `P32` must restore the address using the `Ps1_Ram` region.
+- `Menu_ConfirmSinglePick` now uses `P32(u8, row.record)`. The parallel multi-pick path now restores
+  its selected row records the same way before placing them in `Menu_Ctx->pickedRecords`.
+- Added `tests/digistatus_record_pointer_test.c`, which drives the production single-pick handler and
+  status initializer with a roster record above 4 GB. LLDB reproduced `EXC_BAD_ACCESS` at
+  `Menu_DigiStatusInit` line 39 before the fix; the test passes after pointer restoration and checks
+  the multi-pick record path as well.
+- The arm64 release build and all nine focused pointer tests pass. The user confirmed Digimon
+  information access works in-game.
 
 ## Deferred candidates and planned fixes
 
@@ -208,6 +223,7 @@ implementation pass must trace each listed expression to its actual consumer bef
 ## Current status
 
 The dungeon relocation, room-label flood-fill, random-hazard allocation, floor packet cursor, menu
-cursor, battle action-script, memory-card save, and item-name pointer fixes and focused regressions are
-verified. The expanded static audit is recorded above; remaining candidates are deferred. Full
-user-driven dungeon and battle routes still need validation; the user confirmed saving and loading.
+cursor, battle action-script, memory-card save, item-name pointer, and Digimon status selection fixes
+and focused regressions are verified. The expanded static audit is recorded above; remaining
+candidates are deferred. Full user-driven dungeon and battle routes still need validation; the user
+confirmed saving, loading, the vendor purchase, and Digimon information access.
