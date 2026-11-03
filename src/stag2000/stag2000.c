@@ -4,6 +4,7 @@
 #include <stdio.h>
 extern s32 Flag_TestConds(Blk18 *conditions);
 extern s32 Flag_DebugGetScanResult(s32 fileId, s32 entryIndex);
+extern void Flag_DebugResetScan(s32 fileId);
 
 static void Stg20_DebugAuditFlagEntries(s32 fileId) {
     static const s16 c2aEntries[] = { 1, 2, 3, 22, 29, 44 };
@@ -75,6 +76,9 @@ void Stg20_StageMain(Actor *a) {
             sp.facing = st->dir;
             Task_Create(0x302, &slot[4], (sptr)&sp);
             if (Stg20_GetMapInfo()->flagTableFile != 0) {
+#ifdef DW2_NATIVE
+                Flag_DebugResetScan(Stg20_GetMapInfo()->flagTableFile);
+#endif
                 n = 0;
                 for (id = Flag_FirstPassingEntry(); id != -1; id = Flag_NextPassingEntry()) {
                     src = (Stg20BytePair *)Flag_GetEntryPosList(id);

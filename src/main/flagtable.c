@@ -49,6 +49,23 @@ s32 Flag_DebugGetScanResult(s32 fileId, s32 entryIndex) {
     }
     return Flag_DebugScanSeen[table][entryIndex] != 0 ? Flag_DebugScanPasses[table][entryIndex] : -1;
 }
+
+void Flag_DebugResetScan(s32 fileId) {
+    s32 table;
+    s32 i;
+
+    if (fileId == 0xC2A) {
+        table = 0;
+    } else if (fileId == 0xC26) {
+        table = 1;
+    } else {
+        return;
+    }
+    for (i = 0; i < 128; i++) {
+        Flag_DebugScanSeen[table][i] = 0;
+        Flag_DebugScanPasses[table][i] = 0;
+    }
+}
 #endif
 
 void Flag_SetTableFile(s32 arg0) {
