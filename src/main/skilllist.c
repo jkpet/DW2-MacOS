@@ -198,7 +198,7 @@ void Menu_SkillListTask(Actor *a0) {
                 Task_SetState1(a0, 1);
             } else {
                 j = w->curTab;
-                if (Menu_MoveGridCursorP1((s32)&w->slot54[j], (s32)&w->block64[j]) != 0) {
+                if (Menu_MoveGridCursorP1((s16 *)&w->slot54[j], (s16 *)&w->block64[j]) != 0) {
                     Menu_ScrollToShow(&w->scrollTop[j], w->slot54[j].row, 3);
                     Menu_SkillListOpenNames(w, 0);
                     Snd_PlayById(0xD, 0);

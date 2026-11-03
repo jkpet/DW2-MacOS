@@ -326,7 +326,7 @@ extern void Gfx_HidePartsByMask(GfxPartMaskView *, s32);
 extern void Gfx_SetPartsScale(GfxPartScaleView *, s32, s32);
 extern void Gfx_SetPartsNumber(GfxPart *, s32, s32, s32);
 extern s32 Menu_GridIndexColMajor(s16 *arg0, s16 *arg1);
-extern s32 Menu_MoveGridCursor(s32 a0, s32 a1, s32 a2);
+extern s32 Menu_MoveGridCursor(s16 *cursor, s16 *gridSize, s32 padIndex);
 typedef struct {
     /* 0x0 */ s32 bgmStarted;
 } Stg11MainWork;

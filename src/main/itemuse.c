@@ -339,7 +339,7 @@ break;
             }
             break;
         case 2:
-            if (Menu_MoveGridCursorP1((s32)w->cursor, (s32)w->gridSize) == 0) {
+            if (Menu_MoveGridCursorP1(w->cursor, w->gridSize) == 0) {
                 if (Pad_State[0].triangle > 0) {
                     Snd_PlayById(0xB, 0);
                     Task_SetState0(a0, 2);

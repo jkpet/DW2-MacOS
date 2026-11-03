@@ -61,7 +61,7 @@ void Menu_SubMenuTask(Actor *a) {
             }
             break;
         case 1:
-            if (((s32 (*)(s16 *, s16 *))Menu_MoveGridCursorP1)(w->cursor, w->u2C.gridSize) == 0) {
+            if (Menu_MoveGridCursorP1(w->cursor, w->u2C.gridSize) == 0) {
             if (Pad_State[0].cross > 0) {
                 idx = Menu_GridIndexColMajor(w->cursor, w->u2C.gridSize);
                 if (tbl[idx].field_0 == -1) {

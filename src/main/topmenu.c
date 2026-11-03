@@ -1,5 +1,6 @@
 #include "common.h"
 #include "main/game.h"
+#include "main/topmenu.h"
 #include "main/task.h"
 #include "main/cdpreload.h"
 #include "main/portrait.h"
@@ -162,34 +163,34 @@ s32 Menu_BlinkOrHideParts(GfxPart *p, s32 mask, s32 n) {
     return r;
 }
 
-s32 Menu_MoveGridCursor(s32 a0, s32 a1, s32 a2) {
-    Coord138C0 *p0 = (Coord138C0 *)a0;
-    Coord138C0 *p1 = (Coord138C0 *)a1;
+s32 Menu_MoveGridCursor(s16 *cursor, s16 *gridSize, s32 padIndex) {
+    Coord138C0 *p0 = (Coord138C0 *)cursor;
+    Coord138C0 *p1 = (Coord138C0 *)gridSize;
     Copy138C0 saved;
     s32 changed;
 
     changed = 0;
     saved = *(Copy138C0 *)p0;
 
-    if (((PadRepeatView *)Pad_State)[a2].repeat & 0x8000) {
+    if (((PadRepeatView *)Pad_State)[padIndex].repeat & 0x8000) {
         if (p0->x > 0) {
             p0->x = p0->x - 1;
             goto tail;
         }
     }
-    if (((PadRepeatView *)Pad_State)[a2].repeat & 0x2000) {
+    if (((PadRepeatView *)Pad_State)[padIndex].repeat & 0x2000) {
         if (p0->x < p1->x - 1) {
             p0->x = p0->x + 1;
             goto tail;
         }
     }
-    if (((PadRepeatView *)Pad_State)[a2].repeat & 0x1000) {
+    if (((PadRepeatView *)Pad_State)[padIndex].repeat & 0x1000) {
         if (p0->y > 0) {
             p0->y = p0->y - 1;
             goto tail;
         }
     }
-    if (((PadRepeatView *)Pad_State)[a2].repeat & 0x4000) {
+    if (((PadRepeatView *)Pad_State)[padIndex].repeat & 0x4000) {
         if (p0->y < p1->y - 1) {
             p0->y = p0->y + 1;
         }
@@ -202,8 +203,8 @@ tail:
     return changed;
 }
 
-s32 Menu_MoveGridCursorP1(s32 arg0, s32 arg1) {
-    return Menu_MoveGridCursor(arg0, arg1, 0);
+s32 Menu_MoveGridCursorP1(s16 *cursor, s16 *gridSize) {
+    return Menu_MoveGridCursor(cursor, gridSize, 0);
 }
 
 s32 Menu_ScrollToShow(s32 *arg0, s32 arg1, s32 arg2) {
@@ -333,7 +334,7 @@ void Menu_TopMenuTask(Actor *a0) {
             Task_NextState1(a0);
             break;
         case 1:
-            if (Menu_MoveGridCursorP1((s32)w->cursor, (s32)w->gridSize) != 0) {
+            if (Menu_MoveGridCursorP1(w->cursor, w->gridSize) != 0) {
                 snd = 0xC;
             } else if (Pad_State[0].cross > 0) {
                 k = Menu_GridIndexColMajor(w->cursor, w->gridSize);

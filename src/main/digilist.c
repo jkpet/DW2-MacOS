@@ -468,7 +468,7 @@ void Menu_DigiListTask(Actor *a0) {
             }
             break;
         case 2:
-            if (Menu_MoveGridCursorP1((s32)w->cursor, (s32)w->grid.gridSize) == 0) {
+            if (Menu_MoveGridCursorP1(w->cursor, w->grid.gridSize) == 0) {
                 if (Pad_State[0].triangle > 0) {
                     if (w->mode != 5) {
                         Snd_PlayById(0xB, 0);

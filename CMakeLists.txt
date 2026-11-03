@@ -312,4 +312,15 @@ if(APPLE)
     target_compile_definitions(floor_packet_cursor_test PRIVATE ${DW2_DEFS})
     target_include_directories(floor_packet_cursor_test PRIVATE ${DW2_INCLUDES})
     target_link_options(floor_packet_cursor_test PRIVATE -Wl,-dead_strip)
+
+    # Native regression for the title/menu cursor pointer call boundary.
+    add_executable(topmenu_cursor_pointer_test ${CMAKE_SOURCE_DIR}/tests/topmenu_cursor_pointer_test.c
+        ${CMAKE_SOURCE_DIR}/src/main/topmenu.c)
+    target_compile_options(topmenu_cursor_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections
+        -include${CMAKE_SOURCE_DIR}/include/main/text.h
+        -include${CMAKE_SOURCE_DIR}/include/main/flags.h
+        -include${CMAKE_SOURCE_DIR}/include/main/fade.h)
+    target_compile_definitions(topmenu_cursor_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(topmenu_cursor_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(topmenu_cursor_pointer_test PRIVATE -Wl,-dead_strip)
 endif()

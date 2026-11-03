@@ -317,7 +317,7 @@ void Menu_ItemTask(Actor *a0) {
             Task_NextState1(a0);
             break;
         case 2:
-            if (Menu_MoveGridCursorP1((s32)w->cursor, (s32)w->gridLayout.gridSize) != 0) {
+            if (Menu_MoveGridCursorP1(w->cursor, w->gridLayout.gridSize) != 0) {
                 Snd_PlayById(0xD, 0);
                 if (w->cursor[0] - w->scrollRow >= 2) {
                     w->scrollRow = w->cursor[0] - 1;
