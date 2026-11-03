@@ -48,7 +48,11 @@ void Stg00_XaPlayTask(Actor *arg0) {
             mode[0] = 0xC8;
             CdControlB(0xE, mode, 0);
             CdIntToPos(w->startSector, loc);
+#ifdef DW2_NATIVE
+            CdControlF(0x15, loc);
+#else
             CdControlF(0x15, (s32)loc);
+#endif
             Task_NextState1(arg0);
             break;
         case 1:

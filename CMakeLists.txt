@@ -361,6 +361,14 @@ if(APPLE)
     target_include_directories(actionload_script_pointer_test PRIVATE ${DW2_INCLUDES})
     target_link_options(actionload_script_pointer_test PRIVATE -Wl,-dead_strip)
 
+    # Native regression for the STAG2000 XA seek passing a stack location into the real CD shim.
+    add_executable(xastream_seek_pointer_test ${CMAKE_SOURCE_DIR}/tests/xastream_seek_pointer_test.c
+        ${CMAKE_SOURCE_DIR}/src/stag2000/xastream.c ${CMAKE_SOURCE_DIR}/psyq/libcd.c)
+    target_compile_options(xastream_seek_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+    target_compile_definitions(xastream_seek_pointer_test PRIVATE ${DW2_DEFS})
+    target_include_directories(xastream_seek_pointer_test PRIVATE ${DW2_INCLUDES})
+    target_link_options(xastream_seek_pointer_test PRIVATE -Wl,-dead_strip)
+
     # Native regression for save-file creation retaining the memory-card work filename pointer.
     add_executable(card_filename_pointer_test ${CMAKE_SOURCE_DIR}/tests/card_filename_pointer_test.c
         ${CMAKE_SOURCE_DIR}/src/stag1100/card.c ${CMAKE_SOURCE_DIR}/psyq/libmcrd.c)

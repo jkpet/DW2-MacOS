@@ -36,7 +36,11 @@ void Stg20_XaStreamUpdate(Actor *a) {
             mode[0] = 0xC8;
             CdControlB(0xE, mode, 0);
             CdIntToPos(w->start, pos);
+#ifdef DW2_NATIVE
+            CdControlF(0x15, pos);
+#else
             CdControlF(0x15, (s32)pos);
+#endif
             Task_NextState1(a);
             break;
         case 1:
