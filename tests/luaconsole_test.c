@@ -114,6 +114,39 @@ int main(void) {
     LuaConsole_CopyOutput(output, sizeof(output));
     check(strstr(output, "id must be in the range 0..255") != NULL, "out-of-range DP id is rejected");
 
+    Save_GameState.elems[0].level = 10;
+    Save_GameState.elems[0].maxLevel = 20;
+    Save_GameState.elems[0].exp = 500;
+    LuaConsole_Submit("addExp(42, 100)");
+    check(Save_GameState.elems[0].exp == 500, "EXP is not changed from the Lua/UI thread");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[0].exp == 600, "EXP amount is applied");
+
+    LuaConsole_Submit("addExp(42, -1000)");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[0].exp == 0, "EXP adjustment clamps at zero");
+
+    LuaConsole_Submit("addExp(42, 999999999)");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[0].exp == 99999999, "EXP adjustment clamps at maximum");
+
+    LuaConsole_Submit("addExp(42, 1.5)");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[0].exp == 99999999, "fractional EXP amount is rejected");
+
+    LuaConsole_Submit("addMaxLevel(42, 5)");
+    check(Save_GameState.elems[0].maxLevel == 20, "max level is not changed from the Lua/UI thread");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[0].maxLevel == 25, "max-level adjustment is applied");
+
+    LuaConsole_Submit("addMaxLevel(42, -100)");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[0].maxLevel == 10, "max level cannot be reduced below current level");
+
+    LuaConsole_Submit("addMaxLevel(42, 1000)");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[0].maxLevel == 99, "max level clamps at 99");
+
     LuaConsole_Submit("while true do end");
     LuaConsole_CopyOutput(output, sizeof(output));
     check(strstr(output, "instruction budget exceeded") != NULL, "infinite loop is interrupted");

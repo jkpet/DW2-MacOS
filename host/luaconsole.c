@@ -20,6 +20,8 @@
 #define LUA_CONSOLE_INSTRUCTION_BUDGET 1000000
 #define LUA_CONSOLE_HOOK_GRANULARITY 1000
 #define GAME_BITS_MAX 99999999
+#define GAME_EXP_MAX 99999999
+#define GAME_MAX_LEVEL 99
 
 extern GameState Save_GameState;
 extern u8 *Digi_GetDefaultName(s32 id);
@@ -33,7 +35,9 @@ typedef struct {
 enum {
     GAME_REQUEST_ADD_BITS,
     GAME_REQUEST_PRINT_PARTY,
-    GAME_REQUEST_CHANGE_DP
+    GAME_REQUEST_CHANGE_DP,
+    GAME_REQUEST_ADD_EXP,
+    GAME_REQUEST_ADD_MAX_LEVEL
 };
 
 static int enabled;
@@ -208,7 +212,8 @@ static int lua_help(lua_State *state) {
     (void)state;
     output_text("Lua 5.4 console. addBits(amount): signed integer adjustment, clamped to 0..99,999,999.");
     output_text("printPartyList() lists party Digimon; changeDP(id, amount) adjusts a unique party ID's DP (0..99).");
-    output_text("Examples: addBits(500), changeDP(10, -1), print(1 + 2)");
+    output_text("addExp(id, amount) adjusts EXP (0..99,999,999); addMaxLevel(id, amount) adjusts max level.");
+    output_text("Examples: addBits(500), changeDP(10, -1), addExp(10, 500), addMaxLevel(10, 1)");
     return 0;
 }
 
@@ -261,6 +266,34 @@ static int lua_change_dp(lua_State *state) {
     }
     amount = lua_tointeger(state, 2);
     return enqueue_game_request(state, GAME_REQUEST_CHANGE_DP, (int)id, (int64_t)amount);
+}
+
+static int lua_add_exp(lua_State *state) {
+    lua_Integer id, amount;
+
+    if (lua_gettop(state) != 2 || !lua_isinteger(state, 1) || !lua_isinteger(state, 2)) {
+        return luaL_error(state, "addExp expects a Digimon id and an integer amount");
+    }
+    id = lua_tointeger(state, 1);
+    if (id < 0 || id > 255) {
+        return luaL_error(state, "addExp Digimon id must be in the range 0..255");
+    }
+    amount = lua_tointeger(state, 2);
+    return enqueue_game_request(state, GAME_REQUEST_ADD_EXP, (int)id, (int64_t)amount);
+}
+
+static int lua_add_max_level(lua_State *state) {
+    lua_Integer id, amount;
+
+    if (lua_gettop(state) != 2 || !lua_isinteger(state, 1) || !lua_isinteger(state, 2)) {
+        return luaL_error(state, "addMaxLevel expects a Digimon id and an integer amount");
+    }
+    id = lua_tointeger(state, 1);
+    if (id < 0 || id > 255) {
+        return luaL_error(state, "addMaxLevel Digimon id must be in the range 0..255");
+    }
+    amount = lua_tointeger(state, 2);
+    return enqueue_game_request(state, GAME_REQUEST_ADD_MAX_LEVEL, (int)id, (int64_t)amount);
 }
 
 static void append_name_text(char *out, size_t capacity, size_t *used, const char *text) {
@@ -433,6 +466,10 @@ int LuaConsole_Init(void) {
     lua_setglobal(lua, "printPartyList");
     lua_pushcfunction(lua, lua_change_dp);
     lua_setglobal(lua, "changeDP");
+    lua_pushcfunction(lua, lua_add_exp);
+    lua_setglobal(lua, "addExp");
+    lua_pushcfunction(lua, lua_add_max_level);
+    lua_setglobal(lua, "addMaxLevel");
     output_text("Lua 5.4.8 ready. Type help() for available game functions.");
     printf("[lua] console ready (Lua 5.4.8, --luaconsole, `)\n");
     return 1;
@@ -560,8 +597,12 @@ void LuaConsole_Apply(void) {
             if (count == 0) {
                 output_text("(party is empty)");
             }
-        } else if (request.kind == GAME_REQUEST_CHANGE_DP) {
+        } else if (request.kind == GAME_REQUEST_CHANGE_DP || request.kind == GAME_REQUEST_ADD_EXP ||
+                   request.kind == GAME_REQUEST_ADD_MAX_LEVEL) {
             int i, found = -1, matches = 0;
+            const char *operation = request.kind == GAME_REQUEST_CHANGE_DP
+                                        ? "changeDP"
+                                        : request.kind == GAME_REQUEST_ADD_EXP ? "addExp" : "addMaxLevel";
 
             for (i = 0; i < (int)(sizeof(Save_GameState.elems) / sizeof(Save_GameState.elems[0])); i++) {
                 DigiRosterEntry *entry = &Save_GameState.elems[i];
@@ -574,34 +615,74 @@ void LuaConsole_Apply(void) {
             }
             if (matches == 1) {
                 DigiRosterEntry *entry = &Save_GameState.elems[found];
-                int before_dp = entry->dp, after_dp;
+                if (request.kind == GAME_REQUEST_CHANGE_DP) {
+                    int before = entry->dp, after;
 
-                if (before_dp > 99) {
-                    before_dp = 99;
-                }
-                if (request.amount > 99 - before_dp) {
-                    after_dp = 99;
-                } else if (request.amount < -before_dp) {
-                    after_dp = 0;
+                    if (before > 99) {
+                        before = 99;
+                    }
+                    if (request.amount > 99 - before) {
+                        after = 99;
+                    } else if (request.amount < -before) {
+                        after = 0;
+                    } else {
+                        after = (int)(before + request.amount);
+                    }
+                    entry->dp = (uint8_t)after;
+                    {
+                        char message[128];
+                        SDL_snprintf(message, sizeof(message), "%s(%u, %+lld) applied: DP %d -> %d",
+                                     operation, (unsigned)request.digi_id, (long long)request.amount, before, after);
+                        output_text(message);
+                    }
+                } else if (request.kind == GAME_REQUEST_ADD_EXP) {
+                    int before = entry->exp, current_exp, after;
+
+                    current_exp = before < 0 ? 0 : before > GAME_EXP_MAX ? GAME_EXP_MAX : before;
+                    if (request.amount > GAME_EXP_MAX - current_exp) {
+                        after = GAME_EXP_MAX;
+                    } else if (request.amount < -current_exp) {
+                        after = 0;
+                    } else {
+                        after = (int)(current_exp + request.amount);
+                    }
+                    entry->exp = after;
+                    {
+                        char message[128];
+                        SDL_snprintf(message, sizeof(message), "%s(%u, %+lld) applied: EXP %d -> %d",
+                                     operation, (unsigned)request.digi_id, (long long)request.amount, before, after);
+                        output_text(message);
+                    }
                 } else {
-                    after_dp = (int)(before_dp + request.amount);
-                }
-                entry->dp = (uint8_t)after_dp;
-                {
-                    char message[128];
-                    SDL_snprintf(message, sizeof(message), "changeDP(%u, %+lld) applied: DP %d -> %d",
-                                 (unsigned)request.digi_id, (long long)request.amount, before_dp, after_dp);
-                    output_text(message);
+                    int before = entry->maxLevel;
+                    int min_level = entry->level < 1 ? 1 : entry->level > GAME_MAX_LEVEL ? GAME_MAX_LEVEL : entry->level;
+                    int current_max = before < min_level ? min_level : before > GAME_MAX_LEVEL ? GAME_MAX_LEVEL : before;
+                    int after;
+
+                    if (request.amount > GAME_MAX_LEVEL - current_max) {
+                        after = GAME_MAX_LEVEL;
+                    } else if (request.amount < min_level - current_max) {
+                        after = min_level;
+                    } else {
+                        after = (int)(current_max + request.amount);
+                    }
+                    entry->maxLevel = (uint8_t)after;
+                    {
+                        char message[128];
+                        SDL_snprintf(message, sizeof(message), "%s(%u, %+lld) applied: maxLevel %d -> %d",
+                                     operation, (unsigned)request.digi_id, (long long)request.amount, before, after);
+                        output_text(message);
+                    }
                 }
             } else if (matches == 0) {
                 char message[96];
-                SDL_snprintf(message, sizeof(message), "changeDP: Digimon id %u is not in the party",
+                SDL_snprintf(message, sizeof(message), "%s: Digimon id %u is not in the party", operation,
                              (unsigned)request.digi_id);
                 output_text(message);
             } else {
-                char message[112];
+                char message[128];
                 SDL_snprintf(message, sizeof(message),
-                             "changeDP: Digimon id %u appears more than once in the party; no change made",
+                             "%s: Digimon id %u appears more than once in the party; no change made", operation,
                              (unsigned)request.digi_id);
                 output_text(message);
             }

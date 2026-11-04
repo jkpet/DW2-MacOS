@@ -200,6 +200,9 @@ The Lua console accepts one-line Lua chunks. `printPartyList()` lists the party 
 name and decimal species ID. `changeDP(id, amount)` adjusts the DP of the party Digimon with that
 ID; the result is clamped to 0..99. If the ID appears more than once in the party, no change is
 made. For example, `changeDP(42, -1)` removes one DP from Digimon 42.
+`addExp(id, amount)` adjusts that Digimon's EXP, clamped to 0..99,999,999. `addMaxLevel(id, amount)`
+adjusts its maximum level, clamped to at least its current level and at most 99. Both accept signed
+integer adjustments, and require a unique party ID.
 `addBits(500)` adds 500 bits and `addBits(-500)` removes them, clamped to 0..99,999,999. The console
 does not pause the game, and its game-changing functions are applied at a frame boundary.
 
