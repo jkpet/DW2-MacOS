@@ -5,7 +5,7 @@ Takes the release builds as they are (build them first):
   Windows: tools/build_native.py --arch x64 --release  -> build/native64_rel/dw2.exe
   Linux:   tools/build_native.py --release (in WSL)    -> build/linux64_rel/dw2
 Each zip holds the program (debug info stripped from a copy), SDL3.dll on Windows,
-README.txt (misc/release/README.txt, with the Dear ImGui MIT notice) and LICENSE.txt
+README.txt (misc/release/README.txt, with third-party MIT notices) and LICENSE.txt
 (CC0). No licenses/ folder (user 2026-10-09). No game data. The zips stay in build/ (never in git).
 
 PR.31: each zip gets a signature file <zip>.sig (Ed25519 over the zip bytes, 128 hex digits) for

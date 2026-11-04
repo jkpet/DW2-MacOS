@@ -2,8 +2,8 @@
 #define HOST_UI_H
 
 /* PR.2 ImGui layer (host/ui.cpp, release and dev): one Dear ImGui context on the present renderer
- * for the F1 settings window (host/settingsui.cpp) and, in dev builds, the F2 overlay
- * (host/devui.cpp). Main thread only, except Ui_Shot. */
+ * for the F1 settings window (host/settingsui.cpp), the optional --luaconsole REPL, and, in dev
+ * builds, the independent F2 overlay (host/devui.cpp). Main thread only, except Ui_Shot. */
 
 #include <SDL3/SDL.h>
 
@@ -22,9 +22,9 @@ void Ui_SetQuitAtStart(int on);
 /* A UI renders headless (--settings-ui, --ui-shots or dev --devui with --no-window). */
 int Ui_Headless(void);
 void Ui_Init(SDL_Window *window, SDL_Renderer *renderer, int headless);
-/* Each event before the host sees it: F1 / F2, key capture, ImGui. 1 = consumed. */
+/* Each event before the host sees it: F1 / F2 / Lua-console toggle, key capture, ImGui. 1 = consumed. */
 int Ui_Event(const SDL_Event *e);
-/* The game sees no keyboard or gamepad: F1 open, or an ImGui text field types. */
+/* The game sees no keyboard or gamepad: F1 / Lua console open, or an ImGui text field types. */
 int Ui_BlocksGameInput(void);
 /* A UI window is open: the window loop presents while the game picture stays the same. */
 int Ui_Active(void);

@@ -900,7 +900,7 @@ void Host_PumpEvents(void) {
 
     while (SDL_PollEvent(&e)) {
         if (Ui_Event(&e)) {
-            continue; /* F1 / F2, a remap key, or a key for an ImGui field */
+            continue; /* F1 / F2 / Lua console, a remap key, or a key for an ImGui field */
         }
         switch (e.type) {
         case SDL_EVENT_QUIT:

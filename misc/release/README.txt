@@ -48,9 +48,12 @@ F9   smooth frames on / off (picture at the monitor's refresh rate, game
      logic unchanged; GPU renderer, on by default)
 F11  windowed / fullscreen
 F12  screenshot
+`    open the Lua console (when started with --luaconsole; ~ uses the same key)
 Esc  quit (asks first)
 
 dw2 --help lists the command line options.
+Start with --luaconsole to enable the console. Type Lua one-line chunks such as addBits(500)
+to add bits or addBits(-500) to remove them. The balance is clamped to 0..99,999,999.
 
 
 Updates
@@ -125,7 +128,7 @@ Licenses
 --------
 
 The port is released under CC0 1.0 (LICENSE.txt). It uses SDL3 (zlib license),
-Dear ImGui and miniz (MIT license, notices below) and Monocypher (CC0).
+Dear ImGui, miniz and Lua 5.4.8 (MIT license, notices below), and Monocypher (CC0).
 Digimon World 2 and its data belong to their owners.
 
 Dear ImGui:
@@ -157,6 +160,29 @@ Copyright 2013-2014 RAD Game Tools and Valve Software
 Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
 
 All Rights Reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+
+Lua 5.4.8:
+
+Copyright © 1994–2025 Lua.org, PUC-Rio.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
