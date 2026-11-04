@@ -22,16 +22,25 @@
 #define GAME_BITS_MAX 99999999
 
 extern GameState Save_GameState;
+extern u8 *Digi_GetDefaultName(s32 id);
 
 typedef struct {
+    int kind;
+    int digi_id;
     int64_t amount;
-} BitsRequest;
+} GameRequest;
+
+enum {
+    GAME_REQUEST_ADD_BITS,
+    GAME_REQUEST_PRINT_PARTY,
+    GAME_REQUEST_CHANGE_DP
+};
 
 static int enabled;
 static int is_open;
 static lua_State *lua;
 static SDL_Mutex *lock;
-static BitsRequest queue[LUA_CONSOLE_QUEUE];
+static GameRequest queue[LUA_CONSOLE_QUEUE];
 static int queue_head, queue_count;
 static char output[LUA_CONSOLE_OUTPUT_LINES][LUA_CONSOLE_OUTPUT_LINE];
 static int output_start, output_count;
@@ -198,17 +207,15 @@ static int lua_print(lua_State *state) {
 static int lua_help(lua_State *state) {
     (void)state;
     output_text("Lua 5.4 console. addBits(amount): signed integer adjustment, clamped to 0..99,999,999.");
-    output_text("Examples: addBits(500), addBits(-100), print(1 + 2)");
+    output_text("printPartyList() lists party Digimon; changeDP(id, amount) adjusts a unique party ID's DP (0..99).");
+    output_text("Examples: addBits(500), changeDP(10, -1), print(1 + 2)");
     return 0;
 }
 
-static int lua_add_bits(lua_State *state) {
-    BitsRequest *request;
+static int enqueue_game_request(lua_State *state, int kind, int digi_id, int64_t amount) {
+    GameRequest *request;
     int at;
 
-    if (lua_gettop(state) != 1 || !lua_isinteger(state, 1)) {
-        return luaL_error(state, "addBits expects one integer amount");
-    }
     if (lock == NULL) {
         return luaL_error(state, "console is not initialized");
     }
@@ -219,11 +226,98 @@ static int lua_add_bits(lua_State *state) {
     }
     at = (queue_head + queue_count) % LUA_CONSOLE_QUEUE;
     request = &queue[at];
-    request->amount = (int64_t)lua_tointeger(state, 1);
+    request->kind = kind;
+    request->digi_id = digi_id;
+    request->amount = amount;
     queue_count++;
     SDL_UnlockMutex(lock);
     lua_pushboolean(state, 1);
     return 1;
+}
+
+static int lua_add_bits(lua_State *state) {
+    if (lua_gettop(state) != 1 || !lua_isinteger(state, 1)) {
+        return luaL_error(state, "addBits expects one integer amount");
+    }
+    return enqueue_game_request(state, GAME_REQUEST_ADD_BITS, 0, (int64_t)lua_tointeger(state, 1));
+}
+
+static int lua_print_party_list(lua_State *state) {
+    if (lua_gettop(state) != 0) {
+        return luaL_error(state, "printPartyList expects no arguments");
+    }
+    return enqueue_game_request(state, GAME_REQUEST_PRINT_PARTY, 0, 0);
+}
+
+static int lua_change_dp(lua_State *state) {
+    lua_Integer id, amount;
+
+    if (lua_gettop(state) != 2 || !lua_isinteger(state, 1) || !lua_isinteger(state, 2)) {
+        return luaL_error(state, "changeDP expects a Digimon id and an integer adjustment");
+    }
+    id = lua_tointeger(state, 1);
+    if (id < 0 || id > 255) {
+        return luaL_error(state, "changeDP Digimon id must be in the range 0..255");
+    }
+    amount = lua_tointeger(state, 2);
+    return enqueue_game_request(state, GAME_REQUEST_CHANGE_DP, (int)id, (int64_t)amount);
+}
+
+static void append_name_text(char *out, size_t capacity, size_t *used, const char *text) {
+    while (*text != 0 && *used + 1 < capacity) {
+        out[(*used)++] = *text++;
+    }
+    out[*used] = 0;
+}
+
+/* Digi_GetDefaultName returns the game's compact glyph bytes; party names use the same font
+ * encoding as save nicknames. Decode the printable glyphs here so this remains available in
+ * release builds (the dev-data text decoder is intentionally dev-only). */
+static void decode_digi_name(const uint8_t *raw, size_t raw_capacity, char *out, size_t capacity) {
+    static const char *const punctuation[] = {
+        "(O)", "(X)", "(Tri)", "(Sq)", "&", "II", "?", "!", "/", "(note)", "·", "-",
+        "L1", "L2", "L3", "L4", "L5", "", "", "", "", ">", ",", ".", "'", "\"", ";", ":", "%", "+", "=", "#"
+    };
+    size_t used = 0;
+    int i;
+
+    if (capacity == 0) {
+        return;
+    }
+    out[0] = 0;
+    if (raw == NULL) {
+        SDL_strlcpy(out, "?", capacity);
+        return;
+    }
+    for (i = 0; (size_t)i < raw_capacity && raw[i] != 0xFF; i++) {
+        unsigned int c = raw[i];
+        char glyph[2] = { 0, 0 };
+        const char *text = NULL;
+
+        if (c < 10) {
+            glyph[0] = (char)('0' + c);
+            text = glyph;
+        } else if (c < 0x24) {
+            glyph[0] = (char)('A' + c - 0x0A);
+            text = glyph;
+        } else if (c < 0x3E) {
+            glyph[0] = (char)('a' + c - 0x24);
+            text = glyph;
+        } else if (c <= 0x5D) {
+            text = punctuation[c - 0x3E];
+        } else if (c == 0xFD || c == 0xFE || c == 0xFC) {
+            text = " ";
+        } else if (c == 0xEF && (size_t)(i + 1) < raw_capacity && raw[i + 1] != 0xFF) {
+            i++; /* extended glyphs are outside the printable Digimon-name alphabet */
+            text = "?";
+        } else {
+            text = "?";
+        }
+        append_name_text(out, capacity, &used, text);
+    }
+    if (out[0] == 0) {
+        SDL_strlcpy(out, "?", capacity);
+    }
 }
 
 static void instruction_hook(lua_State *state, lua_Debug *debug) {
@@ -335,7 +429,11 @@ int LuaConsole_Init(void) {
     lua_setglobal(lua, "help");
     lua_pushcfunction(lua, lua_add_bits);
     lua_setglobal(lua, "addBits");
-    output_text("Lua 5.4.8 ready. Type help() for the available game function.");
+    lua_pushcfunction(lua, lua_print_party_list);
+    lua_setglobal(lua, "printPartyList");
+    lua_pushcfunction(lua, lua_change_dp);
+    lua_setglobal(lua, "changeDP");
+    output_text("Lua 5.4.8 ready. Type help() for available game functions.");
     printf("[lua] console ready (Lua 5.4.8, --luaconsole, `)\n");
     return 1;
 }
@@ -402,7 +500,7 @@ void LuaConsole_Submit(const char *source) {
 
 void LuaConsole_Apply(void) {
     for (;;) {
-        BitsRequest request;
+        GameRequest request;
         int before, after;
         int64_t current;
 
@@ -419,21 +517,94 @@ void LuaConsole_Apply(void) {
         queue_count--;
         SDL_UnlockMutex(lock);
 
-        before = Save_GameState.bits;
-        current = before < 0 ? 0 : before > GAME_BITS_MAX ? GAME_BITS_MAX : before;
-        if (request.amount > GAME_BITS_MAX - current) {
-            after = GAME_BITS_MAX;
-        } else if (request.amount < -current) {
-            after = 0;
-        } else {
-            after = (int)(current + request.amount);
-        }
-        Save_GameState.bits = after;
-        {
-            char message[128];
-            SDL_snprintf(message, sizeof(message), "addBits(%+lld) applied: bits %d -> %d",
-                         (long long)request.amount, before, after);
-            output_text(message);
+        if (request.kind == GAME_REQUEST_ADD_BITS) {
+            before = Save_GameState.bits;
+            current = before < 0 ? 0 : before > GAME_BITS_MAX ? GAME_BITS_MAX : before;
+            if (request.amount > GAME_BITS_MAX - current) {
+                after = GAME_BITS_MAX;
+            } else if (request.amount < -current) {
+                after = 0;
+            } else {
+                after = (int)(current + request.amount);
+            }
+            Save_GameState.bits = after;
+            {
+                char message[128];
+                SDL_snprintf(message, sizeof(message), "addBits(%+lld) applied: bits %d -> %d",
+                             (long long)request.amount, before, after);
+                output_text(message);
+            }
+        } else if (request.kind == GAME_REQUEST_PRINT_PARTY) {
+            int i, count = 0;
+
+            output_text("Party Digimon:");
+            for (i = 0; i < (int)(sizeof(Save_GameState.elems) / sizeof(Save_GameState.elems[0])); i++) {
+                DigiRosterEntry *entry = &Save_GameState.elems[i];
+                uint8_t *raw_name;
+                char name[64];
+                char line[128];
+
+                if (entry->state < 3 || entry->state > 5) {
+                    continue;
+                }
+                raw_name = entry->name;
+                decode_digi_name(raw_name, sizeof(entry->name), name, sizeof(name));
+                if (entry->name[0] == 0xFF || entry->name[0] == 0) {
+                    raw_name = Digi_GetDefaultName(entry->digiId);
+                    decode_digi_name(raw_name, sizeof(entry->name), name, sizeof(name));
+                }
+                SDL_snprintf(line, sizeof(line), "%s - %u", name, (unsigned)entry->digiId);
+                output_text(line);
+                count++;
+            }
+            if (count == 0) {
+                output_text("(party is empty)");
+            }
+        } else if (request.kind == GAME_REQUEST_CHANGE_DP) {
+            int i, found = -1, matches = 0;
+
+            for (i = 0; i < (int)(sizeof(Save_GameState.elems) / sizeof(Save_GameState.elems[0])); i++) {
+                DigiRosterEntry *entry = &Save_GameState.elems[i];
+
+                if (entry->state < 3 || entry->state > 5 || entry->digiId != request.digi_id) {
+                    continue;
+                }
+                found = i;
+                matches++;
+            }
+            if (matches == 1) {
+                DigiRosterEntry *entry = &Save_GameState.elems[found];
+                int before_dp = entry->dp, after_dp;
+
+                if (before_dp > 99) {
+                    before_dp = 99;
+                }
+                if (request.amount > 99 - before_dp) {
+                    after_dp = 99;
+                } else if (request.amount < -before_dp) {
+                    after_dp = 0;
+                } else {
+                    after_dp = (int)(before_dp + request.amount);
+                }
+                entry->dp = (uint8_t)after_dp;
+                {
+                    char message[128];
+                    SDL_snprintf(message, sizeof(message), "changeDP(%u, %+lld) applied: DP %d -> %d",
+                                 (unsigned)request.digi_id, (long long)request.amount, before_dp, after_dp);
+                    output_text(message);
+                }
+            } else if (matches == 0) {
+                char message[96];
+                SDL_snprintf(message, sizeof(message), "changeDP: Digimon id %u is not in the party",
+                             (unsigned)request.digi_id);
+                output_text(message);
+            } else {
+                char message[112];
+                SDL_snprintf(message, sizeof(message),
+                             "changeDP: Digimon id %u appears more than once in the party; no change made",
+                             (unsigned)request.digi_id);
+                output_text(message);
+            }
         }
     }
 }

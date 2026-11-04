@@ -196,9 +196,12 @@ Command line options (`dw2 --help` lists all of them):
 | `--fullscreen` / `--windowed` | start in borderless fullscreen / in a window |
 | `--window-mode M` | start `windowed`, `borderless` or `exclusive` |
 
-The Lua console accepts one-line Lua chunks. For example, `addBits(500)` adds 500 bits;
-`addBits(-500)` removes 500. The balance is clamped to 0..99,999,999. The console does not pause
-the game, and its game-changing functions are applied at a frame boundary.
+The Lua console accepts one-line Lua chunks. `printPartyList()` lists the party Digimon by default
+name and decimal species ID. `changeDP(id, amount)` adjusts the DP of the party Digimon with that
+ID; the result is clamped to 0..99. If the ID appears more than once in the party, no change is
+made. For example, `changeDP(42, -1)` removes one DP from Digimon 42.
+`addBits(500)` adds 500 bits and `addBits(-500)` removes them, clamped to 0..99,999,999. The console
+does not pause the game, and its game-changing functions are applied at a frame boundary.
 
 ## Settings
 

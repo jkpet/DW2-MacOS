@@ -54,6 +54,9 @@ Esc  quit (asks first)
 dw2 --help lists the command line options.
 Start with --luaconsole to enable the console. Type Lua one-line chunks such as addBits(500)
 to add bits or addBits(-500) to remove them. The balance is clamped to 0..99,999,999.
+printPartyList() lists party Digimon by name and decimal ID. changeDP(id, amount) adds a signed
+integer to that party Digimon's DP, clamped to 0..99; for example, changeDP(42, -1). If an ID
+appears more than once in the party, changeDP reports the ambiguity and makes no change.
 
 
 Updates
