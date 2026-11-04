@@ -28,6 +28,7 @@ enum {
     SET_SELECT_HOLD,  /* 0 / 1: PR.38 Select held 1 s opens F1 (issue #5), on by default */
     SET_EXP_MULTIPLIER, /* selected EXP percentage, default 100% */
     SET_STOP_AT_DIGIVOLUTION_LEVELS, /* 0 / 1: stop battle level-ups at 11, 21, 31; on by default */
+    SET_DNA_DP_SUM, /* 0 / 1: DNA digivolution uses the sum of parent DP; off uses max + 1 */
     SET_COUNT
 };
 enum { SET_RENDERER_GPU, SET_RENDERER_SOFT };

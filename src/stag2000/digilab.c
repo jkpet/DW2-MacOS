@@ -1,5 +1,8 @@
 #include "common.h"
 #include "stag2000/stag2000.h"
+#ifdef DW2_NATIVE
+#include "host/settings.h"
+#endif
 
 /* Task callbacks the descriptors below need (defined further down). */
 void Stg20_DigiLabUpdate(Actor *a);
@@ -279,7 +282,14 @@ void Stg20_LabDnaDigivolve(Actor *a) {
             nd.state = 1;
             nd.level = t * 10 + 1;
             nd.digiId = Stg20_MenuState.evoTargetId;
-            nd.dp = (p->dp > q->dp ? p->dp : q->dp) + 1;
+#ifdef DW2_NATIVE
+            if (Settings_Get(SET_DNA_DP_SUM)) {
+                nd.dp = p->dp + q->dp;
+            } else
+#endif
+            {
+                nd.dp = (p->dp > q->dp ? p->dp : q->dp) + 1;
+            }
             if (p->maxLevel > q->maxLevel) {
                 ml = p->maxLevel + q->maxLevel / 2 + 1;
             } else {

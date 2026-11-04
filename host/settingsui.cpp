@@ -327,6 +327,7 @@ void game_tab(void) {
     static const char *const exp_names[] = { "100%", "200%", "500%", "1000%", "2000%" };
     int exp_multiplier = Settings_Get(SET_EXP_MULTIPLIER);
     bool stop_at_digivolution_levels = Settings_Get(SET_STOP_AT_DIGIVOLUTION_LEVELS) != 0;
+    bool dna_dp_sum = Settings_Get(SET_DNA_DP_SUM) != 0;
     int cur = Settings_Get(SET_SPEED);
     int sel = 1;
 
@@ -338,6 +339,11 @@ void game_tab(void) {
         Settings_Set(SET_STOP_AT_DIGIVOLUTION_LEVELS, stop_at_digivolution_levels);
     }
     ImGui::TextWrapped("When enabled, a battle's level-ups stop at levels 11, 21, or 31. Excess EXP is kept.");
+    if (ImGui::Checkbox("Add parents' DP on DNA digivolution", &dna_dp_sum)) {
+        Settings_Set(SET_DNA_DP_SUM, dna_dp_sum);
+    }
+    ImGui::TextWrapped("When enabled, the new Digimon gets both parents' DP added together. "
+                       "Otherwise, it gets the higher parent's DP plus 1.");
 
     for (int i = 0; i < (int)(sizeof(values) / sizeof(values[0])); i++) {
         if (values[i] == cur) {

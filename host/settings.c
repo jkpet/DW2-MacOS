@@ -46,11 +46,13 @@ const int Settings_ButtonOrder[16] = {
 static const char *const int_keys[SET_COUNT] = {
     "scale", "wide", "pgxp", "renderer", "volume", "stick_dpad", "window_mode", "fullscreen_display", "window_maximized",
     "sharpen", "title_hint", "speed", "update_check", "smooth",
-    "select_hold_menu", "exp_multiplier", "stop_at_digivolution",
+    "select_hold_menu", "exp_multiplier", "stop_at_digivolution", "dna_dp_sum",
 };
-static const int int_default[SET_COUNT] = { 1, 0, 0, SET_RENDERER_GPU, 100, 1, SET_WINDOW_WINDOWED, 0, 0, 0, 1, 3, 1, 1, 1, SET_EXP_100, 1 };
-static const int int_min[SET_COUNT] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SET_EXP_100, 0 };
-static const int int_max[SET_COUNT] = { 8, 1, 1, 1, 100, 1, 2, 16, 1, 100, 1, 8, 1, 1, 1, SET_EXP_2000, 1 };
+static const int int_default[SET_COUNT] = {
+    1, 0, 0, SET_RENDERER_GPU, 100, 1, SET_WINDOW_WINDOWED, 0, 0, 0, 1, 3, 1, 1, 1, SET_EXP_100, 1, 0,
+};
+static const int int_min[SET_COUNT] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SET_EXP_100, 0, 0 };
+static const int int_max[SET_COUNT] = { 8, 1, 1, 1, 100, 1, 2, 16, 1, 100, 1, 8, 1, 1, 1, SET_EXP_2000, 1, 1 };
 static const char *const renderer_names[] = { "gpu", "soft", NULL };
 static const char *const window_names[] = { "windowed", "borderless", "exclusive", NULL };
 static const char *const exp_multiplier_names[] = { "100%", "200%", "500%", "1000%", "2000%", NULL };
@@ -629,10 +631,10 @@ void Settings_Load(int no_window) {
            Settings_Get(SET_WIDE), Settings_Get(SET_PGXP), Settings_Get(SET_RENDERER) == SET_RENDERER_SOFT ? "soft" : "gpu",
            Settings_Get(SET_VOLUME), Settings_Get(SET_STICK_DPAD), set_count != 0 ? " (with --settings-set)" : "");
     printf("[settings] sharpen %d, title_hint %d, speed %d, update_check %d, smooth %d, select_hold_menu %d, "
-           "stop_at_digivolution_levels %d\n",
+           "stop_at_digivolution_levels %d, dna_dp_sum %d\n",
            Settings_Get(SET_SHARPEN), Settings_Get(SET_TITLE_HINT), Settings_Get(SET_SPEED),
            Settings_Get(SET_UPDATE_CHECK), Settings_Get(SET_SMOOTH), Settings_Get(SET_SELECT_HOLD),
-           Settings_Get(SET_STOP_AT_DIGIVOLUTION_LEVELS));
+           Settings_Get(SET_STOP_AT_DIGIVOLUTION_LEVELS), Settings_Get(SET_DNA_DP_SUM));
     {
         char fm[32], ws[32], wp[32];
 

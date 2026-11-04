@@ -210,7 +210,8 @@ The game does not see your input while it is open.
 - **Controls:** two keys and one gamepad button per PS1 button. Click a slot and press the key
   or button; right click clears it; Esc cancels. Esc, Tab and the F keys are reserved. Left
   stick as D-pad on / off. Hold Select to open the settings on / off. Reset restores the defaults.
-- **Game:** the speed-up multiplier for F3 (2x, 3x, 4x, 5x, 6x, 8x or no limit), and the
+- **Game:** the EXP multiplier, battle level-up behavior, optional parent-DP sum for DNA
+  digivolution, the speed-up multiplier for F3 (2x, 3x, 4x, 5x, 6x, 8x or no limit), and the
   update check.
 - **Sound:** volume.
 
