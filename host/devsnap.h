@@ -22,7 +22,7 @@ extern "C" {
 #define DEVSNAP_FLIPS 240       /* frame intervals kept for the timing plot */
 
 typedef struct {
-    uint32_t addr;        /* the task header (game address, below 2 GB) */
+    uint64_t addr;        /* native address of the task header (for display only) */
     int32_t id;           /* Task_DescTable row << 8 | index */
     int32_t parent;       /* index in DevSnap.tasks of the task holding it in a child slot, -1 none */
     int32_t listIndex;    /* Task_List.entries index */

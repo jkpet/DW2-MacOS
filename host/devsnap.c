@@ -102,6 +102,7 @@ static void capture_heap(DevSnap *s) {
 static void capture_tasks(DevSnap *s) {
     uintptr_t lo = (uintptr_t)Mem_HeapHead;
     uintptr_t hi = lo + (uintptr_t)Mem_HeapSize;
+    Actor *actors[DEVSNAP_TASKS] = { 0 };
     int i, j, k;
 
     s->taskListCount = Task_List.count;
@@ -114,8 +115,10 @@ static void capture_tasks(DevSnap *s) {
         if (a == NULL) {
             continue;
         }
-        t = &s->tasks[s->taskCount++];
-        t->addr = (uint32_t)(uintptr_t)a;
+        t = &s->tasks[s->taskCount];
+        actors[s->taskCount] = (Actor *)a;
+        s->taskCount++;
+        t->addr = (uint64_t)(uintptr_t)a;
         t->id = a->id;
         t->parent = -1;
         t->listIndex = i;
@@ -148,8 +151,9 @@ static void capture_tasks(DevSnap *s) {
     }
     /* parents: the task whose child slots (32-bit task slots) hold this one */
     for (i = 0; i < s->taskCount; i++) {
-        const Actor *a = (const Actor *)(uintptr_t)s->tasks[i].addr;
+        const Actor *a = actors[i];
         const s32 *slots = (const s32 *)a->u34.children;
+        Actor *child;
 
         if (slots == NULL || a->childCount <= 0 || a->childCount > 0x400 ||
             !in_heap(slots, lo, hi)) {
@@ -159,8 +163,12 @@ static void capture_tasks(DevSnap *s) {
             if (slots[j] == 0) {
                 continue;
             }
+            child = Task_GetActor(slots[j]);
+            if (child == NULL) {
+                continue;
+            }
             for (k = 0; k < s->taskCount; k++) {
-                if (s->tasks[k].addr == (uint32_t)slots[j] && k != i) {
+                if (actors[k] == child && k != i) {
                     s->tasks[k].parent = i;
                     break;
                 }

@@ -308,8 +308,8 @@ void task_row(const DevSnap &s, int i, int depth) {
     }
     bool open = ImGui::TreeNodeEx(label, fl);
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("desc %s\nupdate %s\ndraw %s\nheader 0x%08X, Task_List[%d]", dn ? dn : "?", un ? un : "-",
-                          sym_name(t.draw) ? sym_name(t.draw) : "-", t.addr, t.listIndex);
+        ImGui::SetTooltip("desc %s\nupdate %s\ndraw %s\nheader 0x%llX, Task_List[%d]", dn ? dn : "?", un ? un : "-",
+                          sym_name(t.draw) ? sym_name(t.draw) : "-", (unsigned long long)t.addr, t.listIndex);
     }
     ImGui::TableNextColumn();
     ImGui::Text("0x%03X", t.id);
