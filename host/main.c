@@ -21,6 +21,7 @@
 #include "backend/psxgpu_hd.h"
 #include "host/host.h"
 #include "host/host_sdl.h"
+#include "host/luaconsole.h"
 #include "host/settings.h"
 #include "host/ui.h"
 #include "host/update.h"
@@ -40,7 +41,7 @@
  *       [--hold-boot N] [--press N:BUTTONS[:LEN]]... [--press2 N:BUTTONS[:LEN]]... [--save-dir DIR]
  *       [--fast] [--pad2-keys] [--scale N] [--sharpen N] [--hd-threads N] [--pgxp] [--wide] [--smooth] [--renderer gpu|soft]
  *       [--settings PATH] [--settings-set KEY=VALUE]... [--settings-ui] [--settings-tab T] [--ui-shots] [--quit-dialog]
- *       [--no-update-check] [--update-check] [--version]
+  *       [--no-update-check] [--update-check] [--luaconsole] [--version]
  *       [--movies] [--window-mode M] [--fullscreen] [--windowed]
  *     --pak PATH     the data pack (default dw2.pak next to the exe, in the user data folder,
  *                    then build/native/dw2.pak; doc/PACK_FORMAT.md), checked before anything else
@@ -276,6 +277,7 @@ void Host_WaitVBlank(void) {
     DevEdit_ScriptTick(vblanks);
     DevEdit_Apply(); /* PD.4: between frames, before Sys_Main reads nextGameMode */
 #endif
+    LuaConsole_Apply(); /* release/dev Lua requests are game-thread mutations at this frame boundary */
     for (i = 0; i < shot_count; i++) {
         if (shot_at[i] == vblanks) {
             char tag[32];
@@ -615,6 +617,8 @@ HOST_ENTRY int main(int argc, char **argv) {
             disc = argv[++i];
         } else if (strcmp(argv[i], "--no-window") == 0) {
             no_window = 1;
+        } else if (strcmp(argv[i], "--luaconsole") == 0) {
+            LuaConsole_SetEnabled(1);
         } else if (strcmp(argv[i], "--no-update-check") == 0) {
             Update_Disable();
         } else if (strcmp(argv[i], "--update-check") == 0) {
@@ -704,7 +708,7 @@ HOST_ENTRY int main(int argc, char **argv) {
                     "usage: %s [IMAGE] [--disc IMAGE] [--pak PATH] [--vblanks N] [--no-window] [--shot-dir DIR] [--shot-at N]... "
                     "[--shot-vb N]... [--hold-boot N] [--press N:BUTTONS[:LEN]]... [--press2 N:BUTTONS[:LEN]]... "
                     "[--save-dir DIR] [--fast] [--speed-up] [--pad2-keys] [--scale N] [--sharpen N] [--hd-threads N] [--pgxp] [--wide] [--smooth] "
-                    "[--renderer gpu|soft] [--settings PATH] [--settings-set KEY=VALUE]... [--settings-ui] [--settings-tab T] [--ui-shots] [--quit-dialog] [--no-update-check] [--update-check] [--update-as V] [--update-auto] [--version] "
+                    "[--renderer gpu|soft] [--settings PATH] [--settings-set KEY=VALUE]... [--settings-ui] [--settings-tab T] [--ui-shots] [--quit-dialog] [--no-update-check] [--update-check] [--luaconsole] [--update-as V] [--update-auto] [--version] "
                     "[--movies] [--window-mode windowed|borderless|exclusive] [--fullscreen] [--windowed]%s\n",
                     argv[0], DW2_DEV ? " [--start-mode N] [--devui] [--devui-tab T] [--window-size W H] [--devedit N:KIND=ARGS]..." : "");
             return 2;

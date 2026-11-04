@@ -20,6 +20,7 @@
 #include "backends/imgui_impl_sdlrenderer3.h"
 
 #include "host/settings.h"
+#include "host/luaconsole.h"
 #include "host/ui.h"
 #include "host/update.h"
 #if DW2_DEV
@@ -41,6 +42,10 @@ bool g_settings_at_start;
 bool g_shots; /* --ui-shots */
 /* PR.15 quit question: wanted (Esc toggles it), shown (the ImGui popup is open) */
 bool g_quit_want, g_quit_shown;
+char g_lua_input[4096];
+char g_lua_output[96 * 384];
+uint64_t g_lua_output_version;
+bool g_lua_scroll;
 /* PR.38: the gamepad button (Start or Select) that went down while the F1 window was open, -1 if
  * none: its release closes the window */
 int g_close_button = -1;
@@ -129,7 +134,7 @@ void draw_quit(void) {
  * the line says so instead (also when the hint is switched off). */
 bool title_hint_shown(void) {
     return g_ready && Host_TitleHint() && (Settings_Get(SET_TITLE_HINT) || Update_NewerTag() != NULL) &&
-           !SettingsUi_IsOpen() && !g_quit_want && !g_quit_shown;
+           !SettingsUi_IsOpen() && !LuaConsole_IsOpen() && !g_quit_want && !g_quit_shown;
 }
 
 void draw_title_hint(void) {
@@ -161,6 +166,45 @@ void draw_title_hint(void) {
                       IM_COL32(0, 0, 0, 150), in * 0.6f);
     dl->AddText(ImGui::GetFont(), size, pos, tag != NULL ? IM_COL32(255, 214, 90, 235) : IM_COL32(255, 255, 255, 220),
                 text);
+}
+
+void draw_lua_console(void) {
+    bool open = true;
+
+    if (!LuaConsole_IsOpen()) {
+        return;
+    }
+    ImGui::SetNextWindowSize(ImVec2(620.0f, 340.0f), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Lua Console", &open)) {
+        uint64_t version = LuaConsole_CopyOutput(g_lua_output, sizeof(g_lua_output));
+
+        if (version != g_lua_output_version) {
+            g_lua_output_version = version;
+            g_lua_scroll = true;
+        }
+        ImGui::BeginChild("##lua-output", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), true,
+                          ImGuiWindowFlags_HorizontalScrollbar);
+        ImGui::TextUnformatted(g_lua_output);
+        if (g_lua_scroll) {
+            ImGui::SetScrollHereY(1.0f);
+            g_lua_scroll = false;
+        }
+        ImGui::EndChild();
+        if (ImGui::IsWindowAppearing()) {
+            ImGui::SetKeyboardFocusHere();
+        }
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::InputText("##lua-input", g_lua_input, sizeof(g_lua_input), ImGuiInputTextFlags_EnterReturnsTrue)) {
+            LuaConsole_Submit(g_lua_input);
+            g_lua_input[0] = 0;
+            g_lua_scroll = true;
+        }
+        ImGui::TextDisabled("Enter runs a line; the game continues while the console is open. ` toggles it.");
+    }
+    ImGui::End();
+    if (!open) {
+        LuaConsole_SetOpen(0);
+    }
 }
 
 /* the style for the display's content scale (again when the window moves to another display) */
@@ -276,6 +320,7 @@ void Ui_Init(SDL_Window *window, SDL_Renderer *renderer, int headless) {
         return;
     }
     g_ready = true;
+    LuaConsole_Init();
 #if DW2_DEV
     DevUi_Init(window, renderer, headless);
 #endif
@@ -288,7 +333,7 @@ void Ui_Init(SDL_Window *window, SDL_Renderer *renderer, int headless) {
 }
 
 int Ui_Active(void) {
-    return g_ready && (SettingsUi_IsOpen() || dev_open() || g_quit_want || g_quit_shown);
+    return g_ready && (SettingsUi_IsOpen() || dev_open() || LuaConsole_IsOpen() || g_quit_want || g_quit_shown);
 }
 
 void Ui_SetQuitAtStart(int on) {
@@ -296,7 +341,7 @@ void Ui_SetQuitAtStart(int on) {
 }
 
 int Ui_BlocksGameInput(void) {
-    if (g_ready && (SettingsUi_IsOpen() || g_quit_want || g_quit_shown)) {
+    if (g_ready && (SettingsUi_IsOpen() || LuaConsole_IsOpen() || g_quit_want || g_quit_shown)) {
         return 1;
     }
 #if DW2_DEV
@@ -325,6 +370,12 @@ int Ui_Event(const SDL_Event *e) {
     }
     if (Host_InputSelectKeyHeld(e)) {
         return 1; /* PR.38: a Select key held opened F1; its repeats must not press a button in it */
+    }
+    if (e->type == SDL_EVENT_KEY_DOWN && e->key.scancode == SDL_SCANCODE_GRAVE && LuaConsole_Enabled()) {
+        if (!e->key.repeat) {
+            LuaConsole_SetOpen(!LuaConsole_IsOpen());
+        }
+        return 1;
     }
     if (e->type == SDL_EVENT_KEY_DOWN && e->key.scancode == SDL_SCANCODE_F1) {
         if (!e->key.repeat) {
@@ -404,6 +455,7 @@ void Ui_Render(void) {
     if (SettingsUi_IsOpen()) {
         SettingsUi_Draw();
     }
+    draw_lua_console();
     if (hint) {
         draw_title_hint();
     }
@@ -439,6 +491,7 @@ void Ui_Shutdown(void) {
     if (!g_ready) {
         return;
     }
+    LuaConsole_Shutdown();
 #if DW2_DEV
     DevUi_Shutdown();
 #endif

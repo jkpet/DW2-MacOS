@@ -278,7 +278,7 @@ void Settings_SetPad(int bit, int code) {
 }
 
 int Settings_KeyReserved(int sc) {
-    return sc == SDL_SCANCODE_ESCAPE || sc == SDL_SCANCODE_TAB || sc == SDL_SCANCODE_F1 || sc == SDL_SCANCODE_F2 ||
+    return sc == SDL_SCANCODE_ESCAPE || sc == SDL_SCANCODE_TAB || sc == SDL_SCANCODE_GRAVE || sc == SDL_SCANCODE_F1 || sc == SDL_SCANCODE_F2 ||
            sc == SDL_SCANCODE_F3 || sc == SDL_SCANCODE_F5 || sc == SDL_SCANCODE_F6 || sc == SDL_SCANCODE_F7 || sc == SDL_SCANCODE_F8 ||
            sc == SDL_SCANCODE_F9 || sc == SDL_SCANCODE_F11 || sc == SDL_SCANCODE_F12;
 }

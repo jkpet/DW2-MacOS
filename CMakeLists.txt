@@ -36,6 +36,7 @@ elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
 else()
     message(FATAL_ERROR "unsupported pointer size ${CMAKE_SIZEOF_VOID_P}")
 endif()
+
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 4)
         set(DW2_PE_FORMAT pe-i386)
@@ -204,6 +205,21 @@ target_include_directories(dw2_imgui PRIVATE ${IMGUI_DIR})
 target_link_libraries(dw2_imgui PRIVATE SDL3::SDL3-shared)
 set(DEV_SRC ${UI_SRC} $<TARGET_OBJECTS:dw2_imgui>)
 
+# Embedded Lua 5.4 (host/luaconsole.c): include the interpreter in release and dev clients; the
+# runtime creates a state only when --luaconsole is requested. The console opens selected safe
+# libraries itself rather than calling luaL_openlibs.
+set(LUA_DIR ${CMAKE_SOURCE_DIR}/host/lua54)
+set(LUA_SRC
+    ${LUA_DIR}/lapi.c ${LUA_DIR}/lcode.c ${LUA_DIR}/lctype.c ${LUA_DIR}/ldebug.c ${LUA_DIR}/ldo.c
+    ${LUA_DIR}/ldump.c ${LUA_DIR}/lfunc.c ${LUA_DIR}/lgc.c ${LUA_DIR}/llex.c ${LUA_DIR}/lmem.c
+    ${LUA_DIR}/lobject.c ${LUA_DIR}/lopcodes.c ${LUA_DIR}/lparser.c ${LUA_DIR}/lstate.c
+    ${LUA_DIR}/lstring.c ${LUA_DIR}/ltable.c ${LUA_DIR}/ltm.c ${LUA_DIR}/lundump.c ${LUA_DIR}/lvm.c
+    ${LUA_DIR}/lzio.c ${LUA_DIR}/lauxlib.c ${LUA_DIR}/lbaselib.c ${LUA_DIR}/lmathlib.c
+    ${LUA_DIR}/lstrlib.c ${LUA_DIR}/ltablib.c ${LUA_DIR}/lutf8lib.c)
+add_library(dw2_lua OBJECT ${LUA_SRC})
+target_compile_options(dw2_lua PRIVATE ${DW2_ARCH_FLAG} ${DW2_PIE_FLAGS} -fno-strict-aliasing -fwrapv -w)
+target_include_directories(dw2_lua PRIVATE ${LUA_DIR})
+
 # Windows: the program icon and version info (host/dw2.rc) through windres. A custom command
 # run from the repo root with relative paths: windres hands -I paths unquoted to its preprocessor,
 # so the usual RC language support breaks on a source path with spaces.
@@ -219,13 +235,15 @@ if(WIN32)
         VERBATIM)
     set_source_files_properties(${ICON_SRC} PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
 endif()
-add_executable(dw2 ${PSYQ_SRC} ${HOST_SRC} ${BACKEND_SRC} ${DEV_SRC} ${ICON_SRC} $<TARGET_OBJECTS:dw2_main> ${OVL_OBJECTS})
+add_executable(dw2 ${PSYQ_SRC} ${HOST_SRC} ${BACKEND_SRC} ${DEV_SRC} ${ICON_SRC} $<TARGET_OBJECTS:dw2_lua>
+    $<TARGET_OBJECTS:dw2_main> ${OVL_OBJECTS})
 target_compile_options(dw2 PRIVATE ${DW2_ARCH_FLAG} ${DW2_PIE_FLAGS} -fno-strict-aliasing -fwrapv -fno-common -Wall
     "-Wa,-I${CMAKE_SOURCE_DIR}"
     $<$<COMPILE_LANGUAGE:C>:-funsigned-char>
     $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions -fno-rtti -fno-threadsafe-statics>)
 target_compile_definitions(dw2 PRIVATE DW2_NATIVE DW2_DEV=${DW2_DEV_VALUE})
 target_include_directories(dw2 PRIVATE ${CMAKE_SOURCE_DIR}/host/imgui)
+target_include_directories(dw2 PRIVATE ${LUA_DIR})
 target_include_directories(dw2 PRIVATE ${DW2_INCLUDES})
 # Windows/Linux use a 16 MB-aligned fixed image base so globals, Ps1_Ram and the heap share the
 # 24-bit OT-link window. macOS arm64 reserves its PS1 RAM and OT arena at runtime (ps1mem.c).
@@ -432,4 +450,16 @@ if(APPLE)
     target_compile_definitions(item_use_digi_pointer_test PRIVATE ${DW2_DEFS})
     target_include_directories(item_use_digi_pointer_test PRIVATE ${DW2_INCLUDES})
     target_link_options(item_use_digi_pointer_test PRIVATE -Wl,-dead_strip)
+endif()
+
+# Lua-console API regression: queued game-thread updates, signed adjustments, and both clamps.
+add_executable(luaconsole_test ${CMAKE_SOURCE_DIR}/tests/luaconsole_test.c
+    ${CMAKE_SOURCE_DIR}/host/luaconsole.c $<TARGET_OBJECTS:dw2_lua>)
+target_compile_options(luaconsole_test PRIVATE ${DW2_ARCH_FLAG} ${DW2_PIE_FLAGS} -funsigned-char
+    -fno-strict-aliasing -fwrapv -fno-common -Wall)
+target_compile_definitions(luaconsole_test PRIVATE ${DW2_DEFS})
+target_include_directories(luaconsole_test PRIVATE ${DW2_INCLUDES} ${LUA_DIR})
+target_link_libraries(luaconsole_test PRIVATE SDL3::SDL3-shared)
+if(NOT WIN32)
+    target_link_libraries(luaconsole_test PRIVATE m)
 endif()

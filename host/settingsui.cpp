@@ -288,7 +288,7 @@ void controls_tab(void) {
         ImGui::TextColored(ImVec4(0.5f, 0.9f, 1.0f, 1.0f), "%s: press a %s (Esc cancels)",
                            Settings_ButtonName(g_cap_bit), g_cap_slot < 2 ? "key" : "gamepad button");
     } else {
-        ImGui::TextDisabled("Esc, Tab, F1, F2, F3, F5, F6, F7, F8, F9, F11 and F12 are reserved.");
+            ImGui::TextDisabled("Esc, Tab, the grave key, F1, F2, F3, F5, F6, F7, F8, F9, F11 and F12 are reserved.");
     }
     if (ImGui::BeginTable("binds", 4, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_RowBg)) {
         ImGui::TableSetupColumn("PS1 button", ImGuiTableColumnFlags_WidthStretch, 1.0f);

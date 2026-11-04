@@ -173,6 +173,7 @@ Default bindings (change them in the F1 settings window):
 | F9 | Smooth frames on / off |
 | F11 | Windowed / fullscreen |
 | F12 | Screenshot |
+| Grave key (backtick / tilde) | Toggle the Lua console when started with `--luaconsole` |
 | Esc | Quit (asks first) |
 
 Command line options (`dw2 --help` lists all of them):
@@ -191,8 +192,13 @@ Command line options (`dw2 --help` lists all of them):
 | `--save-dir DIR` | keep the memory cards in DIR |
 | `--pad2-keys` | two players on one keyboard (Tab switches the port) |
 | `--settings PATH` | use another settings file |
+| `--luaconsole` | enable the Lua console; press the grave key to open it |
 | `--fullscreen` / `--windowed` | start in borderless fullscreen / in a window |
 | `--window-mode M` | start `windowed`, `borderless` or `exclusive` |
+
+The Lua console accepts one-line Lua chunks. For example, `addBits(500)` adds 500 bits;
+`addBits(-500)` removes 500. The balance is clamped to 0..99,999,999. The console does not pause
+the game, and its game-changing functions are applied at a frame boundary.
 
 ## Settings
 
@@ -356,7 +362,8 @@ doc/       game state map, pack format, notes on the PlayStation library calls
 - [SDL3](https://libsdl.org/) (zlib license), [Dear ImGui](https://github.com/ocornut/imgui)
   (MIT license, `host/imgui/LICENSE.txt`), [miniz](https://github.com/richgel999/miniz) (MIT
   license, `host/miniz/LICENSE`), [Monocypher](https://monocypher.org/) (CC0,
-  `host/monocypher/LICENCE.md`).
+  `host/monocypher/LICENCE.md`), [Lua 5.4.8](https://www.lua.org/) (MIT license,
+  `host/lua54/LICENSE.txt`).
 
 ## License
 
