@@ -31,6 +31,7 @@
 #define GAME_BITS_MAX 99999999
 #define GAME_EXP_MAX 99999999
 #define GAME_MAX_LEVEL 99
+#define GAME_STAT_MAX 9999
 
 extern GameState Save_GameState;
 extern u8 *Digi_GetDefaultName(s32 id);
@@ -58,7 +59,12 @@ enum {
     GAME_REQUEST_ADD_DIGIMON,
     GAME_REQUEST_ADD_ABILITY,
     GAME_REQUEST_PRINT_SPECIES,
-    GAME_REQUEST_PRINT_ABILITIES
+    GAME_REQUEST_PRINT_ABILITIES,
+    GAME_REQUEST_ADD_MAX_HP,
+    GAME_REQUEST_ADD_MAX_MP,
+    GAME_REQUEST_ADD_ATTACK,
+    GAME_REQUEST_ADD_DEFENSE,
+    GAME_REQUEST_ADD_SPEED
 };
 
 static int enabled;
@@ -234,6 +240,8 @@ static int lua_help(lua_State *state) {
     output_text("Lua 5.4 console. addBits(amount): signed integer adjustment, clamped to 0..99,999,999.");
     output_text("printPartyList() lists party Digimon; changeDP(id, amount) adjusts a unique party ID's DP (0..99).");
     output_text("addExp(id, amount) adjusts EXP (0..99,999,999); addMaxLevel(id, amount) adjusts max level.");
+    output_text("addMaxHP/MP(id, amount), addAttack/Defense/Speed(id, amount) adjust a unique owned Digimon's stats (0..9999).");
+    output_text("Increasing max HP/MP does not heal/refill; lowering it caps current HP/MP at the new maximum.");
     output_text("giveItem(name, count) adds a source-defined item for testing (e.g. giveItem('InfMissile', 1)).");
     output_text("addDigimon(name, speciesId) adds a level-1 Digimon to the server with its species skill and average level-1 encounter stats.");
     output_text("addAbility(speciesId, abilityId) adds a skill to the unique owned Digimon with that species ID.");
@@ -329,6 +337,40 @@ static int lua_add_max_level(lua_State *state) {
     }
     amount = lua_tointeger(state, 2);
     return enqueue_game_request(state, GAME_REQUEST_ADD_MAX_LEVEL, (int)id, 0, 0, (int64_t)amount, NULL, NULL);
+}
+
+static int lua_add_stat(lua_State *state, int kind, const char *command) {
+    lua_Integer id, amount;
+
+    if (lua_gettop(state) != 2 || !lua_isinteger(state, 1) || !lua_isinteger(state, 2)) {
+        return luaL_error(state, "%s expects a Digimon species id and an integer amount", command);
+    }
+    id = lua_tointeger(state, 1);
+    if (id < 0 || id > 255) {
+        return luaL_error(state, "%s Digimon id must be in the range 0..255", command);
+    }
+    amount = lua_tointeger(state, 2);
+    return enqueue_game_request(state, kind, (int)id, 0, 0, (int64_t)amount, NULL, NULL);
+}
+
+static int lua_add_max_hp(lua_State *state) {
+    return lua_add_stat(state, GAME_REQUEST_ADD_MAX_HP, "addMaxHP");
+}
+
+static int lua_add_max_mp(lua_State *state) {
+    return lua_add_stat(state, GAME_REQUEST_ADD_MAX_MP, "addMaxMP");
+}
+
+static int lua_add_attack(lua_State *state) {
+    return lua_add_stat(state, GAME_REQUEST_ADD_ATTACK, "addAttack");
+}
+
+static int lua_add_defense(lua_State *state) {
+    return lua_add_stat(state, GAME_REQUEST_ADD_DEFENSE, "addDefense");
+}
+
+static int lua_add_speed(lua_State *state) {
+    return lua_add_stat(state, GAME_REQUEST_ADD_SPEED, "addSpeed");
 }
 
 static int lua_give_item(lua_State *state) {
@@ -912,6 +954,16 @@ int LuaConsole_Init(void) {
     lua_setglobal(lua, "addExp");
     lua_pushcfunction(lua, lua_add_max_level);
     lua_setglobal(lua, "addMaxLevel");
+    lua_pushcfunction(lua, lua_add_max_hp);
+    lua_setglobal(lua, "addMaxHP");
+    lua_pushcfunction(lua, lua_add_max_mp);
+    lua_setglobal(lua, "addMaxMP");
+    lua_pushcfunction(lua, lua_add_attack);
+    lua_setglobal(lua, "addAttack");
+    lua_pushcfunction(lua, lua_add_defense);
+    lua_setglobal(lua, "addDefense");
+    lua_pushcfunction(lua, lua_add_speed);
+    lua_setglobal(lua, "addSpeed");
     lua_pushcfunction(lua, lua_give_item);
     lua_setglobal(lua, "giveItem");
     lua_pushcfunction(lua, lua_add_digimon);
@@ -1204,6 +1256,76 @@ void LuaConsole_Apply(void) {
                 SDL_snprintf(message, sizeof(message),
                              "%s: Digimon id %u appears more than once in the party; no change made", operation,
                              (unsigned)request.digi_id);
+                output_text(message);
+            }
+        } else if (request.kind == GAME_REQUEST_ADD_MAX_HP || request.kind == GAME_REQUEST_ADD_MAX_MP ||
+                   request.kind == GAME_REQUEST_ADD_ATTACK || request.kind == GAME_REQUEST_ADD_DEFENSE ||
+                   request.kind == GAME_REQUEST_ADD_SPEED) {
+            int i, found = -1, matches = 0;
+            const char *operation = "addStat", *stat_name = "stat", *resource_name = NULL;
+
+            switch (request.kind) {
+            case GAME_REQUEST_ADD_MAX_HP: operation = "addMaxHP"; stat_name = "maxHP"; resource_name = "HP"; break;
+            case GAME_REQUEST_ADD_MAX_MP: operation = "addMaxMP"; stat_name = "maxMP"; resource_name = "MP"; break;
+            case GAME_REQUEST_ADD_ATTACK: operation = "addAttack"; stat_name = "attack"; break;
+            case GAME_REQUEST_ADD_DEFENSE: operation = "addDefense"; stat_name = "defense"; break;
+            case GAME_REQUEST_ADD_SPEED: operation = "addSpeed"; stat_name = "speed"; break;
+            }
+            for (i = 0; i < (int)(sizeof(Save_GameState.elems) / sizeof(Save_GameState.elems[0])); i++) {
+                DigiRosterEntry *entry = &Save_GameState.elems[i];
+
+                if (entry->state < 1 || entry->state > 5 || entry->digiId != request.digi_id) {
+                    continue;
+                }
+                found = i;
+                matches++;
+            }
+            if (matches == 0) {
+                char message[96];
+                SDL_snprintf(message, sizeof(message), "%s: Digimon id %u is not in the roster", operation,
+                             (unsigned)request.digi_id);
+                output_text(message);
+            } else if (matches > 1) {
+                char message[128];
+                SDL_snprintf(message, sizeof(message), "%s: Digimon id %u appears more than once; no change made",
+                             operation, (unsigned)request.digi_id);
+                output_text(message);
+            } else {
+                DigiRosterEntry *entry = &Save_GameState.elems[found];
+                s16 *value = NULL, *resource = NULL;
+                int before, current, after, current_before = 0, current_after = 0;
+                char message[192];
+
+                switch (request.kind) {
+                case GAME_REQUEST_ADD_MAX_HP: value = &entry->maxHp; resource = &entry->hp; break;
+                case GAME_REQUEST_ADD_MAX_MP: value = &entry->maxMp; resource = &entry->mp; break;
+                case GAME_REQUEST_ADD_ATTACK: value = &entry->attack; break;
+                case GAME_REQUEST_ADD_DEFENSE: value = &entry->defense; break;
+                case GAME_REQUEST_ADD_SPEED: value = &entry->speed; break;
+                }
+                before = *value;
+                current = before < 0 ? 0 : before > GAME_STAT_MAX ? GAME_STAT_MAX : before;
+                if (request.amount > GAME_STAT_MAX - current) {
+                    after = GAME_STAT_MAX;
+                } else if (request.amount < -current) {
+                    after = 0;
+                } else {
+                    after = (int)(current + request.amount);
+                }
+                *value = (s16)after;
+                if (resource != NULL) {
+                    current_before = *resource;
+                    current_after = current_before < 0 ? 0 : current_before > after ? after : current_before;
+                    *resource = (s16)current_after;
+                }
+                if (resource != NULL && current_after != current_before) {
+                    SDL_snprintf(message, sizeof(message), "%s(%u, %+lld) applied: %s %d -> %d; %s is now %d",
+                                 operation, (unsigned)request.digi_id, (long long)request.amount, stat_name, before,
+                                 after, resource_name, current_after);
+                } else {
+                    SDL_snprintf(message, sizeof(message), "%s(%u, %+lld) applied: %s %d -> %d", operation,
+                                 (unsigned)request.digi_id, (long long)request.amount, stat_name, before, after);
+                }
                 output_text(message);
             }
         } else if (request.kind == GAME_REQUEST_GIVE_ITEM) {

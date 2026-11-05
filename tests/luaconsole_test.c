@@ -176,13 +176,16 @@ int main(void) {
     check(LuaConsole_Complete("whi", completions, sizeof(completions)) == 1 &&
               strcmp(completions, "while") == 0,
           "completion includes Lua keywords");
-    check(LuaConsole_Complete("add", completions, sizeof(completions)) == 5 && strstr(completions, "addBits") != NULL &&
+    check(LuaConsole_Complete("add", completions, sizeof(completions)) == 10 && strstr(completions, "addBits") != NULL &&
               strstr(completions, "addExp") != NULL && strstr(completions, "addMaxLevel") != NULL &&
-              strstr(completions, "addDigimon") != NULL && strstr(completions, "addAbility") != NULL,
+              strstr(completions, "addDigimon") != NULL && strstr(completions, "addAbility") != NULL &&
+              strstr(completions, "addMaxHP") != NULL && strstr(completions, "addMaxMP") != NULL &&
+              strstr(completions, "addAttack") != NULL && strstr(completions, "addDefense") != NULL &&
+              strstr(completions, "addSpeed") != NULL,
           "completion returns all matching globals");
-    check(LuaConsole_Complete("addD", completions, sizeof(completions)) == 1 &&
-              strcmp(completions, "addDigimon") == 0,
-          "completion includes Digimon commands");
+    check(LuaConsole_Complete("addD", completions, sizeof(completions)) == 2 &&
+              strstr(completions, "addDigimon") != NULL && strstr(completions, "addDefense") != NULL,
+          "completion includes Digimon and stat commands");
 
     Save_GameState.elems[0].state = 1;
     Save_GameState.elems[0].digiId = 6;
@@ -218,6 +221,29 @@ int main(void) {
     check(Save_GameState.elems[2].skills[1] == 0, "addAbility is queued for the game thread");
     LuaConsole_Apply();
     check(Save_GameState.elems[2].skills[1] == 11, "addAbility fills the first free skill slot");
+
+    LuaConsole_Submit("addMaxHP(5, 100)");
+    check(Save_GameState.elems[2].maxHp == 300, "addMaxHP is queued for the game thread");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[2].maxHp == 400 && Save_GameState.elems[2].hp == 300,
+          "addMaxHP changes maximum HP without healing");
+    LuaConsole_Submit("addMaxMP(5, 50)");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[2].maxMp == 200 && Save_GameState.elems[2].mp == 150,
+          "addMaxMP changes maximum MP without restoring MP");
+    LuaConsole_Submit("addAttack(5, 99999)");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[2].attack == 9999, "addAttack clamps at the stat maximum");
+    LuaConsole_Submit("addDefense(5, -1000)");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[2].defense == 0, "addDefense clamps at zero");
+    LuaConsole_Submit("addSpeed(5, -10)");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[2].speed == 20, "addSpeed applies signed adjustments");
+    LuaConsole_Submit("addMaxHP(5, -9999)");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[2].maxHp == 0 && Save_GameState.elems[2].hp == 0,
+          "lowering max HP clamps current HP to the new maximum");
 
     LuaConsole_Submit("printDigimonSpeciesList('MONZ')");
     LuaConsole_Apply();
