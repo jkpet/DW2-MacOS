@@ -8,6 +8,7 @@ the compiler warnings.
     venv/Scripts/python.exe tools/build_native.py --test     # also run gte_test
     venv/Scripts/python.exe tools/build_native.py --arch x64 # 64-bit Windows build
     venv/Scripts/python.exe tools/build_native.py --release  # release client (DW2_DEV=OFF)
+    python3 tools/build_native.py --output-dir build/model-viewer # separate build tree
 
 Dev builds (the default) have the ImGui dev overlay and the PD dev tools; --release builds the
 client without them into build/<dir>_rel. A Windows x64 release build also refreshes build/play/
@@ -110,16 +111,24 @@ def main():
     arch_default = "x86" if WINDOWS else "arm64" if MACOS else "x64"
     ap.add_argument("--arch", choices=sorted(BUILD_DIRS), default=arch_default,
                     help="target (Windows: x86 or x64; Linux: x64; macOS: arm64)")
+    ap.add_argument("--output-dir", metavar="PATH",
+                    help="CMake build directory; relative paths are from the repo root (default: platform build directory)")
     ap.add_argument("--rebuild", action="store_true", help="delete the build directory first")
-    ap.add_argument("--run", action="store_true", help="run build/native/dw2 after the build")
+    ap.add_argument("--run", action="store_true", help="run the built executable after the build")
     ap.add_argument("--vblanks", type=int, default=0, help="with --run: stop after N VBlank waits")
     ap.add_argument("--no-window", action="store_true", help="with --run: SDL dummy video / audio")
-    ap.add_argument("--test", action="store_true", help="run build/native/gte_test (GTE model test)")
+    ap.add_argument("--test", action="store_true", help="run gte_test (GTE model test) after the build")
     ap.add_argument("--release", action="store_true",
                     help="release client: DW2_DEV=OFF (no dev tools; ImGui only for F1 settings), build/<dir>_rel")
     args = ap.parse_args()
 
-    build = os.path.join(ROOT, "build", BUILD_DIRS[args.arch] + ("_rel" if args.release else ""))
+    default_build = os.path.join(ROOT, "build", BUILD_DIRS[args.arch] + ("_rel" if args.release else ""))
+    if args.output_dir is None:
+        build = default_build
+    elif os.path.isabs(args.output_dir):
+        build = os.path.normpath(args.output_dir)
+    else:
+        build = os.path.normpath(os.path.join(ROOT, args.output_dir))
     rel_build = os.path.relpath(build, ROOT).replace("\\", "/")
     if WINDOWS:
         mingw = os.environ.get("DW2_MINGW", MINGW_DEFAULT[args.arch])
