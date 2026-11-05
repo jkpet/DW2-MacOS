@@ -1,11 +1,13 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <SDL3/SDL.h>
 
 #include "common.h"
 #include "host/devdata.h"
+#include "host/host.h"
 #include "host/luaconsole.h"
 #include "main/156C.h"
 #include "main/itemextension.h"
@@ -21,6 +23,50 @@ static DevSkill test_skills[] = {
     { .id = 10, .name = "Fireball" },
     { .id = 11, .name = "Mega Flame" },
 };
+static uint8_t enemy_table[3 * 0x64];
+
+static void put_u16(uint8_t *p, uint16_t value) {
+    p[0] = (uint8_t)value;
+    p[1] = (uint8_t)(value >> 8);
+}
+
+static void put_enemy_row(int set, int row, int species, int hp, int mp, int level, int attack, int defense,
+                          int speed) {
+    uint8_t *p = enemy_table + set * 0x64 + 8 + row * 0x1E;
+
+    put_u16(p, (uint16_t)species);
+    put_u16(p + 2, (uint16_t)hp);
+    put_u16(p + 4, (uint16_t)mp);
+    p[0x0A] = (uint8_t)level;
+    p[0x0B] = (uint8_t)attack;
+    put_u16(p + 0x0C, (uint16_t)defense);
+    p[0x0E] = (uint8_t)speed;
+}
+
+static void init_enemy_table(void) {
+    memset(enemy_table, 0, sizeof(enemy_table));
+    enemy_table[0] = 1;
+    enemy_table[0x64] = 2;
+    put_enemy_row(0, 0, 5, 100, 80, 1, 20, 30, 10);
+    put_enemy_row(0, 1, 6, 400, 200, 1, 80, 60, 40);
+    put_enemy_row(0, 2, 5, 300, 120, 1, 40, 50, 30);
+    put_enemy_row(1, 0, 7, 5000, 5000, 2, 200, 200, 200);
+}
+
+void *Host_PakReadFile(int id, int *size) {
+    void *copy;
+
+    *size = 0;
+    if (id != 0xC6F) {
+        return NULL;
+    }
+    copy = malloc(sizeof(enemy_table));
+    if (copy != NULL) {
+        memcpy(copy, enemy_table, sizeof(enemy_table));
+        *size = sizeof(enemy_table);
+    }
+    return copy;
+}
 
 void DevData_InitText(void) {
 }
@@ -114,6 +160,7 @@ int main(void) {
         printf("luaconsole_test: FAIL (SDL_Init: %s)\n", SDL_GetError());
         return 1;
     }
+    init_enemy_table();
 
     LuaConsole_SetEnabled(0);
     check(LuaConsole_Init(), "disabled init");
@@ -137,20 +184,40 @@ int main(void) {
               strcmp(completions, "addDigimon") == 0,
           "completion includes Digimon commands");
 
+    Save_GameState.elems[0].state = 1;
+    Save_GameState.elems[0].digiId = 6;
+    Save_GameState.elems[0].maxHp = 100;
+    Save_GameState.elems[0].maxMp = 80;
+    Save_GameState.elems[0].attack = 30;
+    Save_GameState.elems[0].defense = 20;
+    Save_GameState.elems[0].speed = 10;
+    Save_GameState.elems[1].state = 2;
+    Save_GameState.elems[1].digiId = 6;
+    Save_GameState.elems[1].maxHp = 200;
+    Save_GameState.elems[1].maxMp = 120;
+    Save_GameState.elems[1].attack = 50;
+    Save_GameState.elems[1].defense = 40;
+    Save_GameState.elems[1].speed = 30;
+
     LuaConsole_Submit("addDigimon('My Agumon', 5)");
-    check(Save_GameState.elems[0].state == 0, "addDigimon is queued for the game thread");
+    check(Save_GameState.elems[2].state == 0, "addDigimon is queued for the game thread");
     LuaConsole_Apply();
-    check(Save_GameState.elems[0].state == 1 && Save_GameState.elems[0].digiId == 5 &&
-              Save_GameState.elems[0].level == 1 && Save_GameState.elems[0].skills[0] == 10,
+    check(Save_GameState.elems[2].state == 1 && Save_GameState.elems[2].digiId == 5 &&
+              Save_GameState.elems[2].level == 1 && Save_GameState.elems[2].skills[0] == 10,
           "addDigimon creates a server Digimon with its species skill");
-    check(Save_GameState.elems[0].name[0] == 0x16 && Save_GameState.elems[0].name[1] == 0x3C &&
-              Save_GameState.elems[0].name[2] == 0xFD && Save_GameState.elems[0].name[3] == 0x0A,
+    check(Save_GameState.elems[2].name[0] == 0x16 && Save_GameState.elems[2].name[1] == 0x3C &&
+              Save_GameState.elems[2].name[2] == 0xFD && Save_GameState.elems[2].name[3] == 0x0A,
           "addDigimon encodes the assigned name in the save format");
+    check(Save_GameState.elems[2].maxHp == 300 && Save_GameState.elems[2].maxMp == 150 &&
+              Save_GameState.elems[2].hp == 300 && Save_GameState.elems[2].mp == 150 &&
+              Save_GameState.elems[2].attack == 55 && Save_GameState.elems[2].defense == 50 &&
+              Save_GameState.elems[2].speed == 30,
+          "addDigimon averages each unique species from level-1 encounter rows");
 
     LuaConsole_Submit("addAbility(5, 11)");
-    check(Save_GameState.elems[0].skills[1] == 0, "addAbility is queued for the game thread");
+    check(Save_GameState.elems[2].skills[1] == 0, "addAbility is queued for the game thread");
     LuaConsole_Apply();
-    check(Save_GameState.elems[0].skills[1] == 11, "addAbility fills the first free skill slot");
+    check(Save_GameState.elems[2].skills[1] == 11, "addAbility fills the first free skill slot");
 
     LuaConsole_Submit("printDigimonSpeciesList('MONZ')");
     LuaConsole_Apply();

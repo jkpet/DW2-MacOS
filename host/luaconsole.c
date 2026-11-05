@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "host/devdata.h"
+#include "host/host.h"
 #include "host/luaconsole.h"
 #include "main/156C.h"
 #include "main/itemextension.h"
@@ -22,6 +23,11 @@
 #define LUA_CONSOLE_MEMORY_MAX (16u * 1024u * 1024u)
 #define LUA_CONSOLE_INSTRUCTION_BUDGET 1000000
 #define LUA_CONSOLE_HOOK_GRANULARITY 1000
+#define ENEMY_SET_FILE 0xC6F
+#define ENEMY_SET_RECORD_SIZE 0x64
+#define ENEMY_SET_ROW_COUNT 3
+#define ENEMY_SET_ROW_OFFSET 8
+#define ENEMY_SET_ROW_SIZE 0x1E
 #define GAME_BITS_MAX 99999999
 #define GAME_EXP_MAX 99999999
 #define GAME_MAX_LEVEL 99
@@ -229,7 +235,7 @@ static int lua_help(lua_State *state) {
     output_text("printPartyList() lists party Digimon; changeDP(id, amount) adjusts a unique party ID's DP (0..99).");
     output_text("addExp(id, amount) adjusts EXP (0..99,999,999); addMaxLevel(id, amount) adjusts max level.");
     output_text("giveItem(name, count) adds a source-defined item for testing (e.g. giveItem('InfMissile', 1)).");
-    output_text("addDigimon(name, speciesId) adds a level-1 Digimon to the server with its species skill; use the species list for IDs.");
+    output_text("addDigimon(name, speciesId) adds a level-1 Digimon to the server with its species skill and average level-1 encounter stats.");
     output_text("addAbility(speciesId, abilityId) adds a skill to the unique owned Digimon with that species ID.");
     output_text("printDigimonSpeciesList(searchTerm?) and printAbilityList(searchTerm?) list known IDs; search is case-insensitive.");
     output_text("Run printDigimonSpeciesList() and printAbilityList() to look up IDs before adding.");
@@ -550,6 +556,72 @@ static int game_tables_ready(void) {
     return 0;
 }
 
+typedef struct {
+    int64_t totals[5];
+    int rows;
+} LevelOneSpeciesStats;
+
+static uint16_t read_u16_le(const uint8_t *p) {
+    return (uint16_t)(p[0] | (uint16_t)p[1] << 8);
+}
+
+/* Average duplicate level-1 rows within each species first, then average species equally. This
+ * prevents species that appear in many encounters from biasing the level-1 baseline. */
+static int average_level_one_encounter_stats(int averages[5], int *species_count) {
+    LevelOneSpeciesStats by_species[256] = { 0 };
+    int64_t totals[5] = { 0, 0, 0, 0, 0 };
+    uint8_t *table;
+    int size, record, id, count = 0, stat;
+
+    table = (uint8_t *)Host_PakReadFile(ENEMY_SET_FILE, &size);
+    if (table == NULL) {
+        return 0;
+    }
+    for (record = 0; record + ENEMY_SET_RECORD_SIZE <= size && table[record] != 0;
+         record += ENEMY_SET_RECORD_SIZE) {
+        for (int row = 0; row < ENEMY_SET_ROW_COUNT; row++) {
+            const uint8_t *p = table + record + ENEMY_SET_ROW_OFFSET + row * ENEMY_SET_ROW_SIZE;
+            int species = read_u16_le(p);
+            LevelOneSpeciesStats *stats;
+
+            if (species < 1 || species > 255 || p[0x0A] != 1) {
+                continue;
+            }
+            stats = &by_species[species];
+            stats->totals[0] += read_u16_le(p + 2);  /* HP */
+            stats->totals[1] += read_u16_le(p + 4);  /* MP */
+            stats->totals[2] += p[0x0B];             /* attack */
+            stats->totals[3] += read_u16_le(p + 0x0C); /* defense */
+            stats->totals[4] += p[0x0E];             /* speed */
+            stats->rows++;
+        }
+    }
+    free(table);
+
+    for (id = 1; id <= 255; id++) {
+        const LevelOneSpeciesStats *stats = &by_species[id];
+
+        if (stats->rows == 0) {
+            continue;
+        }
+        for (stat = 0; stat < 5; stat++) {
+            totals[stat] += (stats->totals[stat] + stats->rows / 2) / stats->rows;
+        }
+        count++;
+    }
+    if (count == 0) {
+        return 0;
+    }
+    for (stat = 0; stat < 5; stat++) {
+        int64_t average = (totals[stat] + count / 2) / count;
+
+        /* Roster stats are signed 16-bit values. */
+        averages[stat] = average < 1 ? 1 : average > 32767 ? 32767 : (int)average;
+    }
+    *species_count = count;
+    return 1;
+}
+
 static void print_species_list(const char *search) {
     int i, count = 0;
 
@@ -600,8 +672,9 @@ static void print_ability_list(const char *search) {
 static void add_digimon(const GameRequest *request) {
     const DevDigi *species;
     DigiRosterEntry *entry = NULL;
-    char name[64], message[160];
-    int i, skill;
+    char name[64], message[224];
+    int averages[5], i, skill, slot = -1, species_count = 0;
+    int have_averages;
 
     if (!game_tables_ready()) {
         return;
@@ -615,31 +688,49 @@ static void add_digimon(const GameRequest *request) {
     }
     for (i = 0; i < (int)(sizeof(Save_GameState.elems) / sizeof(Save_GameState.elems[0])); i++) {
         if (Save_GameState.elems[i].state == 0) {
-            entry = &Save_GameState.elems[i];
+            slot = i;
             break;
         }
     }
-    if (entry == NULL) {
+    if (slot < 0) {
         output_text("addDigimon: roster is full (36)");
         return;
     }
+    entry = &Save_GameState.elems[slot];
+    have_averages = average_level_one_encounter_stats(averages, &species_count);
 
     memset(entry, 0, sizeof(*entry));
     entry->state = 1; /* Digimon server */
     entry->digiId = (u8)request->digi_id;
     entry->level = 1;
     entry->maxLevel = (u8)Digi_CalcMaxLevel(entry->level);
-    entry->hp = entry->maxHp = 1;
-    entry->mp = entry->maxMp = 1;
-    entry->attack = entry->defense = entry->speed = 1;
+    if (have_averages) {
+        entry->maxHp = (s16)averages[0];
+        entry->maxMp = (s16)averages[1];
+        entry->attack = (s16)averages[2];
+        entry->defense = (s16)averages[3];
+        entry->speed = (s16)averages[4];
+    } else {
+        entry->maxHp = entry->maxMp = 1;
+        entry->attack = entry->defense = entry->speed = 1;
+    }
+    entry->hp = entry->maxHp;
+    entry->mp = entry->maxMp;
     skill = species->learnedSkill;
     if (skill > 0 && DevData_Skill(skill) != NULL) {
         entry->skills[0] = (u8)skill;
     }
     memcpy(entry->name, request->name, sizeof(entry->name));
     decode_digi_name(entry->name, sizeof(entry->name), name, sizeof(name));
-    SDL_snprintf(message, sizeof(message), "addDigimon: added %s (0x%02X) as \"%s\" in server slot %d",
-                 species->name, (unsigned)request->digi_id, name, i);
+    if (have_averages) {
+        SDL_snprintf(message, sizeof(message),
+                     "addDigimon: added %s (0x%02X) as \"%s\" in server slot %d; stats averaged from %d unique level-1 encounter species",
+                     species->name, (unsigned)request->digi_id, name, slot, species_count);
+    } else {
+        SDL_snprintf(message, sizeof(message),
+                     "addDigimon: added %s (0x%02X) as \"%s\" in server slot %d; no level-1 encounter stats, using minimum stats",
+                     species->name, (unsigned)request->digi_id, name, slot);
+    }
     output_text(message);
 }
 
