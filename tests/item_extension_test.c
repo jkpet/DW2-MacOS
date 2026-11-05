@@ -57,6 +57,8 @@ int main(void) {
     failures += check(ItemExtension_FindById(id) == item, "runtime ID resolves to source item");
     failures += check(Item_GetCategory(id) == 0x21, "InfMissile uses Wave Missile category");
     failures += check(Item_GetLevel(id) == 5, "InfMissile has maximum hazard tier");
+    failures += check(!ItemExtension_ConsumesOnUse(id), "InfMissile has infinite uses");
+    failures += check(ItemExtension_ConsumesOnUse(0xFE), "vanilla items keep their default consume behavior");
     failures += check(Item_CheckId(id) == 0, "source item passes item ID validation");
     failures += check(Item_GetIdAtIndex(2) == id, "source item follows vanilla table entries");
     failures += check(Item_GetTableIndex(id) == 2, "source item has a catalog sort index");

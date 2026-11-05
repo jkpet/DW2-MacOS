@@ -353,7 +353,7 @@ s32 Item_Use(s32 a0, s32 a1, s32 a2, s32 a3) {
             r = Item_UseRecoverAll(a0, a1);
             break;
         }
-        if (r != 0) {
+        if (r != 0 && ItemExtension_ConsumesOnUse(a0)) {
             Item_RemoveFromBag(a1);
         }
     }

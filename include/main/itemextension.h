@@ -38,6 +38,7 @@ typedef struct {
     u8 category;
     u8 level;
     u8 bodyMask;
+    u8 consumeOnUse;
     ItemEffect effect;
     const char *name;
     const char *description;
@@ -51,6 +52,7 @@ void ItemExtension_Init(void);
 const ItemExtension *ItemExtension_FindById(s32 id);
 const ItemExtension *ItemExtension_FindByKey(u32 key);
 u32 ItemExtension_GetKeyByName(const char *name);
+int ItemExtension_ConsumesOnUse(s32 id);
 const ItemExtension *ItemExtension_At(s32 index);
 s32 ItemExtension_Count(void);
 s32 ItemExtension_GetTextHandle(s32 id, s32 description);

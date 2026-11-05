@@ -1,5 +1,6 @@
 #include "common.h"
 #include "stag3000/stag3000.h"
+#include "main/itemextension.h"
 #include "stag3000/banner.h"
 #include "stag3000/fightbg.h"
 #include "stag3000/actionload.h"
@@ -343,11 +344,13 @@ void Stg30_BuildItemScript(void) {
     tech = act->skillId;
     mode = 1;
     out = Stg30_BattleScript;
-    for (i = 0; i < Item_GetBagCapacity(); i++) {
-        if (Save_GameState.bagItems[i] == Stg30_Battle.itemId) {
-            Save_GameState.bagItems[i] = 0;
-            Item_SortList();
-            break;
+    if (ItemExtension_ConsumesOnUse(Stg30_Battle.itemId)) {
+        for (i = 0; i < Item_GetBagCapacity(); i++) {
+            if (Save_GameState.bagItems[i] == Stg30_Battle.itemId) {
+                Save_GameState.bagItems[i] = 0;
+                Item_SortList();
+                break;
+            }
         }
     }
     for (i = 0; i < 6; i++) {

@@ -1,5 +1,6 @@
 #include "common.h"
 #include "stag4000/stag4000.h"
+#include "main/itemextension.h"
 #include "stag4000/stag4000_funcs.h"
 #include "stag4000/linkedmodel.h"
 #include "stag4000/floor.h"
@@ -1346,11 +1347,13 @@ void Stg40_PlayerItemMenu(Actor *a0) {
             Task_SetState2(a0, 4);
         } else if (Pad_State[0].cross > 0) {
             Stg40_RootState->selItem = Stg40_RootState->itemIds[Stg40_RootState->cursor];
-            for (i = 0, bag = Save_GameStatePtr->bagItems; i < 0x30; i++, bag++) {
-                if (*bag == Stg40_RootState->selItem) {
-                    *bag = 0;
-                    Item_CompactBag();
-                    break;
+            if (ItemExtension_ConsumesOnUse(Stg40_RootState->selItem)) {
+                for (i = 0, bag = Save_GameStatePtr->bagItems; i < 0x30; i++, bag++) {
+                    if (*bag == Stg40_RootState->selItem) {
+                        *bag = 0;
+                        Item_CompactBag();
+                        break;
+                    }
                 }
             }
             if (Stg40_RootState->giftMenu != 0) {

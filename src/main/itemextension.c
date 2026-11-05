@@ -20,6 +20,7 @@ static ItemExtension extensions[] = {
         .category = 0x21, /* Wave missile: accepted by Electro-Spore and Rock requirements. */
         .level = 5,       /* Dungeon obstacle tiers top out at level 5. */
         .bodyMask = 0,
+        .consumeOnUse = 0,
         .effect = { 0, 0, 0 },
         .name = "InfMissile",
         .description = "Destroys all tiers of Electro-Spore and Rock.",
@@ -168,6 +169,11 @@ u32 ItemExtension_GetKeyByName(const char *name) {
         }
     }
     return 0;
+}
+
+int ItemExtension_ConsumesOnUse(s32 id) {
+    const ItemExtension *item = ItemExtension_FindById(id);
+    return item == NULL || item->consumeOnUse != 0;
 }
 
 const ItemExtension *ItemExtension_At(s32 index) {

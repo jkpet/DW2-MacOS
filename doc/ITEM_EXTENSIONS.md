@@ -12,8 +12,9 @@ be implemented in source; the data definition alone does not add new engine beha
 
 `InfMissile` is the first definition. It uses category `0x21` (Wave Missile) and level 5. Both
 Electro-Spore and Rock obstacle requirements accept that category, and the dungeon compares item
-level to obstacle tier. The existing missile-gun part requirement still applies. No acquisition
-reward has been added yet; `giveItem("InfMissile", 1)` in the opt-in Lua console is the test hook.
+level to obstacle tier. The existing missile-gun part requirement still applies. It has
+`consumeOnUse = 0`, so selecting it does not remove it from the bag. No acquisition reward has been
+added yet; `giveItem("InfMissile", 1)` in the opt-in Lua console is the test hook.
 
 ## Save representation
 
