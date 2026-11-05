@@ -51,6 +51,7 @@ int g_lua_history_count;
 int g_lua_history_pos = -1;
 uint64_t g_lua_output_version;
 bool g_lua_scroll;
+bool g_lua_focus_input;
 /* PR.38: the gamepad button (Start or Select) that went down while the F1 window was open, -1 if
  * none: its release closes the window */
 int g_close_button = -1;
@@ -324,14 +325,16 @@ void draw_lua_console(void) {
             g_lua_scroll = false;
         }
         ImGui::EndChild();
-        if (ImGui::IsWindowAppearing()) {
+        if (ImGui::IsWindowAppearing() || g_lua_focus_input) {
             ImGui::SetKeyboardFocusHere();
+            g_lua_focus_input = false;
         }
         ImGui::SetNextItemWidth(-1.0f);
         if (ImGui::InputText("##lua-input", g_lua_input, sizeof(g_lua_input),
                              ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackHistory |
                                  ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackEdit,
                              lua_input_callback)) {
+            g_lua_focus_input = true;
             lua_history_add(g_lua_input);
             LuaConsole_Submit(g_lua_input);
             g_lua_input[0] = 0;
