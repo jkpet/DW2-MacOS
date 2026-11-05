@@ -48,6 +48,7 @@ static void check(int ok, const char *name) {
 
 int main(void) {
     char output[96 * 384];
+    char completions[256];
     static const u8 agumon_name[14] = { 0x0A, 0x2A, 0x38, 0x30, 0x32, 0x31, 0xFF };
     static const u8 gabumon_name[14] = { 0x10, 0x24, 0x25, 0x38, 0x30, 0x32, 0x31, 0xFF };
 
@@ -64,6 +65,15 @@ int main(void) {
     LuaConsole_SetEnabled(1);
     check(LuaConsole_Init(), "enabled init");
     check(LuaConsole_Enabled(), "console enabled");
+    check(LuaConsole_Complete("giveI", completions, sizeof(completions)) == 1 &&
+              strcmp(completions, "giveItem") == 0,
+          "completion finds registered console functions");
+    check(LuaConsole_Complete("whi", completions, sizeof(completions)) == 1 &&
+              strcmp(completions, "while") == 0,
+          "completion includes Lua keywords");
+    check(LuaConsole_Complete("add", completions, sizeof(completions)) == 3 && strstr(completions, "addBits") != NULL &&
+              strstr(completions, "addExp") != NULL && strstr(completions, "addMaxLevel") != NULL,
+          "completion returns all matching globals");
 
     Save_GameState.bits = 100;
     LuaConsole_Submit("addBits(500)");

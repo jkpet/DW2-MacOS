@@ -564,6 +564,66 @@ void LuaConsole_Submit(const char *source) {
     (void)execute_loaded_chunk(1);
 }
 
+int LuaConsole_Complete(const char *prefix, char *out, size_t capacity) {
+    static const char *const keywords[] = {
+        "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if",
+        "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while", NULL
+    };
+    size_t prefix_length, used = 0;
+    int count = 0, i;
+
+    if (out != NULL && capacity != 0) {
+        out[0] = 0;
+    }
+    if (!LuaConsole_Enabled() || lua == NULL || prefix == NULL || out == NULL || capacity == 0) {
+        return 0;
+    }
+    prefix_length = strlen(prefix);
+
+    /* Enumerate the actual global environment so functions added to the console stay completable. */
+    lua_pushglobaltable(lua);
+    lua_pushnil(lua);
+    while (lua_next(lua, -2) != 0) {
+        if (lua_type(lua, -2) == LUA_TSTRING) {
+            size_t length;
+            const char *name = lua_tolstring(lua, -2, &length);
+
+            if (length >= prefix_length && memcmp(name, prefix, prefix_length) == 0 &&
+                length < capacity - used && used + length + 1 < capacity) {
+                if (used != 0) {
+                    out[used++] = '\n';
+                }
+                memcpy(out + used, name, length);
+                used += length;
+                out[used] = 0;
+                count++;
+            }
+        }
+        lua_pop(lua, 1);
+    }
+    lua_pop(lua, 1);
+
+    if (prefix_length == 0) {
+        return count;
+    }
+    for (i = 0; keywords[i] != NULL; i++) {
+        size_t length = strlen(keywords[i]);
+
+        if (length < prefix_length || memcmp(keywords[i], prefix, prefix_length) != 0 ||
+            length >= capacity - used || used + length + 1 >= capacity) {
+            continue;
+        }
+        if (used != 0) {
+            out[used++] = '\n';
+        }
+        memcpy(out + used, keywords[i], length);
+        used += length;
+        out[used] = 0;
+        count++;
+    }
+    return count;
+}
+
 void LuaConsole_Apply(void) {
     for (;;) {
         GameRequest request;

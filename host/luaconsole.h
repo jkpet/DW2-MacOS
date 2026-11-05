@@ -16,6 +16,7 @@ void LuaConsole_Shutdown(void);     /* main thread, after the game thread stops 
 int LuaConsole_IsOpen(void);         /* main thread */
 void LuaConsole_SetOpen(int on);     /* main thread */
 void LuaConsole_Submit(const char *source); /* main thread */
+int LuaConsole_Complete(const char *prefix, char *out, size_t capacity); /* main thread; newline-separated matches */
 uint64_t LuaConsole_CopyOutput(char *out, size_t capacity); /* main thread; returns output version */
 
 /* Game thread, at Host_WaitVBlank: applies queued game mutations between frames. */

@@ -44,6 +44,11 @@ bool g_shots; /* --ui-shots */
 bool g_quit_want, g_quit_shown;
 char g_lua_input[4096];
 char g_lua_output[96 * 384];
+char g_lua_completion[1024];
+char g_lua_history[64][sizeof(g_lua_input)];
+char g_lua_history_draft[sizeof(g_lua_input)];
+int g_lua_history_count;
+int g_lua_history_pos = -1;
 uint64_t g_lua_output_version;
 bool g_lua_scroll;
 /* PR.38: the gamepad button (Start or Select) that went down while the F1 window was open, -1 if
@@ -168,6 +173,135 @@ void draw_title_hint(void) {
                 text);
 }
 
+void lua_input_replace(ImGuiInputTextCallbackData *data, const char *text) {
+    data->DeleteChars(0, data->BufTextLen);
+    data->InsertChars(0, text);
+    data->CursorPos = data->BufTextLen;
+    data->SelectionStart = data->SelectionEnd = data->CursorPos;
+    data->BufDirty = true;
+}
+
+void lua_history_add(const char *command) {
+    if (command[0] == 0 ||
+        (g_lua_history_count > 0 && strcmp(g_lua_history[g_lua_history_count - 1], command) == 0)) {
+        return;
+    }
+    if (g_lua_history_count == (int)(sizeof(g_lua_history) / sizeof(g_lua_history[0]))) {
+        memmove(g_lua_history, g_lua_history + 1, (sizeof(g_lua_history) / sizeof(g_lua_history[0]) - 1) *
+                                                      sizeof(g_lua_history[0]));
+        g_lua_history_count--;
+    }
+    SDL_strlcpy(g_lua_history[g_lua_history_count++], command, sizeof(g_lua_history[0]));
+    g_lua_history_pos = -1;
+}
+
+int lua_input_callback(ImGuiInputTextCallbackData *data) {
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackHistory) {
+        if (data->EventKey == ImGuiKey_UpArrow) {
+            if (g_lua_history_count == 0) {
+                return 0;
+            }
+            if (g_lua_history_pos < 0) {
+                SDL_strlcpy(g_lua_history_draft, data->Buf, sizeof(g_lua_history_draft));
+                g_lua_history_pos = g_lua_history_count - 1;
+            } else if (g_lua_history_pos > 0) {
+                g_lua_history_pos--;
+            }
+            lua_input_replace(data, g_lua_history[g_lua_history_pos]);
+        } else if (data->EventKey == ImGuiKey_DownArrow && g_lua_history_pos >= 0) {
+            if (g_lua_history_pos < g_lua_history_count - 1) {
+                g_lua_history_pos++;
+                lua_input_replace(data, g_lua_history[g_lua_history_pos]);
+            } else {
+                g_lua_history_pos = -1;
+                lua_input_replace(data, g_lua_history_draft);
+            }
+        }
+        g_lua_completion[0] = 0;
+        return 0;
+    }
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackEdit) {
+        g_lua_completion[0] = 0;
+        g_lua_history_pos = -1;
+        return 0;
+    }
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackCompletion) {
+        char matches[2048];
+        char prefix[sizeof(g_lua_input)];
+        int start = data->CursorPos, count, i;
+        size_t prefix_length, common_length;
+        const char *first, *candidate;
+
+        while (start > 0) {
+            char c = data->Buf[start - 1];
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_')) {
+                break;
+            }
+            start--;
+        }
+        prefix_length = (size_t)(data->CursorPos - start);
+        if (prefix_length >= sizeof(prefix)) {
+            return 0;
+        }
+        memcpy(prefix, data->Buf + start, prefix_length);
+        prefix[prefix_length] = 0;
+        count = LuaConsole_Complete(prefix, matches, sizeof(matches));
+        if (count == 0) {
+            g_lua_completion[0] = 0;
+            return 0;
+        }
+
+        first = matches;
+        common_length = strcspn(first, "\n");
+        candidate = strchr(first, '\n');
+        for (i = 1; i < count; i++) {
+            const char *next;
+            size_t next_length, j = 0;
+
+            if (candidate == NULL) {
+                break;
+            }
+            next = candidate + 1;
+            next_length = strcspn(next, "\n");
+
+            while (j < common_length && j < next_length && first[j] == next[j]) {
+                j++;
+            }
+            common_length = j;
+            candidate = strchr(next, '\n');
+        }
+        if (common_length > prefix_length || count == 1) {
+            char completion[sizeof(g_lua_input)];
+            if (count == 1) {
+                common_length = strlen(first);
+            }
+            if (common_length >= sizeof(completion)) {
+                common_length = sizeof(completion) - 1;
+            }
+            memcpy(completion, first, common_length);
+            completion[common_length] = 0;
+            data->DeleteChars(start, data->CursorPos - start);
+            data->InsertChars(start, completion);
+            data->CursorPos = start + (int)common_length;
+            data->SelectionStart = data->SelectionEnd = data->CursorPos;
+            data->BufDirty = true;
+        }
+
+        /* Display every candidate when ambiguous; replacing newlines keeps the hint compact. */
+        if (count > 1) {
+            size_t used = 0;
+            for (i = 0; i < (int)sizeof(g_lua_completion) - 1 && matches[i] != 0; i++) {
+                g_lua_completion[used++] = matches[i] == '\n' ? ' ' : matches[i];
+            }
+            g_lua_completion[used] = 0;
+        } else {
+            g_lua_completion[0] = 0;
+        }
+        return 0;
+    }
+    return 0;
+}
+
 void draw_lua_console(void) {
     bool open = true;
 
@@ -194,12 +328,20 @@ void draw_lua_console(void) {
             ImGui::SetKeyboardFocusHere();
         }
         ImGui::SetNextItemWidth(-1.0f);
-        if (ImGui::InputText("##lua-input", g_lua_input, sizeof(g_lua_input), ImGuiInputTextFlags_EnterReturnsTrue)) {
+        if (ImGui::InputText("##lua-input", g_lua_input, sizeof(g_lua_input),
+                             ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackHistory |
+                                 ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackEdit,
+                             lua_input_callback)) {
+            lua_history_add(g_lua_input);
             LuaConsole_Submit(g_lua_input);
             g_lua_input[0] = 0;
+            g_lua_completion[0] = 0;
             g_lua_scroll = true;
         }
-        ImGui::TextDisabled("Enter runs a line; the game continues while the console is open. ` toggles it.");
+        if (g_lua_completion[0] != 0) {
+            ImGui::TextDisabled("Matches: %s", g_lua_completion);
+        }
+        ImGui::TextDisabled("Enter runs a line; Up/Down recalls commands; Tab completes names. ` toggles it.");
     }
     ImGui::End();
     if (!open) {
