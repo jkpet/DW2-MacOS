@@ -51,7 +51,9 @@ int main(void) {
     ItemExtension_Init();
     item = ItemExtension_FindByKey(0x494E464Du);
     failures += check(item != NULL, "source item is registered by stable key");
-    failures += check(item != NULL && item->runtimeId == 0xFD, "runtime ID avoids vanilla IDs");
+    failures += check(item != NULL && item->runtimeId >= ITEM_EXTENSION_RUNTIME_ID_MIN &&
+                          item->runtimeId <= ITEM_EXTENSION_RUNTIME_ID_MAX,
+                      "runtime ID uses the extension range outside byte-sized vanilla storage");
 
     id = item != NULL ? item->runtimeId : 0;
     failures += check(ItemExtension_FindById(id) == item, "runtime ID resolves to source item");
@@ -74,7 +76,7 @@ int main(void) {
     state.bagItems[0] = 0xFE;
     state.bagItems[1] = (u16)id;
     state.bagItems[2] = 0xFF;
-    state.storageCounts[id] = 3;
+    ItemExtension_SetStorageCount(&state, id, 3);
     state.slotItems[11] = (u16)id;
     ItemExtension_CaptureInventory(&state, &inventory);
     failures += check(inventory.bagCount == 1 && inventory.bag[0].key == 0x494E464Du &&
@@ -82,8 +84,8 @@ int main(void) {
                       "capture separates custom bag entries from vanilla state");
     failures += check(state.bagItems[0] == 0xFE && state.bagItems[1] == 0xFF && state.bagItems[2] == 0,
                       "capture compacts vanilla bag entries");
-    failures += check(state.storageCounts[id] == 0 && state.slotItems[11] == 0,
-                      "capture removes custom counts and equipment from vanilla state");
+    failures += check(ItemExtension_GetStorageCount(&state, id) == 3 && state.slotItems[11] == 0,
+                      "capture keeps custom storage in the extension layer and removes custom equipment from vanilla state");
 
     inventory_length = ItemExtension_SerializeInventory(&inventory, inventory_bytes, sizeof(inventory_bytes));
     failures += check(inventory_length != 0 &&
@@ -92,7 +94,7 @@ int main(void) {
     ItemExtension_RestoreInventory(&state, &restored);
     failures += check(state.bagItems[0] == 0xFE && state.bagItems[1] == id && state.bagItems[2] == 0xFF,
                       "restore merges custom items back into their original bag positions");
-    failures += check(state.storageCounts[id] == 3 && state.slotItems[11] == id,
+    failures += check(ItemExtension_GetStorageCount(&state, id) == 3 && state.slotItems[11] == id,
                       "restore rehydrates custom storage and equipment references");
 
     if (failures == 0) {

@@ -100,7 +100,7 @@ void ItemExtension_Init(void) {
     for (i = 0; i < (s32)(sizeof(extensions) / sizeof(extensions[0])); i++) {
         ItemExtension *item = &extensions[i];
 
-        for (candidate = 0xFF; candidate > 0; candidate--) {
+        for (candidate = ITEM_EXTENSION_RUNTIME_ID_MAX; candidate >= ITEM_EXTENSION_RUNTIME_ID_MIN; candidate--) {
             s32 j;
             int already_assigned = 0;
 
@@ -176,6 +176,33 @@ int ItemExtension_ConsumesOnUse(s32 id) {
     return item == NULL || item->consumeOnUse != 0;
 }
 
+u16 ItemExtension_GetStorageCount(GameState *state, s32 id) {
+    const ItemExtension *item = ItemExtension_FindById(id);
+
+    if (item != NULL) {
+        return item->storedCount;
+    }
+    if (state == NULL || id < 0 || id >= 0x100) {
+        return 0;
+    }
+    return state->storageCounts[id];
+}
+
+void ItemExtension_SetStorageCount(GameState *state, s32 id, u16 count) {
+    s32 i;
+
+    for (i = 0; i < ItemExtension_Count(); i++) {
+        ItemExtension *item = (ItemExtension *)ItemExtension_At(i);
+        if (item != NULL && item->runtimeId == id) {
+            item->storedCount = count;
+            return;
+        }
+    }
+    if (state != NULL && id >= 0 && id < 0x100) {
+        state->storageCounts[id] = count;
+    }
+}
+
 const ItemExtension *ItemExtension_At(s32 index) {
     s32 i, found = 0;
 
@@ -202,7 +229,7 @@ s32 ItemExtension_Count(void) {
 }
 
 s32 ItemExtension_GetTextHandle(s32 id, s32 description) {
-    return (s32)(ITEM_EXTENSION_TEXT_TAG | (((u32)id & 0xFFu) << 1) | (description != 0));
+    return (s32)(ITEM_EXTENSION_TEXT_TAG | (((u32)id & 0x7FFFFFu) << 1) | (description != 0));
 }
 
 const u8 *ItemExtension_GetTextPointer(s32 handle) {
@@ -213,7 +240,7 @@ const u8 *ItemExtension_GetTextPointer(s32 handle) {
     if ((value & ITEM_EXTENSION_TEXT_TAG_MASK) != ITEM_EXTENSION_TEXT_TAG) {
         return NULL;
     }
-    id = (s32)((value >> 1) & 0xFFu);
+    id = (s32)((value >> 1) & 0x7FFFFFu);
     item = ItemExtension_FindById(id);
     if (item == NULL) {
         return NULL;
@@ -286,13 +313,13 @@ void ItemExtension_CaptureInventory(GameState *state, ItemExtensionInventorySave
     memset(state->bagItems, 0, sizeof(state->bagItems));
     memcpy(state->bagItems, vanilla_bag, (size_t)vanilla_count * sizeof(vanilla_bag[0]));
 
-    for (i = 0; i < 0x100; i++) {
-        const ItemExtension *extension = ItemExtension_FindById(i);
-        if (extension != NULL && state->storageCounts[i] != 0 && save->storageCount < ITEM_EXTENSION_SAVE_STORAGE_CAPACITY) {
+    for (i = 0; i < ItemExtension_Count(); i++) {
+        const ItemExtension *extension = ItemExtension_At(i);
+        if (extension != NULL && extension->storedCount != 0 &&
+            save->storageCount < ITEM_EXTENSION_SAVE_STORAGE_CAPACITY) {
             ItemExtensionStorageSaveEntry *entry = &save->storage[save->storageCount++];
             entry->key = extension->key;
-            entry->count = state->storageCounts[i];
-            state->storageCounts[i] = 0;
+            entry->count = extension->storedCount;
         }
     }
 
@@ -313,6 +340,12 @@ void ItemExtension_RestoreInventory(GameState *state, const ItemExtensionInvento
 
     if (state == NULL || save == NULL) {
         return;
+    }
+    for (i = 0; i < ItemExtension_Count(); i++) {
+        ItemExtension *extension = (ItemExtension *)ItemExtension_At(i);
+        if (extension != NULL) {
+            extension->storedCount = 0;
+        }
     }
     for (i = 0; i < ITEM_EXTENSION_SAVE_BAG_CAPACITY; i++) {
         if (state->bagItems[i] != 0) {
@@ -343,8 +376,8 @@ void ItemExtension_RestoreInventory(GameState *state, const ItemExtensionInvento
 
     for (i = 0; i < save->storageCount; i++) {
         const ItemExtension *extension = ItemExtension_FindByKey(save->storage[i].key);
-        if (extension != NULL && extension->runtimeId < 0x100) {
-            state->storageCounts[extension->runtimeId] = save->storage[i].count;
+        if (extension != NULL) {
+            ItemExtension_SetStorageCount(state, extension->runtimeId, save->storage[i].count);
         }
     }
     for (i = 0; i < ITEM_EXTENSION_SAVE_EQUIPMENT_SLOTS; i++) {

@@ -12,6 +12,8 @@
 #define ITEM_EXTENSION_SAVE_MAX_BYTES \
     (4 + ITEM_EXTENSION_SAVE_BAG_CAPACITY * 5 + ITEM_EXTENSION_SAVE_EQUIPMENT_SLOTS * 4 + \
      ITEM_EXTENSION_SAVE_STORAGE_CAPACITY * 6)
+#define ITEM_EXTENSION_RUNTIME_ID_MIN 0x100
+#define ITEM_EXTENSION_RUNTIME_ID_MAX 0x7FFF
 
 typedef struct {
     u32 key;
@@ -39,10 +41,11 @@ typedef struct {
     u8 level;
     u8 bodyMask;
     u8 consumeOnUse;
+    u16 storedCount;
     ItemEffect effect;
     const char *name;
     const char *description;
-    s32 runtimeId;        /* Free retail-sized ID allocated at initialization. */
+    s32 runtimeId;        /* Free signed-16-bit ID allocated outside vanilla storage indices. */
     ItemTableEntry tableEntry;
     u8 encodedName[48];
     u8 encodedDescription[192];
@@ -53,6 +56,8 @@ const ItemExtension *ItemExtension_FindById(s32 id);
 const ItemExtension *ItemExtension_FindByKey(u32 key);
 u32 ItemExtension_GetKeyByName(const char *name);
 int ItemExtension_ConsumesOnUse(s32 id);
+u16 ItemExtension_GetStorageCount(GameState *state, s32 id);
+void ItemExtension_SetStorageCount(GameState *state, s32 id, u16 count);
 const ItemExtension *ItemExtension_At(s32 index);
 s32 ItemExtension_Count(void);
 s32 ItemExtension_GetTextHandle(s32 id, s32 description);

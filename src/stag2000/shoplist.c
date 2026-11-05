@@ -14,6 +14,7 @@
 #include "stag2000/labinfo.h"
 #include "stag2000/labskills.h"
 #include "stag2000/labpair.h"
+#include "main/itemextension.h"
 #include "stag2000/dna.h"
 #include "stag2000/shadow.h"
 #include "stag2000/labjogbg.h"
@@ -155,7 +156,7 @@ s32 Stg20_CountOwnedItem(s32 id) {
             n++;
         }
     }
-    n += Save_GameState.storageCounts[id];
+    n += ItemExtension_GetStorageCount(&Save_GameState, id);
     r = 99;
     if (n < 100) {
         r = n;
@@ -450,7 +451,12 @@ void Stg20_ShopListUpdate(Actor *a) {
             if (Flag_Test(0x10) != 0 && Flag_Test(0x11) == 0) {
                 Snd_PlayById(0xF, 0);
                 g = &Save_GameState;
-                g->storageCounts[id] = g->storageCounts[id] == 99 ? 99 : g->storageCounts[id] + 1;
+                {
+                    u16 count = ItemExtension_GetStorageCount(g, id);
+                    if (count < 99) {
+                        ItemExtension_SetStorageCount(g, id, count + 1);
+                    }
+                }
                 Save_GameState.bits -= Item_GetPrice(id);
                 Task_SetState1(a, 0);
             } else if (Pad_State[0].triangle > 0 || Flag_Test(0x10) != 0) {

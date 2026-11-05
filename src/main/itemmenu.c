@@ -11,6 +11,7 @@
 #include "main/submenu.h"
 #include "main/status.h"
 #include "main/itemuse.h"
+#include "main/itemextension.h"
 
 /* Small data this unit defines (.sdata). Retail reaches it with %gp_rel here. */
 Halves Menu_ItemMsgPos = { 0x10, 0xBA };
@@ -67,9 +68,9 @@ void Item_BuildMenuList(MenuItemWork *w) {
             } else if (Item_GetCategory(id) != 0x1F) {
                 continue;
             }
-            if (Save_GameStatePtr->storageCounts[id] != 0) {
+            if (ItemExtension_GetStorageCount(Save_GameStatePtr, id) != 0) {
                 c->itemId = id;
-                q->count = Save_GameStatePtr->storageCounts[id];
+                q->count = ItemExtension_GetStorageCount(Save_GameStatePtr, id);
                 q->count = q->count >= 100 ? 99 : q->count;
                 q->count = w->menuMode == 5 ? 0 : q->count;
                 q++;
@@ -132,7 +133,12 @@ void Item_MoveToStorage(Actor *a0, MenuItemWork *w) {
         snd = 0x10;
     } else {
         id = c->itemId;
-        Save_GameStatePtr->storageCounts[id] += (Save_GameStatePtr->storageCounts[id] + 1 < 100);
+        {
+            u16 count = ItemExtension_GetStorageCount(Save_GameStatePtr, id);
+            if (count < 99) {
+                ItemExtension_SetStorageCount(Save_GameStatePtr, id, count + 1);
+            }
+        }
         Item_RemoveFromBag(c->bagSlot);
         st.pos = Menu_ItemMsgPos;
         st.packedStyle = 0x81;
@@ -173,7 +179,8 @@ void Item_TakeFromStorage(Actor *a0, MenuItemWork *w) {
             snd = 0x10;
         } else {
             Save_GameStatePtr->bagItems[i] = c->itemId;
-            Save_GameStatePtr->storageCounts[c->itemId]--;
+            ItemExtension_SetStorageCount(Save_GameStatePtr, c->itemId,
+                                          ItemExtension_GetStorageCount(Save_GameStatePtr, c->itemId) - 1);
             st.pos = Menu_ItemMsgPos;
             st.packedStyle = 0x81;
             st.color = 0;

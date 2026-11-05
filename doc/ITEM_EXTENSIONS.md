@@ -2,8 +2,10 @@
 
 Added items are defined in `src/main/itemextension.c`; there is no runtime item-data sidecar.
 Each definition has a stable key for saves and receives an available runtime ID after the retail
-item table is loaded. Item lookup, list enumeration, effect-record lookup, and text resolution
-consult the extension layer before falling back to the disc data.
+item table is loaded. Extension IDs are allocated from the positive signed-16-bit range above
+`0xFF`, leaving vanilla's byte-indexed storage array untouched. Item lookup, list enumeration,
+effect-record lookup, text resolution, and storage-count access consult the extension layer before
+falling back to disc data.
 
 Keep each key stable once it can appear in a save. Names and descriptions are source strings
 converted to the retail text glyph encoding. The current conversion supports digits, English

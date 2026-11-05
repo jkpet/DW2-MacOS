@@ -12,8 +12,8 @@
 GameState Save_GameState;
 
 ItemTableEntry *Item_FindById(s32 id) {
-    (void)id;
-    return NULL;
+    static ItemTableEntry occupied;
+    return id > 0 && id <= 0xFF ? &occupied : NULL;
 }
 
 s32 Item_AddToBag(s32 id) {
@@ -172,6 +172,9 @@ int main(void) {
     LuaConsole_Apply();
     {
         const ItemExtension *item = ItemExtension_FindByKey(0x494E464Du);
+        LuaConsole_CopyOutput(output, sizeof(output));
+        check(strstr(output, "giveItem: source item is unavailable") == NULL,
+              "source item gets a runtime ID when all byte-sized IDs are occupied");
         check(item != NULL && Save_GameState.bagItems[0] == item->runtimeId &&
                   Save_GameState.bagItems[1] == item->runtimeId,
               "source item grant is applied on the game thread");
