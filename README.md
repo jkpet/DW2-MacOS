@@ -326,6 +326,17 @@ The macOS path is still being ported. Some steps fail fast with explicit message
 overlay relink and low-address runtime behavior are being validated. The in-app updater currently
 stays in download-page mode on macOS (no self-update package yet).
 
+To open the in-game Digimon model viewer in a macOS arm64 development build, build without
+`--release` and start the game in debug mode `0x102`:
+
+```
+python3 tools/build_native.py --arch arm64
+build/macos-arm64/dw2 --start-mode 0x102
+```
+
+`--start-mode` is dev-build-only. This starts the viewer instead of the title and initializes a
+fresh in-memory game state; it does not load or overwrite the normal save file.
+
 A few data tables are taken from your disc while building (`configs/USA/include_bin.txt`), so
 the build also needs the disc's files extracted to `dumps/disc/` with `dumpsxiso -pt`. Builds
 without `--release` add developer tools (an overlay on F2 with timing, tasks, memory, save data
