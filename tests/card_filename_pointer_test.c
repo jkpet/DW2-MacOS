@@ -38,7 +38,9 @@ int main(void) {
         return 1;
     }
 
-    strcpy((char *)work->fileName, "DW2SAVE");
+    strcpy((char *)work->fileName, "BASLUS-01193 DMW2");
+    work->u34.s.blocks = STG11_SAVE_FILE_BLOCKS;
+    work->u34.s.version = STG11_SAVE_VERSION;
     Stg11_CardWork = work;
     MemCardInit(0);
     MemCardStart();
@@ -55,7 +57,7 @@ int main(void) {
     if (Stg11_CardAsyncOp(work, 3, 0) != -1) {
         return 3;
     }
-    for (int i = 0; i < 128; i++) {
+    for (int i = 0; i <= STG11_SAVE_FILE_BYTES / 0x80; i++) {
         Psyq_CardVBlank();
     }
     Stg11_CardAsyncOp(work, 3, 0);

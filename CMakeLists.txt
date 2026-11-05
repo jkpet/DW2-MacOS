@@ -339,6 +339,42 @@ else()
     target_link_options(battle_script_xa_wait_test PRIVATE -Wl,--gc-sections)
 endif()
 
+# Source-defined item catalog entries are appended without changing the disc item data.
+add_executable(item_extension_test ${CMAKE_SOURCE_DIR}/tests/item_extension_test.c
+    ${CMAKE_SOURCE_DIR}/src/main/itemextension.c ${CMAKE_SOURCE_DIR}/src/main/gamedata.c)
+target_compile_options(item_extension_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+target_compile_definitions(item_extension_test PRIVATE ${DW2_DEFS})
+target_include_directories(item_extension_test PRIVATE ${DW2_INCLUDES})
+if(APPLE)
+    target_link_options(item_extension_test PRIVATE -Wl,-dead_strip)
+else()
+    target_link_options(item_extension_test PRIVATE -Wl,--gc-sections)
+endif()
+
+# Versioned per-slot save extension data stays after, not inside, the retail save-list layout.
+add_executable(save_extension_test ${CMAKE_SOURCE_DIR}/tests/save_extension_test.c
+    ${CMAKE_SOURCE_DIR}/src/stag1100/saveextension.c)
+target_compile_options(save_extension_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+target_compile_definitions(save_extension_test PRIVATE ${DW2_DEFS})
+target_include_directories(save_extension_test PRIVATE ${DW2_INCLUDES})
+if(APPLE)
+    target_link_options(save_extension_test PRIVATE -Wl,-dead_strip)
+else()
+    target_link_options(save_extension_test PRIVATE -Wl,--gc-sections)
+endif()
+
+# Native memory-card regression for reading a retail-sized save and growing it to the new format.
+add_executable(card_save_growth_test ${CMAKE_SOURCE_DIR}/tests/card_save_growth_test.c
+    ${CMAKE_SOURCE_DIR}/psyq/libmcrd.c)
+target_compile_options(card_save_growth_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+target_compile_definitions(card_save_growth_test PRIVATE ${DW2_DEFS})
+target_include_directories(card_save_growth_test PRIVATE ${DW2_INCLUDES})
+if(APPLE)
+    target_link_options(card_save_growth_test PRIVATE -Wl,-dead_strip)
+else()
+    target_link_options(card_save_growth_test PRIVATE -Wl,--gc-sections)
+endif()
+
 # Native 64-bit regression for legacy file-relative dungeon pointers. Compile the real relocation
 # unit and discard its unrelated functions so the test covers the production implementation.
 if(APPLE)
@@ -458,7 +494,7 @@ if(APPLE)
     # Native regression for applying a health item to a high-address roster record from the menu.
     add_executable(item_use_digi_pointer_test ${CMAKE_SOURCE_DIR}/tests/item_use_digi_pointer_test.c
         ${CMAKE_SOURCE_DIR}/src/main/digilist.c ${CMAKE_SOURCE_DIR}/src/main/itemeffect.c
-        ${CMAKE_SOURCE_DIR}/src/main/digidata.c)
+        ${CMAKE_SOURCE_DIR}/src/main/digidata.c ${CMAKE_SOURCE_DIR}/src/main/itemextension.c)
     target_compile_options(item_use_digi_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
     target_compile_definitions(item_use_digi_pointer_test PRIVATE ${DW2_DEFS})
     target_include_directories(item_use_digi_pointer_test PRIVATE ${DW2_INCLUDES})
@@ -467,7 +503,7 @@ endif()
 
 # Lua-console API regression: queued game-thread updates, signed adjustments, and both clamps.
 add_executable(luaconsole_test ${CMAKE_SOURCE_DIR}/tests/luaconsole_test.c
-    ${CMAKE_SOURCE_DIR}/host/luaconsole.c $<TARGET_OBJECTS:dw2_lua>)
+    ${CMAKE_SOURCE_DIR}/host/luaconsole.c ${CMAKE_SOURCE_DIR}/src/main/itemextension.c $<TARGET_OBJECTS:dw2_lua>)
 target_compile_options(luaconsole_test PRIVATE ${DW2_ARCH_FLAG} ${DW2_PIE_FLAGS} -funsigned-char
     -fno-strict-aliasing -fwrapv -fno-common -Wall)
 target_compile_definitions(luaconsole_test PRIVATE ${DW2_DEFS})

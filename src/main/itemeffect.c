@@ -1,6 +1,7 @@
 #include "common.h"
 #include "main/game.h"
 #include "main/digidata.h"
+#include "main/itemextension.h"
 
 /* Small data this file defines (.sbss). Retail reaches it with %gp_rel here. */
 u8 Bug_LastZappedLevel;
@@ -23,6 +24,13 @@ s32 *Item_GetEffectRec(s32 id) {
     s32 *base = 0;
     u32 i;
     s32 key;
+
+    {
+        const ItemExtension *extension = ItemExtension_FindById(id);
+        if (extension != NULL) {
+            return (s32 *)&extension->effect;
+        }
+    }
 
     if ((i = id - 0x78) < 0x10) {
         key = 0x5130000;

@@ -8,6 +8,7 @@
 #include "common.h"
 #include "host/luaconsole.h"
 #include "main/156C.h"
+#include "main/itemextension.h"
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
@@ -25,10 +26,13 @@
 
 extern GameState Save_GameState;
 extern u8 *Digi_GetDefaultName(s32 id);
+extern s32 Item_AddToBag(s32 id);
+extern void Item_SortList(void);
 
 typedef struct {
     int kind;
     int digi_id;
+    uint32_t item_key;
     int64_t amount;
 } GameRequest;
 
@@ -37,7 +41,8 @@ enum {
     GAME_REQUEST_PRINT_PARTY,
     GAME_REQUEST_CHANGE_DP,
     GAME_REQUEST_ADD_EXP,
-    GAME_REQUEST_ADD_MAX_LEVEL
+    GAME_REQUEST_ADD_MAX_LEVEL,
+    GAME_REQUEST_GIVE_ITEM
 };
 
 static int enabled;
@@ -213,11 +218,12 @@ static int lua_help(lua_State *state) {
     output_text("Lua 5.4 console. addBits(amount): signed integer adjustment, clamped to 0..99,999,999.");
     output_text("printPartyList() lists party Digimon; changeDP(id, amount) adjusts a unique party ID's DP (0..99).");
     output_text("addExp(id, amount) adjusts EXP (0..99,999,999); addMaxLevel(id, amount) adjusts max level.");
+    output_text("giveItem(name, count) adds a source-defined item for testing (e.g. giveItem('InfMissile', 1)).");
     output_text("Examples: addBits(500), changeDP(10, -1), addExp(10, 500), addMaxLevel(10, 1)");
     return 0;
 }
 
-static int enqueue_game_request(lua_State *state, int kind, int digi_id, int64_t amount) {
+static int enqueue_game_request(lua_State *state, int kind, int digi_id, uint32_t item_key, int64_t amount) {
     GameRequest *request;
     int at;
 
@@ -233,6 +239,7 @@ static int enqueue_game_request(lua_State *state, int kind, int digi_id, int64_t
     request = &queue[at];
     request->kind = kind;
     request->digi_id = digi_id;
+    request->item_key = item_key;
     request->amount = amount;
     queue_count++;
     SDL_UnlockMutex(lock);
@@ -244,14 +251,14 @@ static int lua_add_bits(lua_State *state) {
     if (lua_gettop(state) != 1 || !lua_isinteger(state, 1)) {
         return luaL_error(state, "addBits expects one integer amount");
     }
-    return enqueue_game_request(state, GAME_REQUEST_ADD_BITS, 0, (int64_t)lua_tointeger(state, 1));
+    return enqueue_game_request(state, GAME_REQUEST_ADD_BITS, 0, 0, (int64_t)lua_tointeger(state, 1));
 }
 
 static int lua_print_party_list(lua_State *state) {
     if (lua_gettop(state) != 0) {
         return luaL_error(state, "printPartyList expects no arguments");
     }
-    return enqueue_game_request(state, GAME_REQUEST_PRINT_PARTY, 0, 0);
+    return enqueue_game_request(state, GAME_REQUEST_PRINT_PARTY, 0, 0, 0);
 }
 
 static int lua_change_dp(lua_State *state) {
@@ -265,7 +272,7 @@ static int lua_change_dp(lua_State *state) {
         return luaL_error(state, "changeDP Digimon id must be in the range 0..255");
     }
     amount = lua_tointeger(state, 2);
-    return enqueue_game_request(state, GAME_REQUEST_CHANGE_DP, (int)id, (int64_t)amount);
+    return enqueue_game_request(state, GAME_REQUEST_CHANGE_DP, (int)id, 0, (int64_t)amount);
 }
 
 static int lua_add_exp(lua_State *state) {
@@ -279,7 +286,7 @@ static int lua_add_exp(lua_State *state) {
         return luaL_error(state, "addExp Digimon id must be in the range 0..255");
     }
     amount = lua_tointeger(state, 2);
-    return enqueue_game_request(state, GAME_REQUEST_ADD_EXP, (int)id, (int64_t)amount);
+    return enqueue_game_request(state, GAME_REQUEST_ADD_EXP, (int)id, 0, (int64_t)amount);
 }
 
 static int lua_add_max_level(lua_State *state) {
@@ -293,7 +300,27 @@ static int lua_add_max_level(lua_State *state) {
         return luaL_error(state, "addMaxLevel Digimon id must be in the range 0..255");
     }
     amount = lua_tointeger(state, 2);
-    return enqueue_game_request(state, GAME_REQUEST_ADD_MAX_LEVEL, (int)id, (int64_t)amount);
+    return enqueue_game_request(state, GAME_REQUEST_ADD_MAX_LEVEL, (int)id, 0, (int64_t)amount);
+}
+
+static int lua_give_item(lua_State *state) {
+    const char *name;
+    lua_Integer count;
+    u32 key;
+
+    if (lua_gettop(state) != 2 || lua_type(state, 1) != LUA_TSTRING || !lua_isinteger(state, 2)) {
+        return luaL_error(state, "giveItem expects a source item name and an integer count");
+    }
+    name = lua_tostring(state, 1);
+    key = ItemExtension_GetKeyByName(name);
+    if (key == 0) {
+        return luaL_error(state, "giveItem: unknown source item '%s'", name);
+    }
+    count = lua_tointeger(state, 2);
+    if (count < 1 || count > 48) {
+        return luaL_error(state, "giveItem count must be in the range 1..48");
+    }
+    return enqueue_game_request(state, GAME_REQUEST_GIVE_ITEM, 0, key, (int64_t)count);
 }
 
 static void append_name_text(char *out, size_t capacity, size_t *used, const char *text) {
@@ -470,6 +497,8 @@ int LuaConsole_Init(void) {
     lua_setglobal(lua, "addExp");
     lua_pushcfunction(lua, lua_add_max_level);
     lua_setglobal(lua, "addMaxLevel");
+    lua_pushcfunction(lua, lua_give_item);
+    lua_setglobal(lua, "giveItem");
     output_text("Lua 5.4.8 ready. Type help() for available game functions.");
     printf("[lua] console ready (Lua 5.4.8, --luaconsole, `)\n");
     return 1;
@@ -684,6 +713,29 @@ void LuaConsole_Apply(void) {
                 SDL_snprintf(message, sizeof(message),
                              "%s: Digimon id %u appears more than once in the party; no change made", operation,
                              (unsigned)request.digi_id);
+                output_text(message);
+            }
+        } else if (request.kind == GAME_REQUEST_GIVE_ITEM) {
+            const ItemExtension *item = ItemExtension_FindByKey(request.item_key);
+            int added = 0, i;
+
+            if (item == NULL || item->runtimeId == 0) {
+                output_text("giveItem: source item is unavailable");
+                continue;
+            }
+            for (i = 0; i < request.amount; i++) {
+                if (Item_AddToBag(item->runtimeId) < 0) {
+                    break;
+                }
+                added++;
+            }
+            if (added != 0) {
+                Item_SortList();
+            }
+            {
+                char message[128];
+                SDL_snprintf(message, sizeof(message), "giveItem('%s', %d) added %d to the bag",
+                             item->name, (int)request.amount, added);
                 output_text(message);
             }
         }

@@ -203,6 +203,8 @@ made. For example, `changeDP(42, -1)` removes one DP from Digimon 42.
 `addExp(id, amount)` adjusts that Digimon's EXP, clamped to 0..99,999,999. `addMaxLevel(id, amount)`
 adjusts its maximum level, clamped to at least its current level and at most 99. Both accept signed
 integer adjustments, and require a unique party ID.
+`giveItem(name, count)` is a test hook for source-defined items; for example, `giveItem("InfMissile", 1)`
+adds one InfMissile to the bag (up to available bag space).
 `addBits(500)` adds 500 bits and `addBits(-500)` removes them, clamped to 0..99,999,999. The console
 does not pause the game, and its game-changing functions are applied at a frame boundary.
 

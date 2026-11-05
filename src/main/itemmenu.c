@@ -55,8 +55,11 @@ void Item_BuildMenuList(MenuItemWork *w) {
     } else {
         w->itemCount = 0;
         q = w->cells;
-        for (i = 1; i < 0x118; i++) {
+        for (i = 1; ; i++) {
             id = Item_GetIdAtIndex(i - 1);
+            if (id == 0) {
+                break;
+            }
             if (w->menuMode == 4) {
                 if (Item_GetCategory(id) == 0x1F) {
                     continue;

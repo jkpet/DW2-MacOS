@@ -5,6 +5,7 @@
 #include "stag1100/modemenu.h"
 #include "stag1100/cardmenu.h"
 #include "stag1100/card.h"
+#include "stag1100/saveextension.h"
 
 /* libmcrd takes native pointers, but the matching PS1 declarations use 32-bit words. */
 #ifdef DW2_NATIVE
@@ -25,7 +26,7 @@ DATA_LABEL(Stg11_CardIcon3, Stg11_CardIconTim3, 0x40);
 
 TaskDesc Stg11_CardTaskDesc = {
     (TaskInitFn)Stg11_CardTaskInit, Stg11_CardTaskUpdate, Stg11_CardTaskDestroy, (TaskFn)Stg11_CardTaskDraw,
-    0x22044, 0,
+    STG11_SAVE_WORK_BYTES, 0,
 };
 /* Task_DescTable[6]: task ids 0x600-0x606. */
 TaskDesc *Stg11_TaskDescs[] = {
@@ -49,15 +50,50 @@ void Stg11_CardInitHeader(void) {
     h->magic[0] = 'S';
     h->magic[1] = 'C';
     h->iconFlag = 0x13;
-    h->blocks = 2;
+    h->blocks = STG11_SAVE_FILE_BLOCKS;
     Stg11_CardSetTitle(Stg11_CardTitle);
     memset(h->reserved, 0, 0x1C);
     h->clut = Stg11_CardIconImage.clut;
     h->icons[0] = Stg11_CardIconImage.icon;
     h2->icons[1] = Stg11_CardIcon2;
     h2->icons[2] = Stg11_CardIcon3;
-    memset(data, 0, 0x3DFC);
-    h->version = 0x102;
+    memset(data, 0, sizeof(h->data));
+    h->version = STG11_SAVE_VERSION;
+    h->checksum = 0;
+    Stg11_SaveExtensionInit(data);
+}
+
+static u16 Stg11_CardReadWord(const u8 *p) {
+    return (u16)(p[0] | ((u16)p[1] << 8));
+}
+
+static u32 Stg11_CardFileBytes(const Stg11SaveWork *work) {
+    u32 bytes = (u32)work->u34.s.blocks * 0x2000;
+    return bytes <= STG11_SAVE_FILE_BYTES ? bytes : 0;
+}
+
+static u16 Stg11_CardStoredVersion(const Stg11SaveWork *work) {
+    const u8 *file = (const u8 *)&work->u34;
+    u32 bytes = Stg11_CardFileBytes(work);
+    return bytes >= 4 ? Stg11_CardReadWord(file + bytes - 4) : 0;
+}
+
+static u16 Stg11_CardStoredChecksum(const Stg11SaveWork *work) {
+    const u8 *file = (const u8 *)&work->u34;
+    u32 bytes = Stg11_CardFileBytes(work);
+    return bytes >= 2 ? Stg11_CardReadWord(file + bytes - 2) : 0;
+}
+
+void Stg11_CardUpgradeToCurrent(void) {
+    Stg11SaveWork *work = (Stg11SaveWork *)Stg11_CardTask->work;
+    struct Stg11CardBlock *header = &work->u34.s;
+
+#ifdef DW2_NATIVE
+    if (header->blocks == 2) {
+        header->blocks = STG11_SAVE_FILE_BLOCKS;
+    }
+    header->version = STG11_SAVE_VERSION;
+#endif
 }
 
 u8 *Stg11_CardGetDataBuf(void) {
@@ -126,7 +162,13 @@ s32 Stg11_CardGetProgress(s32 arg0) {
 s32 Stg11_CardChecksum(Stg11SaveWork *arg0) {
     u16 *p = arg0->u34.sum;
     u16 sum = 0;
-    s32 n = 0x1FFF;
+    u32 bytes = Stg11_CardFileBytes(arg0);
+    s32 n;
+
+    if (bytes < 4) {
+        return 0;
+    }
+    n = (s32)(bytes / 2) - 1;
 
     while (1) {
         if (--n == -1) {
@@ -150,7 +192,8 @@ s32 Stg11_CardFileOp(Stg11SaveWork *arg0, s32 arg1, s32 arg2) {
     if (MemCardSync(1, &cmd, &st) == -1) {
         switch (arg1) {
         case 6:
-            st = MemCardCreateFile(chan, STG11_CARD_FILE_ARG(Stg11_CardWork->fileName), 2);
+            st = MemCardCreateFile(chan, STG11_CARD_FILE_ARG(Stg11_CardWork->fileName),
+                                   Stg11_CardWork->u34.s.blocks);
             switch (st) {
             case 1:
                 r = 0;
@@ -253,16 +296,17 @@ s32 Stg11_CardAsyncOp(Stg11SaveWork *arg0, s32 arg1, s32 arg2) {
             MemCardAccept(chan);
             break;
         case 3:
-            arg0->progressTotal = 0x83;
+            arg0->progressTotal = STG11_SAVE_FILE_BYTES / 0x80 + 1;
             arg0->u34.s.checksum = Stg11_CardChecksum(arg0);
             MemCardWriteFile(chan, STG11_CARD_FILE_ARG(arg0->fileName), STG11_CARD_DATA_ARG(&arg0->u34),
-                             0, 0x4000);
+                             0, STG11_SAVE_FILE_BYTES);
             break;
         case 4:
             if (arg0->isTransferFile == 0) {
-                arg0->progressTotal = 0x81;
+                arg0->progressTotal = STG11_SAVE_FILE_BYTES / 0x80 + 1;
+                memset(&arg0->u34, 0, STG11_SAVE_FILE_BYTES);
                 MemCardReadFile(chan, STG11_CARD_FILE_ARG(arg0->fileName), STG11_CARD_DATA_ARG(&arg0->u34),
-                                0, 0x4000);
+                                0, STG11_SAVE_FILE_BYTES);
             } else {
                 arg0->progressTotal = 0x3C8;
                 MemCardReadFile(chan, STG11_CARD_FILE_ARG(arg0->fileName), STG11_CARD_DATA_ARG(arg0->transferBuf),
@@ -349,8 +393,11 @@ s32 Stg11_CardAsyncOp(Stg11SaveWork *arg0, s32 arg1, s32 arg2) {
                 case 0:
                     r = 0xD;
                     if (arg0->isTransferFile == 0) {
-                        sum = arg0->u34.s.checksum;
-                        if (sum == Stg11_CardChecksum(arg0) && arg0->u34.s.version == 0x102) {
+                        sum = Stg11_CardStoredChecksum(arg0);
+                        if (sum == Stg11_CardChecksum(arg0) &&
+                            ((arg0->u34.s.blocks == 2 && Stg11_CardStoredVersion(arg0) == 0x102) ||
+                             (arg0->u34.s.blocks == STG11_SAVE_FILE_BLOCKS &&
+                              Stg11_CardStoredVersion(arg0) == STG11_SAVE_VERSION))) {
                             r = 0xD;
                         } else {
                             r = 0xE;

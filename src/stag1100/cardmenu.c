@@ -3,6 +3,8 @@
 #include "stag1100/cardmenu.h"
 #include "stag1100/vsparty.h"
 #include "stag1100/card.h"
+#include "stag1100/saveextension.h"
+#include "main/itemextension.h"
 
 Halves Stg11_PromptPos = { 0x10, 0xBA };
 Halves Stg11_StatusPos = { 0x56, 0x4E };
@@ -10,6 +12,45 @@ Halves Stg11_TransferCountPos = { 0x61, 0xA4 };
 TaskDesc Stg11_CardMenuDesc = {
     (TaskInitFn)Stg11_CardMenuInit, Stg11_CardMenuUpdate, Task_DefaultDestroy, Stg11_CardMenuDraw, 0x13C, 4,
 };
+
+static GameState sSaveSnapshot;
+static ItemExtensionInventorySave sItemExtensionInventory;
+static u8 sItemExtensionBytes[ITEM_EXTENSION_SAVE_MAX_BYTES];
+
+static int Stg11_SaveSlot(Stg11SaveList *list, s32 slot) {
+    u16 bytes;
+
+    if (list == NULL || slot < 0 || slot >= STG11_SAVE_EXTENSION_SLOTS) {
+        return 0;
+    }
+    sSaveSnapshot = *Save_GameStatePtr;
+    ItemExtension_CaptureInventory(&sSaveSnapshot, &sItemExtensionInventory);
+    bytes = ItemExtension_SerializeInventory(&sItemExtensionInventory, sItemExtensionBytes,
+                                             sizeof(sItemExtensionBytes));
+    if (bytes == 0 ||
+        !Stg11_SaveExtensionSetChunk(Stg11_CardGetDataBuf(), slot, ITEM_EXTENSION_SAVE_CHUNK_TYPE,
+                                     ITEM_EXTENSION_SAVE_VERSION, sItemExtensionBytes, bytes)) {
+        return 0;
+    }
+    list->slots[slot] = sSaveSnapshot;
+    return 1;
+}
+
+static void Stg11_LoadSlot(Stg11SaveList *list, s32 slot) {
+    const u8 *extensionData;
+    const void *payload = NULL;
+    u32 used;
+    u16 length = 0;
+
+    *Save_GameStatePtr = list->slots[slot];
+    extensionData = Stg11_SaveExtensionSlot(Stg11_CardGetDataBuf(), slot, NULL, &used);
+    if (extensionData != NULL &&
+        Stg11_SaveExtensionFindChunk(extensionData, used, ITEM_EXTENSION_SAVE_CHUNK_TYPE,
+                                     ITEM_EXTENSION_SAVE_VERSION, &payload, &length) != NULL &&
+        ItemExtension_DeserializeInventory(&sItemExtensionInventory, payload, length)) {
+        ItemExtension_RestoreInventory(Save_GameStatePtr, &sItemExtensionInventory);
+    }
+}
 
 /* Unnamed: empty stub, no callers, no table ref. */
 void func_80063D20(void) {
@@ -615,6 +656,9 @@ void Stg11_StateReadFile(Actor *arg0, Stg11MenuWork *arg1) {
                 Task_SetState1(arg0, 0xC);
                 break;
             }
+            if (!Stg11_SaveExtensionValidate((u8 *)arg1->saveList)) {
+                Stg11_SaveExtensionInit((u8 *)arg1->saveList);
+            }
             list = arg1->saveList;
             for (i = 0; i < 3; i++) {
                 slot = &list->slots[i];
@@ -674,8 +718,11 @@ void Stg11_StateSelectSlot(Actor *arg0, Stg11MenuWork *arg1) {
                 idx = Menu_GridIndexColMajor(arg1->cursor, arg1->u6C.gridSize);
                 if (arg1->isLoad == 0) {
                     if (list->used[idx] == 0) {
+                        if (!Stg11_SaveSlot(list, idx)) {
+                            Snd_PlayById(0x10, 0);
+                            break;
+                        }
                         list->used[idx] = Sys_State.prevGameMode;
-                        *(list->slots + idx) = *Save_GameStatePtr;
                         Stg11_OpenSlotText(arg0, arg1);
                         Task_SetState1(arg0, 8);
                         Snd_PlayById(0xE, 0);
@@ -689,7 +736,7 @@ void Stg11_StateSelectSlot(Actor *arg0, Stg11MenuWork *arg1) {
                         Snd_PlayById(0x10, 0);
                     } else {
                         if (arg1->isVsLoad == 0) {
-                            *Save_GameStatePtr = *(list->slots + idx);
+                            Stg11_LoadSlot(list, idx);
                             Stg11_LoadDone = 1;
                             Sys_State.prevGameMode = list->used[idx];
                             Task_SetState0(arg0, 2);
@@ -736,8 +783,11 @@ void Stg11_StateSelectSlot(Actor *arg0, Stg11MenuWork *arg1) {
         if (r != -1) {
             if (r == 1) {
                 idx2 = Menu_GridIndexColMajor(arg1->cursor, arg1->u6C.gridSize);
+                if (!Stg11_SaveSlot(list, idx2)) {
+                    Snd_PlayById(0x10, 0);
+                    break;
+                }
                 list->used[idx2] = Sys_State.prevGameMode;
-                *(list->slots + idx2) = *Save_GameStatePtr;
                 Stg11_OpenSlotText(arg0, arg1);
                 Task_SetState1(arg0, 8);
             }
@@ -756,6 +806,7 @@ void Stg11_StateSelectSlot(Actor *arg0, Stg11MenuWork *arg1) {
 void Stg11_StateWriteSave(Actor *arg0, Stg11MenuWork *arg1) {
     switch (arg0->stateLevel2) {
     case 0:
+        Stg11_CardUpgradeToCurrent();
         Stg11_CardStartOp(8, arg1->cardPort);
         Stg11_SetPromptMsg(arg1, 0x173, 1);
         Task_NextState2(arg0);

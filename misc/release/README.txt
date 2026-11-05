@@ -60,6 +60,8 @@ appears more than once in the party, changeDP reports the ambiguity and makes no
 addExp(id, amount) adjusts EXP (clamped to 0..99,999,999), and addMaxLevel(id, amount) adjusts
 maximum level (clamped to the Digimon's current level..99). Both take signed integers and require
 the ID to identify exactly one party Digimon.
+giveItem(name, count) is a test hook for source-defined items; for example, giveItem("InfMissile", 1)
+adds one InfMissile to the bag if there is room.
 
 
 Updates

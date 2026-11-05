@@ -7,8 +7,28 @@
 #include "common.h"
 #include "host/luaconsole.h"
 #include "main/156C.h"
+#include "main/itemextension.h"
 
 GameState Save_GameState;
+
+ItemTableEntry *Item_FindById(s32 id) {
+    (void)id;
+    return NULL;
+}
+
+s32 Item_AddToBag(s32 id) {
+    s32 i;
+    for (i = 0; i < 0x30; i++) {
+        if (Save_GameState.bagItems[i] == 0) {
+            Save_GameState.bagItems[i] = (u16)id;
+            return i;
+        }
+    }
+    return -1;
+}
+
+void Item_SortList(void) {
+}
 
 u8 *Digi_GetDefaultName(s32 id) {
     static u8 agumon[] = { 0x0A, 0x2A, 0x38, 0x30, 0x32, 0x31, 0xFF };
@@ -146,6 +166,19 @@ int main(void) {
     LuaConsole_Submit("addMaxLevel(42, 1000)");
     LuaConsole_Apply();
     check(Save_GameState.elems[0].maxLevel == 99, "max level clamps at 99");
+
+    LuaConsole_Submit("giveItem('InfMissile', 2)");
+    check(Save_GameState.bagItems[0] == 0, "source item grant is queued from the Lua/UI thread");
+    LuaConsole_Apply();
+    {
+        const ItemExtension *item = ItemExtension_FindByKey(0x494E464Du);
+        check(item != NULL && Save_GameState.bagItems[0] == item->runtimeId &&
+                  Save_GameState.bagItems[1] == item->runtimeId,
+              "source item grant is applied on the game thread");
+    }
+    LuaConsole_Submit("giveItem('UnknownItem', 1)");
+    LuaConsole_CopyOutput(output, sizeof(output));
+    check(strstr(output, "unknown source item") != NULL, "unknown source item grant is rejected");
 
     LuaConsole_Submit("while true do end");
     LuaConsole_CopyOutput(output, sizeof(output));

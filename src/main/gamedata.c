@@ -26,6 +26,7 @@
 #include "main/texslot.h"
 #include "main/parts.h"
 #include "main/digibase.h"
+#include "main/itemextension.h"
 
 u8 Digi_GetEvolutionTarget(s32 id, s32 val) {
     DigiBaseData *e = Digi_FindBaseData(id);
@@ -203,31 +204,49 @@ static ItemTableEntry *Item_FindEntry(s32 id) {
 #endif
 
 s32 Item_GetNameText(s32 arg0) {
+    if (ItemExtension_FindById(arg0) != NULL) {
+        return ItemExtension_GetTextHandle(arg0, 0);
+    }
     s32 base = Cd_GetFileOrNull(0x45E);
     return Item_FindEntry(arg0)->nameOffset + base;
 }
 
 s32 Item_GetDescText(s32 arg0) {
+    if (ItemExtension_FindById(arg0) != NULL) {
+        return ItemExtension_GetTextHandle(arg0, 1);
+    }
     s32 base = Cd_GetFileOrNull(0x45E);
     return Item_FindEntry(arg0)->descOffset + base;
 }
 
 s32 Item_GetCategory(s32 id) {
+    const ItemExtension *extension = ItemExtension_FindById(id);
+    if (extension != NULL) {
+        return extension->category;
+    }
     return Item_FindEntry(id)->u0.b0.category;
 }
 
 s32 Item_GetLevel(s32 itemId) {
+    const ItemExtension *extension = ItemExtension_FindById(itemId);
+    if (extension != NULL) {
+        return extension->level;
+    }
     return Item_FindEntry(itemId)->u0.b0.field_3 & 0xF;
 }
 
 s32 Item_CheckId(s32 itemId) {
-    return Item_FindById(itemId) != 0 ? 0 : -1;
+    return Item_FindById(itemId) != 0 || ItemExtension_FindById(itemId) != NULL ? 0 : -1;
 }
 
 #ifdef DW2_NATIVE
 /* Retail takes no parameter and calls Item_FindById() with none: a0 still holds the caller's
  * item id (Item_GetUseKind). Native code passes it. */
 s32 func_8001E134(s32 itemId) {
+    const ItemExtension *extension = ItemExtension_FindById(itemId);
+    if (extension != NULL) {
+        return extension->effect.useType;
+    }
     return Item_FindEntry(itemId)->u0.field_0 >> 30;
 }
 #else
@@ -242,10 +261,18 @@ s32 func_8001E158(void) {
 }
 
 s32 Item_GetPrice(s32 itemId) {
+    const ItemExtension *extension = ItemExtension_FindById(itemId);
+    if (extension != NULL) {
+        return (s32)extension->price;
+    }
     return Item_FindEntry(itemId)->u4.field_4 & 0xFFFFFF;
 }
 
 u8 Item_GetBodyMask(s32 itemId) {
+    const ItemExtension *extension = ItemExtension_FindById(itemId);
+    if (extension != NULL) {
+        return extension->bodyMask;
+    }
     return Item_FindEntry(itemId)->u4.b4.bodyMask;
 }
 
@@ -260,20 +287,26 @@ s32 Item_GetTableIndex(s32 id) {
         p++;
         i++;
     }
-    return 0;
+    {
+        s32 extensionIndex = ItemExtension_GetTableIndex(id, i);
+        return extensionIndex >= 0 ? extensionIndex : 0;
+    }
 }
 
 s32 Item_GetIdAtIndex(s32 a0) {
     s16 *p = (s16 *)Cd_GetFileEntry(0x45E0000);
-    s32 i;
-    s32 r;
-    for (i = 0; i < a0; i++) {
-        if (*p == 0) break;
+    s32 vanillaCount = 0;
+
+    if (a0 < 0) {
+        return 0;
+    }
+    while (*p != 0) {
+        vanillaCount++;
         p = (s16 *)((u8 *)p + 0x10);
     }
-    r = 0;
-    if (i == a0) {
-        r = *p;
+    if (a0 < vanillaCount) {
+        p = (s16 *)Cd_GetFileEntry(0x45E0000);
+        return *(s16 *)((u8 *)p + a0 * 0x10);
     }
-    return r;
+    return ItemExtension_GetIdAtIndex(a0 - vanillaCount);
 }

@@ -5,6 +5,21 @@
 #include "main/156C.h"
 
 /* STAG1100 (Ovl_FileIds id 5, gameMode 0x6xx): save and menu tasks. */
+#ifdef DW2_NATIVE
+#define STG11_SAVE_FILE_BLOCKS 4
+#define STG11_SAVE_FILE_BYTES 0x8000
+#define STG11_SAVE_DATA_BYTES 0x7DFC
+#define STG11_SAVE_WORK_BYTES 0x26044
+#define STG11_SAVE_VERSION 0x103
+#define STG11_SAVE_HALFWORDS 0x4000
+#else
+#define STG11_SAVE_FILE_BLOCKS 2
+#define STG11_SAVE_FILE_BYTES 0x4000
+#define STG11_SAVE_DATA_BYTES 0x3DFC
+#define STG11_SAVE_WORK_BYTES 0x22044
+#define STG11_SAVE_VERSION 0x102
+#define STG11_SAVE_HALFWORDS 0x2000
+#endif
 
 /* 16-colour CLUT and 16x16 4bpp icon frame of a memory card header. */
 typedef struct {
@@ -25,8 +40,8 @@ typedef struct {
     u8 _pad22[0x02];
     /* 0x24 */ s32 portResult[2][2];
     union {
-        /* 0x34 */ u16 sum[0x2000];
-        /* memory card block header + data */
+        /* 0x34 */ u16 sum[STG11_SAVE_HALFWORDS];
+    /* memory card block header + data; native saves reserve extra blocks for extensions. */
         struct Stg11CardBlock {
             /* 0x34 */ u8 magic[2];
             /* 0x36 */ u8 iconFlag;
@@ -35,23 +50,28 @@ typedef struct {
             /* 0x78 */ u8 reserved[0x1C];
             /* 0x94 */ Stg11Clut clut;
             /* 0xB4 */ Stg11Icon icons[3];
-            /* 0x234 */ u8 data[0x3DFC];
-            /* 0x4030 */ u16 version;
-            /* 0x4032 */ u16 checksum;
+            /* 0x234 */ u8 data[STG11_SAVE_DATA_BYTES];
+            /* Last 4 bytes of the save file. */
+            u16 version;
+            u16 checksum;
         } s;
     } u34;
-    /* 0x4034 */ u8 transferBuf[0x1E000];
-    /* 0x22034 */ s32 curOp;
-    /* 0x22038 */ s32 progressTotal;
-    /* 0x2203C */ s32 progressDone;
-    /* 0x22040 */ s32 opStarted;
+    u8 transferBuf[0x1E000];
+    s32 curOp;
+    s32 progressTotal;
+    s32 progressDone;
+    s32 opStarted;
 } Stg11SaveWork;
+
+_Static_assert(sizeof(Stg11SaveWork) == STG11_SAVE_WORK_BYTES, "save work size must match task allocation");
 
 /* Save slot list pointed to by Stg11MenuWork.field_90. */
 typedef struct {
     /* 0x00 */ s32 used[3];
     /* 0x0C */ GameState slots[3];
 } Stg11SaveList;
+
+_Static_assert(sizeof(Stg11SaveList) == 0x3114, "retail save-list layout must remain unchanged");
 
 
 

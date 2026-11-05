@@ -156,6 +156,55 @@ static void transfer(Card *c, int entry, unsigned char *buf, int ofs, int bytes,
     }
 }
 
+/* Grow the native save file in place when writing the extended format over a retail save. */
+static int grow_file(Card *c, int entry, int new_size) {
+    unsigned char *head = frame(c, entry);
+    int old_size = (int)rd32(head + 4);
+    int old_blocks, new_blocks, add, tail, next, i, n = 0;
+    int allocated[15];
+
+    if (new_size <= old_size) return 1;
+    if (old_size <= 0 || old_size % BLOCK_SIZE != 0 || new_size % BLOCK_SIZE != 0) return 0;
+    old_blocks = old_size / BLOCK_SIZE;
+    new_blocks = new_size / BLOCK_SIZE;
+    if (new_blocks > 15) return 0;
+    add = new_blocks - old_blocks;
+
+    for (i = 1; i < 16 && n < add; i++) {
+        if ((frame(c, i)[0] & 0xF0) == 0xA0) allocated[n++] = i;
+    }
+    if (n != add) return 0;
+
+    tail = entry;
+    while (1) {
+        next = frame(c, tail)[8] | frame(c, tail)[9] << 8;
+        if (next == 0xFFFF) break;
+        tail = next + 1;
+    }
+    frame(c, tail)[0] = 0x52;
+    frame(c, tail)[8] = (unsigned char)(allocated[0] - 1);
+    frame(c, tail)[9] = 0;
+    set_check(frame(c, tail));
+
+    for (i = 0; i < add; i++) {
+        unsigned char *f = frame(c, allocated[i]);
+        memset(f, 0, FRAME_SIZE);
+        f[0] = i == add - 1 ? 0x53 : 0x52;
+        if (i + 1 < add) {
+            f[8] = (unsigned char)(allocated[i + 1] - 1);
+            f[9] = 0;
+        } else {
+            f[8] = f[9] = 0xFF;
+        }
+        set_check(f);
+    }
+    head[4] = (unsigned char)new_size;
+    head[5] = (unsigned char)(new_size >> 8);
+    head[6] = (unsigned char)(new_size >> 16);
+    set_check(head);
+    return 1;
+}
+
 static void finish(void) {
     op_.busy = 0;
     op_.done = 1;
@@ -212,7 +261,16 @@ static int file_op(int cmd, int chan, char *file, u_long *adrs, int ofs, int byt
     if (st == McErrNone) {
         e = find_file(c, file);
         if (e == 0) st = McErrFileNotExist;
-        else if (ofs < 0 || bytes < 0 || (unsigned int)(ofs + bytes) > rd32(frame(c, e) + 4)) {
+        else if (ofs < 0 || bytes < 0) {
+            st = McErrFileNotExist;
+        } else if (write && (unsigned int)(ofs + bytes) > rd32(frame(c, e) + 4) &&
+                   strcmp(file, "BASLUS-01193 DMW2") == 0 && ofs == 0 && bytes == 0x8000) {
+            if (!grow_file(c, e, ofs + bytes)) st = McErrBlockFull;
+        } else if ((unsigned int)ofs >= rd32(frame(c, e) + 4) ||
+                   (write && (unsigned int)(ofs + bytes) > rd32(frame(c, e) + 4)) ||
+                   (!write && (unsigned int)(ofs + bytes) > rd32(frame(c, e) + 4) &&
+                    !(strcmp(file, "BASLUS-01193 DMW2") == 0 && ofs == 0 && bytes == 0x8000 &&
+                      rd32(frame(c, e) + 4) == 0x4000))) {
             printf("[card] %s %s: offset 0x%X + 0x%X past the file\n", write ? "write" : "read", file, ofs, bytes);
             st = McErrFileNotExist;
         }

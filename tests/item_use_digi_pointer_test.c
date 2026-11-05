@@ -25,6 +25,11 @@ static ItemStatEffect sStatBoosts[] = { { 4, 6, 3 }, { 4, 10, 25 } };
 static sigjmp_buf sFaultJump;
 static int sExpMultiplierPercent = 500;
 
+ItemTableEntry *Item_FindById(s32 id) {
+    (void)id;
+    return NULL;
+}
+
 int Host_ExpMultiplierPercent(void) {
     return sExpMultiplierPercent;
 }

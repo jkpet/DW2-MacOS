@@ -14,6 +14,7 @@
 #include "main/itemmenu.h"
 #include "main/digilist.h"
 #include "main/sound.h"
+#include "main/itemextension.h"
 
 /* .bss */
 TextStack Text_ReturnStack;
@@ -112,8 +113,14 @@ TaskDesc Text_BoxDesc = { 0, Text_LoadFontsTask, Task_DefaultDestroy, Text_Updat
 /* Text pointers live in the same 4 GB host region as Ps1_Ram, but retail text records and the
  * return stack keep only their low 32 bits. Restore the host region when reading those words. */
 static u8 *Text_GetPointer(s32 address) {
+    const u8 *extensionText;
+
     if (address == 0) {
         return NULL;
+    }
+    extensionText = ItemExtension_GetTextPointer(address);
+    if (extensionText != NULL) {
+        return (u8 *)extensionText;
     }
 #ifdef DW2_PTR64
     return (u8 *)(((uintptr_t)Ps1_Ram & ~(uintptr_t)UINT32_MAX) | (u32)address);

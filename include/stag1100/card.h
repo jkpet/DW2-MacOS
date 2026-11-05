@@ -3,6 +3,7 @@
 
 /* Functions src/stag1100/card.c defines. */
 void Stg11_CardInitHeader(void);
+void Stg11_CardUpgradeToCurrent(void);
 u8 *Stg11_CardGetDataBuf(void);
 u8 *Stg11_CardGetTransferBuf(void);
 void Stg11_CardSetTitle(const u8 *arg0);
