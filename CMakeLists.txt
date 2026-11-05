@@ -326,6 +326,19 @@ if(NOT WIN32)
     target_link_libraries(battle_exp_test PRIVATE m)
 endif()
 
+# A missing XA child task must not crash the battle-script wait opcode (issue reproduced at
+# Stg30_BattleScriptTask's case 23).
+add_executable(battle_script_xa_wait_test ${CMAKE_SOURCE_DIR}/tests/battle_script_xa_wait_test.c
+    ${CMAKE_SOURCE_DIR}/src/stag3000/battlescript.c)
+target_compile_options(battle_script_xa_wait_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+target_compile_definitions(battle_script_xa_wait_test PRIVATE ${DW2_DEFS})
+target_include_directories(battle_script_xa_wait_test PRIVATE ${DW2_INCLUDES})
+if(APPLE)
+    target_link_options(battle_script_xa_wait_test PRIVATE -Wl,-dead_strip)
+else()
+    target_link_options(battle_script_xa_wait_test PRIVATE -Wl,--gc-sections)
+endif()
+
 # Native 64-bit regression for legacy file-relative dungeon pointers. Compile the real relocation
 # unit and discard its unrelated functions so the test covers the production implementation.
 if(APPLE)

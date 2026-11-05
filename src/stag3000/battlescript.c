@@ -50,6 +50,25 @@ s32 Stg30_PrepareAction(s32 idx) {
     }
 }
 
+s32 Stg30_BattleScriptWaitForXa(Actor *parent, Stg30Slots *slots, Stg30WorkPc *work) {
+    Actor *xa = Task_GetActor(slots->xaTask);
+
+    if (xa == NULL) {
+        /* Skip this audio instruction if its child no longer resolves; don't retain a stale ref. */
+        slots->xaTask = 0;
+        work->pc += 3;
+        Task_SetState1(parent, 0);
+        return 1;
+    }
+    if (xa->stateLevel0 != 1) {
+        return 0;
+    }
+    Task_SetState0(xa, 2);
+    work->pc += 3;
+    Task_SetState1(parent, 0);
+    return 1;
+}
+
 void Stg30_BattleScriptTask(Actor *a0) {
     Stg30WorkPc *w = (Stg30WorkPc *)a0->work;
     Stg30Slots *sl = (Stg30Slots *)a0->u34.children;
@@ -265,13 +284,10 @@ void Stg30_BattleScriptTask(Actor *a0) {
                     Task_Create(0x511, (s32 *)&sl->xaTask, (sptr)g);
                     Task_NextState1(a0);
                 case 1:
-                    if (Task_GetActor(sl->xaTask)->stateLevel0 != 1) {
+                    if (!Stg30_BattleScriptWaitForXa(a0, sl, w)) {
                         cont = 0;
                         break;
                     }
-                    Task_SetState0(Task_GetActor(sl->xaTask), 2);
-                    w->pc += 3;
-                    Task_SetState1(a0, 0);
                     break;
                 }
                 break;
