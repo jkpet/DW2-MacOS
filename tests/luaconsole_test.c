@@ -5,11 +5,69 @@
 #include <SDL3/SDL.h>
 
 #include "common.h"
+#include "host/devdata.h"
 #include "host/luaconsole.h"
 #include "main/156C.h"
 #include "main/itemextension.h"
 
 GameState Save_GameState;
+
+static DevDigi test_digis[] = {
+    { .id = 5, .hasBase = 1, .learnedSkill = 10, .name = "Agumon" },
+    { .id = 6, .hasBase = 1, .learnedSkill = 0, .name = "Monzaemon" },
+    { .id = 7, .hasBase = 0, .name = "ModelOnly" },
+};
+static DevSkill test_skills[] = {
+    { .id = 10, .name = "Fireball" },
+    { .id = 11, .name = "Mega Flame" },
+};
+
+void DevData_InitText(void) {
+}
+
+int DevData_Load(void) {
+    return 1;
+}
+
+int DevData_DigiCount(void) {
+    return (int)(sizeof(test_digis) / sizeof(test_digis[0]));
+}
+
+const DevDigi *DevData_DigiAt(int i) {
+    return i >= 0 && i < DevData_DigiCount() ? &test_digis[i] : NULL;
+}
+
+const DevDigi *DevData_Digi(int id) {
+    int i;
+    for (i = 0; i < DevData_DigiCount(); i++) {
+        if (test_digis[i].id == id) {
+            return &test_digis[i];
+        }
+    }
+    return NULL;
+}
+
+int DevData_SkillCount(void) {
+    return (int)(sizeof(test_skills) / sizeof(test_skills[0]));
+}
+
+const DevSkill *DevData_SkillAt(int i) {
+    return i >= 0 && i < DevData_SkillCount() ? &test_skills[i] : NULL;
+}
+
+const DevSkill *DevData_Skill(int id) {
+    int i;
+    for (i = 0; i < DevData_SkillCount(); i++) {
+        if (test_skills[i].id == id) {
+            return &test_skills[i];
+        }
+    }
+    return NULL;
+}
+
+s32 Digi_CalcMaxLevel(s32 level) {
+    return level + 12;
+}
 
 ItemTableEntry *Item_FindById(s32 id) {
     static ItemTableEntry occupied;
@@ -47,7 +105,7 @@ static void check(int ok, const char *name) {
 }
 
 int main(void) {
-    char output[96 * 384];
+    char output[512 * 384];
     char completions[256];
     static const u8 agumon_name[14] = { 0x0A, 0x2A, 0x38, 0x30, 0x32, 0x31, 0xFF };
     static const u8 gabumon_name[14] = { 0x10, 0x24, 0x25, 0x38, 0x30, 0x32, 0x31, 0xFF };
@@ -71,9 +129,42 @@ int main(void) {
     check(LuaConsole_Complete("whi", completions, sizeof(completions)) == 1 &&
               strcmp(completions, "while") == 0,
           "completion includes Lua keywords");
-    check(LuaConsole_Complete("add", completions, sizeof(completions)) == 3 && strstr(completions, "addBits") != NULL &&
-              strstr(completions, "addExp") != NULL && strstr(completions, "addMaxLevel") != NULL,
+    check(LuaConsole_Complete("add", completions, sizeof(completions)) == 5 && strstr(completions, "addBits") != NULL &&
+              strstr(completions, "addExp") != NULL && strstr(completions, "addMaxLevel") != NULL &&
+              strstr(completions, "addDigimon") != NULL && strstr(completions, "addAbility") != NULL,
           "completion returns all matching globals");
+    check(LuaConsole_Complete("addD", completions, sizeof(completions)) == 1 &&
+              strcmp(completions, "addDigimon") == 0,
+          "completion includes Digimon commands");
+
+    LuaConsole_Submit("addDigimon('My Agumon', 5)");
+    check(Save_GameState.elems[0].state == 0, "addDigimon is queued for the game thread");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[0].state == 1 && Save_GameState.elems[0].digiId == 5 &&
+              Save_GameState.elems[0].level == 1 && Save_GameState.elems[0].skills[0] == 10,
+          "addDigimon creates a server Digimon with its species skill");
+    check(Save_GameState.elems[0].name[0] == 0x16 && Save_GameState.elems[0].name[1] == 0x3C &&
+              Save_GameState.elems[0].name[2] == 0xFD && Save_GameState.elems[0].name[3] == 0x0A,
+          "addDigimon encodes the assigned name in the save format");
+
+    LuaConsole_Submit("addAbility(5, 11)");
+    check(Save_GameState.elems[0].skills[1] == 0, "addAbility is queued for the game thread");
+    LuaConsole_Apply();
+    check(Save_GameState.elems[0].skills[1] == 11, "addAbility fills the first free skill slot");
+
+    LuaConsole_Submit("printDigimonSpeciesList('MONZ')");
+    LuaConsole_Apply();
+    LuaConsole_CopyOutput(output, sizeof(output));
+    {
+        char *list_output = strstr(output, "> printDigimonSpeciesList");
+        check(list_output != NULL && strstr(list_output, "Monzaemon") != NULL &&
+                  strstr(list_output, "Agumon") == NULL && strstr(list_output, "ModelOnly") == NULL,
+              "species list filters case-insensitively and excludes model-only entries");
+    }
+    LuaConsole_Submit("printAbilityList('fLaMe')");
+    LuaConsole_Apply();
+    LuaConsole_CopyOutput(output, sizeof(output));
+    check(strstr(output, "Mega Flame") != NULL, "ability list filters case-insensitively");
 
     Save_GameState.bits = 100;
     LuaConsole_Submit("addBits(500)");

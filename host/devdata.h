@@ -1,10 +1,10 @@
 #ifndef HOST_DEVDATA_H
 #define HOST_DEVDATA_H
 
-/* PD.7 / PD.3 dev overlay data (DW2_DEV only): the game's Digimon, item and skill tables and their
- * names, read from dw2.pak on the main thread (Host_PakReadFile, no game call, no game state) and
- * decoded from the game's text encoding (doc: PLAN.md PD Findings, "PD.7 table formats"). Nothing
- * from the disc is stored in the repo: every name comes from the player's pack at run time. */
+/* Read-only cache of the game's Digimon, item and skill tables and their names, read from dw2.pak
+ * (Host_PakReadFile, no game call, no game state) and decoded from the game's text encoding. The
+ * dev overlay and the optional Lua console share it. Nothing from the disc is stored in the repo:
+ * every name comes from the player's pack at run time. */
 
 #include <stdint.h>
 
@@ -54,8 +54,9 @@ typedef struct {
     char desc[96];
 } DevSkill;
 
-/* Main thread, before the game thread starts (DevUi_Init): copies the game's constant tables the
- * overlay needs from game C data (text dictionary, DNA tables). */
+/* Main thread: copies the game's built-in text dictionary. */
+void DevData_InitText(void);
+/* Main thread, before the game thread starts (DevUi_Init): also copies DNA tables from overlay data. */
 void DevData_InitConst(void);
 /* Read and decode the tables from the pack once. 1 = loaded (now or before), 0 = not (pack not
  * open yet: try again later, or a file did not parse). Any thread: one load runs at a time

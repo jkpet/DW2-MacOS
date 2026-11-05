@@ -1,7 +1,5 @@
 #include "common.h"
 
-#if DW2_DEV
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -209,9 +207,12 @@ static void raw_text(const File *f, uint32_t off, uint8_t *out, int n) {
     }
 }
 
-void DevData_InitConst(void) {
+void DevData_InitText(void) {
     int i;
 
+    if (words_ok) {
+        return;
+    }
     /* text.c dictionary (F0 k, k >= 6): game C data, never written */
     for (i = 0; i < WORDS; i++) {
         Out o = { words[i], (int)sizeof(words[i]), 0 };
@@ -220,6 +221,10 @@ void DevData_InitConst(void) {
         decode(&o, Text_BuiltinStrings[i], 32, NULL, 1);
     }
     words_ok = 1;
+}
+
+void DevData_InitConst(void) {
+    DevData_InitText();
     /* stag2000 dna.c tables: overlay data, copied before Ovl_Load can restore it under us */
     memcpy(dna_types, Stg20_DnaTypeIndexTbl, sizeof(dna_types));
     memcpy(dna_table, Stg20_DnaResultTbl, sizeof(dna_table));
@@ -714,5 +719,3 @@ int DevData_DnaResult(int a, int b, int *level) {
     }
     return id;
 }
-
-#endif /* DW2_DEV */

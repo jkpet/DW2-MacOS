@@ -45,9 +45,7 @@ static PakFile files[PAK_FILES];
 static unsigned short by_lba[PAK_FILES]; /* file ids sorted by LBA */
 static int no_window;
 static char why[512]; /* open_pak's reason for a refusal */
-#if DW2_DEV
 static char pak_path[1024]; /* Host_PakReadFile opens its own stream on it */
-#endif
 
 static Uint32 rd32(const Uint8 *p) {
     return p[0] | p[1] << 8 | p[2] << 16 | (Uint32)p[3] << 24;
@@ -291,9 +289,7 @@ static int open_pak(const char *path, int hash_data) {
     }
     free(buf);
     qsort(by_lba, PAK_FILES, sizeof(by_lba[0]), cmp_lba);
-#if DW2_DEV
     SDL_strlcpy(pak_path, path, sizeof(pak_path));
-#endif
     printf("[pak] %s: %d files, %.1f MB, all match the manifest (%s in %.2f s)%s\n", path, PAK_FILES, total / 1e6,
            hash_data ? "checked" : "index checked, data read back by the build", (SDL_GetTicksNS() - t0) / 1e9,
            es != 0 ? ", Spanish translation by Alemito" : "");
@@ -426,8 +422,7 @@ int Host_PakSector(int lba, unsigned char *body) {
     return id;
 }
 
-#if DW2_DEV
-/* Dev tools (PD.7), main thread: the whole Form 1 file `id` in a malloc'd buffer (*size bytes),
+/* Host tools, main thread: the whole Form 1 file `id` in a malloc'd buffer (*size bytes),
  * read through a stream of its own, so the game thread's sector reads are not disturbed. NULL
  * before Host_PakOpen, for Form 2 files and on read errors. The pack was checked at open. */
 void *Host_PakReadFile(int id, int *size) {
@@ -457,4 +452,3 @@ void *Host_PakReadFile(int id, int *size) {
     }
     return buf;
 }
-#endif

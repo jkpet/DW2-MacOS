@@ -6,6 +6,7 @@
 #include <SDL3/SDL.h>
 
 #include "common.h"
+#include "host/devdata.h"
 #include "host/luaconsole.h"
 #include "main/156C.h"
 #include "main/itemextension.h"
@@ -14,9 +15,10 @@
 #include "lualib.h"
 
 #define LUA_CONSOLE_QUEUE 64
-#define LUA_CONSOLE_OUTPUT_LINES 96
+#define LUA_CONSOLE_OUTPUT_LINES 512
 #define LUA_CONSOLE_OUTPUT_LINE 384
 #define LUA_CONSOLE_INPUT_MAX 4096
+#define LUA_CONSOLE_SEARCH_MAX 128
 #define LUA_CONSOLE_MEMORY_MAX (16u * 1024u * 1024u)
 #define LUA_CONSOLE_INSTRUCTION_BUDGET 1000000
 #define LUA_CONSOLE_HOOK_GRANULARITY 1000
@@ -26,14 +28,18 @@
 
 extern GameState Save_GameState;
 extern u8 *Digi_GetDefaultName(s32 id);
+extern s32 Digi_CalcMaxLevel(s32 level);
 extern s32 Item_AddToBag(s32 id);
 extern void Item_SortList(void);
 
 typedef struct {
     int kind;
     int digi_id;
+    int ability_id;
     uint32_t item_key;
     int64_t amount;
+    uint8_t name[14];
+    char search[LUA_CONSOLE_SEARCH_MAX];
 } GameRequest;
 
 enum {
@@ -42,7 +48,11 @@ enum {
     GAME_REQUEST_CHANGE_DP,
     GAME_REQUEST_ADD_EXP,
     GAME_REQUEST_ADD_MAX_LEVEL,
-    GAME_REQUEST_GIVE_ITEM
+    GAME_REQUEST_GIVE_ITEM,
+    GAME_REQUEST_ADD_DIGIMON,
+    GAME_REQUEST_ADD_ABILITY,
+    GAME_REQUEST_PRINT_SPECIES,
+    GAME_REQUEST_PRINT_ABILITIES
 };
 
 static int enabled;
@@ -219,11 +229,15 @@ static int lua_help(lua_State *state) {
     output_text("printPartyList() lists party Digimon; changeDP(id, amount) adjusts a unique party ID's DP (0..99).");
     output_text("addExp(id, amount) adjusts EXP (0..99,999,999); addMaxLevel(id, amount) adjusts max level.");
     output_text("giveItem(name, count) adds a source-defined item for testing (e.g. giveItem('InfMissile', 1)).");
-    output_text("Examples: addBits(500), changeDP(10, -1), addExp(10, 500), addMaxLevel(10, 1)");
+    output_text("addDigimon(name, speciesId) adds a level-1 Digimon to the server with its species skill; use the species list for IDs.");
+    output_text("addAbility(speciesId, abilityId) adds a skill to the unique owned Digimon with that species ID.");
+    output_text("printDigimonSpeciesList(searchTerm?) and printAbilityList(searchTerm?) list known IDs; search is case-insensitive.");
+    output_text("Run printDigimonSpeciesList() and printAbilityList() to look up IDs before adding.");
     return 0;
 }
 
-static int enqueue_game_request(lua_State *state, int kind, int digi_id, uint32_t item_key, int64_t amount) {
+static int enqueue_game_request(lua_State *state, int kind, int digi_id, int ability_id, uint32_t item_key,
+                                int64_t amount, const uint8_t *name, const char *search) {
     GameRequest *request;
     int at;
 
@@ -237,10 +251,18 @@ static int enqueue_game_request(lua_State *state, int kind, int digi_id, uint32_
     }
     at = (queue_head + queue_count) % LUA_CONSOLE_QUEUE;
     request = &queue[at];
+    memset(request, 0, sizeof(*request));
     request->kind = kind;
     request->digi_id = digi_id;
+    request->ability_id = ability_id;
     request->item_key = item_key;
     request->amount = amount;
+    if (name != NULL) {
+        memcpy(request->name, name, sizeof(request->name));
+    }
+    if (search != NULL) {
+        SDL_strlcpy(request->search, search, sizeof(request->search));
+    }
     queue_count++;
     SDL_UnlockMutex(lock);
     lua_pushboolean(state, 1);
@@ -251,14 +273,14 @@ static int lua_add_bits(lua_State *state) {
     if (lua_gettop(state) != 1 || !lua_isinteger(state, 1)) {
         return luaL_error(state, "addBits expects one integer amount");
     }
-    return enqueue_game_request(state, GAME_REQUEST_ADD_BITS, 0, 0, (int64_t)lua_tointeger(state, 1));
+    return enqueue_game_request(state, GAME_REQUEST_ADD_BITS, 0, 0, 0, (int64_t)lua_tointeger(state, 1), NULL, NULL);
 }
 
 static int lua_print_party_list(lua_State *state) {
     if (lua_gettop(state) != 0) {
         return luaL_error(state, "printPartyList expects no arguments");
     }
-    return enqueue_game_request(state, GAME_REQUEST_PRINT_PARTY, 0, 0, 0);
+    return enqueue_game_request(state, GAME_REQUEST_PRINT_PARTY, 0, 0, 0, 0, NULL, NULL);
 }
 
 static int lua_change_dp(lua_State *state) {
@@ -272,7 +294,7 @@ static int lua_change_dp(lua_State *state) {
         return luaL_error(state, "changeDP Digimon id must be in the range 0..255");
     }
     amount = lua_tointeger(state, 2);
-    return enqueue_game_request(state, GAME_REQUEST_CHANGE_DP, (int)id, 0, (int64_t)amount);
+    return enqueue_game_request(state, GAME_REQUEST_CHANGE_DP, (int)id, 0, 0, (int64_t)amount, NULL, NULL);
 }
 
 static int lua_add_exp(lua_State *state) {
@@ -286,7 +308,7 @@ static int lua_add_exp(lua_State *state) {
         return luaL_error(state, "addExp Digimon id must be in the range 0..255");
     }
     amount = lua_tointeger(state, 2);
-    return enqueue_game_request(state, GAME_REQUEST_ADD_EXP, (int)id, 0, (int64_t)amount);
+    return enqueue_game_request(state, GAME_REQUEST_ADD_EXP, (int)id, 0, 0, (int64_t)amount, NULL, NULL);
 }
 
 static int lua_add_max_level(lua_State *state) {
@@ -300,7 +322,7 @@ static int lua_add_max_level(lua_State *state) {
         return luaL_error(state, "addMaxLevel Digimon id must be in the range 0..255");
     }
     amount = lua_tointeger(state, 2);
-    return enqueue_game_request(state, GAME_REQUEST_ADD_MAX_LEVEL, (int)id, 0, (int64_t)amount);
+    return enqueue_game_request(state, GAME_REQUEST_ADD_MAX_LEVEL, (int)id, 0, 0, (int64_t)amount, NULL, NULL);
 }
 
 static int lua_give_item(lua_State *state) {
@@ -320,7 +342,123 @@ static int lua_give_item(lua_State *state) {
     if (count < 1 || count > 48) {
         return luaL_error(state, "giveItem count must be in the range 1..48");
     }
-    return enqueue_game_request(state, GAME_REQUEST_GIVE_ITEM, 0, key, (int64_t)count);
+    return enqueue_game_request(state, GAME_REQUEST_GIVE_ITEM, 0, 0, key, (int64_t)count, NULL, NULL);
+}
+
+static int encode_digi_name(const char *source, size_t length, uint8_t out[14]) {
+    size_t i;
+
+    if (length == 0 || length > 13) {
+        return 0;
+    }
+    memset(out, 0xFF, 14);
+    for (i = 0; i < length; i++) {
+        unsigned char c = (unsigned char)source[i];
+
+        if (c >= '0' && c <= '9') {
+            out[i] = (uint8_t)(c - '0');
+        } else if (c >= 'A' && c <= 'Z') {
+            out[i] = (uint8_t)(c - 'A' + 0x0A);
+        } else if (c >= 'a' && c <= 'z') {
+            out[i] = (uint8_t)(c - 'a' + 0x24);
+        } else {
+            switch (c) {
+            case ' ': out[i] = 0xFD; break;
+            case '&': out[i] = 0x42; break;
+            case '?': out[i] = 0x44; break;
+            case '!': out[i] = 0x45; break;
+            case '/': out[i] = 0x46; break;
+            case '-': out[i] = 0x49; break;
+            case '>': out[i] = 0x53; break;
+            case ',': out[i] = 0x54; break;
+            case '.': out[i] = 0x55; break;
+            case '\'': out[i] = 0x56; break;
+            case '"': out[i] = 0x57; break;
+            case ';': out[i] = 0x58; break;
+            case ':': out[i] = 0x59; break;
+            case '%': out[i] = 0x5A; break;
+            case '+': out[i] = 0x5B; break;
+            case '=': out[i] = 0x5C; break;
+            case '#': out[i] = 0x5D; break;
+            default: return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+static int lua_add_digimon(lua_State *state) {
+    const char *name;
+    size_t name_length;
+    lua_Integer species;
+    uint8_t encoded[14];
+
+    if (lua_gettop(state) != 2 || lua_type(state, 1) != LUA_TSTRING || !lua_isinteger(state, 2)) {
+        return luaL_error(state, "addDigimon expects a name string and an integer species id");
+    }
+    name = lua_tolstring(state, 1, &name_length);
+    if (memchr(name, 0, name_length) != NULL || !encode_digi_name(name, name_length, encoded)) {
+        return luaL_error(state, "addDigimon name must be 1..13 characters supported by the game name font");
+    }
+    species = lua_tointeger(state, 2);
+    if (species < 1 || species > 255) {
+        return luaL_error(state, "addDigimon species id must be in the range 1..255");
+    }
+    return enqueue_game_request(state, GAME_REQUEST_ADD_DIGIMON, (int)species, 0, 0, 0, encoded, NULL);
+}
+
+static int lua_add_ability(lua_State *state) {
+    lua_Integer digi_id, ability_id;
+
+    if (lua_gettop(state) != 2 || !lua_isinteger(state, 1) || !lua_isinteger(state, 2)) {
+        return luaL_error(state, "addAbility expects a Digimon species id and an integer ability id");
+    }
+    digi_id = lua_tointeger(state, 1);
+    ability_id = lua_tointeger(state, 2);
+    if (digi_id < 1 || digi_id > 255) {
+        return luaL_error(state, "addAbility Digimon id must be in the range 1..255");
+    }
+    if (ability_id < 1 || ability_id > 255) {
+        return luaL_error(state, "addAbility ability id must be in the range 1..255");
+    }
+    return enqueue_game_request(state, GAME_REQUEST_ADD_ABILITY, (int)digi_id, (int)ability_id, 0, 0, NULL, NULL);
+}
+
+static int lua_list_argument(lua_State *state, const char *command, const char **search) {
+    int top = lua_gettop(state);
+
+    *search = NULL;
+    if (top == 0 || (top == 1 && lua_isnil(state, 1))) {
+        return 1;
+    }
+    if (top != 1 || lua_type(state, 1) != LUA_TSTRING) {
+        return luaL_error(state, "%s expects an optional search-term string", command);
+    }
+    {
+        size_t length;
+        *search = lua_tolstring(state, 1, &length);
+        if (length >= LUA_CONSOLE_SEARCH_MAX || memchr(*search, 0, length) != NULL) {
+            return luaL_error(state, "%s search term must be shorter than %d bytes", command,
+                              LUA_CONSOLE_SEARCH_MAX);
+        }
+    }
+    return 1;
+}
+
+static int lua_print_species_list(lua_State *state) {
+    const char *search;
+    if (!lua_list_argument(state, "printDigimonSpeciesList", &search)) {
+        return 0;
+    }
+    return enqueue_game_request(state, GAME_REQUEST_PRINT_SPECIES, 0, 0, 0, 0, NULL, search);
+}
+
+static int lua_print_ability_list(lua_State *state) {
+    const char *search;
+    if (!lua_list_argument(state, "printAbilityList", &search)) {
+        return 0;
+    }
+    return enqueue_game_request(state, GAME_REQUEST_PRINT_ABILITIES, 0, 0, 0, 0, NULL, search);
 }
 
 static void append_name_text(char *out, size_t capacity, size_t *used, const char *text) {
@@ -330,9 +468,8 @@ static void append_name_text(char *out, size_t capacity, size_t *used, const cha
     out[*used] = 0;
 }
 
-/* Digi_GetDefaultName returns the game's compact glyph bytes; party names use the same font
- * encoding as save nicknames. Decode the printable glyphs here so this remains available in
- * release builds (the dev-data text decoder is intentionally dev-only). */
+/* Digi_GetDefaultName and save nicknames use the game's compact glyph bytes. Decode the printable
+ * glyphs here for the party listing and user-assigned names. */
 static void decode_digi_name(const uint8_t *raw, size_t raw_capacity, char *out, size_t capacity) {
     static const char *const punctuation[] = {
         "(O)", "(X)", "(Tri)", "(Sq)", "&", "II", "?", "!", "/", "(note)", "·", "-",
@@ -378,6 +515,192 @@ static void decode_digi_name(const uint8_t *raw, size_t raw_capacity, char *out,
     if (out[0] == 0) {
         SDL_strlcpy(out, "?", capacity);
     }
+}
+
+static unsigned char ascii_lower(unsigned char c) {
+    return c >= 'A' && c <= 'Z' ? (unsigned char)(c - 'A' + 'a') : c;
+}
+
+static int contains_case_insensitive(const char *text, const char *search) {
+    const char *at;
+
+    if (search == NULL || search[0] == 0) {
+        return 1;
+    }
+    for (at = text; *at != 0; at++) {
+        const unsigned char *a = (const unsigned char *)at;
+        const unsigned char *b = (const unsigned char *)search;
+
+        while (*a != 0 && *b != 0 && ascii_lower(*a) == ascii_lower(*b)) {
+            a++;
+            b++;
+        }
+        if (*b == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int game_tables_ready(void) {
+    if (DevData_Load()) {
+        return 1;
+    }
+    output_text("game name tables are unavailable");
+    return 0;
+}
+
+static void print_species_list(const char *search) {
+    int i, count = 0;
+
+    if (!game_tables_ready()) {
+        return;
+    }
+    output_text("Digimon species (decimal / hex):");
+    for (i = 0; i < DevData_DigiCount(); i++) {
+        const DevDigi *d = DevData_DigiAt(i);
+        char line[128];
+
+        if (!d->hasBase || d->id < 1 || d->id > 255 || !contains_case_insensitive(d->name, search)) {
+            continue;
+        }
+        SDL_snprintf(line, sizeof(line), "%d / 0x%02X  %s", d->id, (unsigned)d->id, d->name);
+        output_text(line);
+        count++;
+    }
+    if (count == 0) {
+        output_text("(no matching Digimon species)");
+    }
+}
+
+static void print_ability_list(const char *search) {
+    int i, count = 0;
+
+    if (!game_tables_ready()) {
+        return;
+    }
+    output_text("Abilities (decimal / hex):");
+    for (i = 0; i < DevData_SkillCount(); i++) {
+        const DevSkill *skill = DevData_SkillAt(i);
+        char line[128];
+
+        /* DigiRosterEntry.skills stores one-byte IDs; zero means an empty slot. */
+        if (skill->id <= 0 || skill->id > 255 || !contains_case_insensitive(skill->name, search)) {
+            continue;
+        }
+        SDL_snprintf(line, sizeof(line), "%d / 0x%02X  %s", skill->id, (unsigned)skill->id, skill->name);
+        output_text(line);
+        count++;
+    }
+    if (count == 0) {
+        output_text("(no matching abilities)");
+    }
+}
+
+static void add_digimon(const GameRequest *request) {
+    const DevDigi *species;
+    DigiRosterEntry *entry = NULL;
+    char name[64], message[160];
+    int i, skill;
+
+    if (!game_tables_ready()) {
+        return;
+    }
+    species = DevData_Digi(request->digi_id);
+    if (species == NULL || !species->hasBase) {
+        SDL_snprintf(message, sizeof(message), "addDigimon: 0x%02X is not a Digimon species id",
+                     (unsigned)request->digi_id);
+        output_text(message);
+        return;
+    }
+    for (i = 0; i < (int)(sizeof(Save_GameState.elems) / sizeof(Save_GameState.elems[0])); i++) {
+        if (Save_GameState.elems[i].state == 0) {
+            entry = &Save_GameState.elems[i];
+            break;
+        }
+    }
+    if (entry == NULL) {
+        output_text("addDigimon: roster is full (36)");
+        return;
+    }
+
+    memset(entry, 0, sizeof(*entry));
+    entry->state = 1; /* Digimon server */
+    entry->digiId = (u8)request->digi_id;
+    entry->level = 1;
+    entry->maxLevel = (u8)Digi_CalcMaxLevel(entry->level);
+    entry->hp = entry->maxHp = 1;
+    entry->mp = entry->maxMp = 1;
+    entry->attack = entry->defense = entry->speed = 1;
+    skill = species->learnedSkill;
+    if (skill > 0 && DevData_Skill(skill) != NULL) {
+        entry->skills[0] = (u8)skill;
+    }
+    memcpy(entry->name, request->name, sizeof(entry->name));
+    decode_digi_name(entry->name, sizeof(entry->name), name, sizeof(name));
+    SDL_snprintf(message, sizeof(message), "addDigimon: added %s (0x%02X) as \"%s\" in server slot %d",
+                 species->name, (unsigned)request->digi_id, name, i);
+    output_text(message);
+}
+
+static void add_ability(const GameRequest *request) {
+    const DevSkill *skill;
+    DigiRosterEntry *entry = NULL;
+    char message[160];
+    int i, j, matches = 0, empty = -1;
+
+    if (!game_tables_ready()) {
+        return;
+    }
+    skill = DevData_Skill(request->ability_id);
+    if (skill == NULL || request->ability_id < 1 || request->ability_id > 255) {
+        SDL_snprintf(message, sizeof(message), "addAbility: 0x%02X is not a usable ability id",
+                     (unsigned)request->ability_id);
+        output_text(message);
+        return;
+    }
+    for (i = 0; i < (int)(sizeof(Save_GameState.elems) / sizeof(Save_GameState.elems[0])); i++) {
+        DigiRosterEntry *candidate = &Save_GameState.elems[i];
+
+        if (candidate->state < 1 || candidate->state > 5 || candidate->digiId != request->digi_id) {
+            continue;
+        }
+        entry = candidate;
+        matches++;
+    }
+    if (matches == 0) {
+        SDL_snprintf(message, sizeof(message), "addAbility: Digimon species id %d is not in the roster",
+                     request->digi_id);
+        output_text(message);
+        return;
+    }
+    if (matches > 1) {
+        SDL_snprintf(message, sizeof(message), "addAbility: Digimon species id %d appears more than once; no change made",
+                     request->digi_id);
+        output_text(message);
+        return;
+    }
+    for (j = 0; j < (int)sizeof(entry->skills); j++) {
+        if (entry->skills[j] == request->ability_id) {
+            SDL_snprintf(message, sizeof(message), "addAbility: %s is already on Digimon 0x%02X",
+                         skill->name, (unsigned)request->digi_id);
+            output_text(message);
+            return;
+        }
+        if (entry->skills[j] == 0 && empty < 0) {
+            empty = j;
+        }
+    }
+    if (empty < 0) {
+        SDL_snprintf(message, sizeof(message), "addAbility: Digimon 0x%02X has no empty ability slot",
+                     (unsigned)request->digi_id);
+        output_text(message);
+        return;
+    }
+    entry->skills[empty] = (u8)request->ability_id;
+    SDL_snprintf(message, sizeof(message), "addAbility: added %s (0x%02X) to Digimon 0x%02X, slot %d",
+                 skill->name, (unsigned)request->ability_id, (unsigned)request->digi_id, empty);
+    output_text(message);
 }
 
 static void instruction_hook(lua_State *state, lua_Debug *debug) {
@@ -461,6 +784,7 @@ int LuaConsole_Init(void) {
         enabled = 0;
         return 0;
     }
+    DevData_InitText();
 
     luaL_requiref(lua, "_G", luaopen_base, 1);
     lua_pop(lua, 1);
@@ -499,6 +823,14 @@ int LuaConsole_Init(void) {
     lua_setglobal(lua, "addMaxLevel");
     lua_pushcfunction(lua, lua_give_item);
     lua_setglobal(lua, "giveItem");
+    lua_pushcfunction(lua, lua_add_digimon);
+    lua_setglobal(lua, "addDigimon");
+    lua_pushcfunction(lua, lua_print_species_list);
+    lua_setglobal(lua, "printDigimonSpeciesList");
+    lua_pushcfunction(lua, lua_add_ability);
+    lua_setglobal(lua, "addAbility");
+    lua_pushcfunction(lua, lua_print_ability_list);
+    lua_setglobal(lua, "printAbilityList");
     output_text("Lua 5.4.8 ready. Type help() for available game functions.");
     printf("[lua] console ready (Lua 5.4.8, --luaconsole, `)\n");
     return 1;
@@ -643,7 +975,15 @@ void LuaConsole_Apply(void) {
         queue_count--;
         SDL_UnlockMutex(lock);
 
-        if (request.kind == GAME_REQUEST_ADD_BITS) {
+        if (request.kind == GAME_REQUEST_ADD_DIGIMON) {
+            add_digimon(&request);
+        } else if (request.kind == GAME_REQUEST_ADD_ABILITY) {
+            add_ability(&request);
+        } else if (request.kind == GAME_REQUEST_PRINT_SPECIES) {
+            print_species_list(request.search);
+        } else if (request.kind == GAME_REQUEST_PRINT_ABILITIES) {
+            print_ability_list(request.search);
+        } else if (request.kind == GAME_REQUEST_ADD_BITS) {
             before = Save_GameState.bits;
             current = before < 0 ? 0 : before > GAME_BITS_MAX ? GAME_BITS_MAX : before;
             if (request.amount > GAME_BITS_MAX - current) {

@@ -43,7 +43,7 @@ bool g_shots; /* --ui-shots */
 /* PR.15 quit question: wanted (Esc toggles it), shown (the ImGui popup is open) */
 bool g_quit_want, g_quit_shown;
 char g_lua_input[4096];
-char g_lua_output[96 * 384];
+char g_lua_output[512 * 384];
 char g_lua_completion[1024];
 char g_lua_history[64][sizeof(g_lua_input)];
 char g_lua_history_draft[sizeof(g_lua_input)];
