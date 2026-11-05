@@ -1009,7 +1009,7 @@ void data_skills(void) {
 }
 
 /* Digimon picker: a combo with its own search field, DIGIMNDT Digimon only */
-void digi_combo(const char *label, int *id, ImGuiTextFilter &f, int max_id = 0x3FF) {
+void digi_combo(const char *label, int *id, ImGuiTextFilter &f, int max_id = 0x3FF, bool include_model_only = false) {
     char preview[48];
 
     snprintf(preview, sizeof(preview), "0x%03X %s", *id, DevData_DigiName(*id));
@@ -1023,10 +1023,15 @@ void digi_combo(const char *label, int *id, ImGuiTextFilter &f, int max_id = 0x3
             const DevDigi *d = DevData_DigiAt(i);
             char item[48];
 
-            if (!d->hasBase || d->id > max_id || !pass(f, d->id, d->name, DevData_RankName(d->rank))) {
+            if ((!include_model_only && !d->hasBase) || d->id > max_id ||
+                !pass(f, d->id, d->name, d->hasBase ? DevData_RankName(d->rank) : "model only")) {
                 continue;
             }
-            snprintf(item, sizeof(item), "0x%03X %s (%s)", d->id, d->name, DevData_RankName(d->rank));
+            if (d->hasBase) {
+                snprintf(item, sizeof(item), "0x%03X %s (%s)", d->id, d->name, DevData_RankName(d->rank));
+            } else {
+                snprintf(item, sizeof(item), "0x%03X %s (model only)", d->id, d->name);
+            }
             if (ImGui::Selectable(item, d->id == *id)) {
                 *id = d->id;
             }
@@ -1518,6 +1523,97 @@ void data_dna(void) {
     }
 }
 
+struct DnaParentPair {
+    int first, second;
+    int level;
+};
+
+void data_dna_children(void) {
+    static ImGuiTextFilter fchild;
+    static int child = 5;
+    static int results_for_child = -1;
+    static ImVector<DnaParentPair> rows;
+    const DevDigi *target;
+
+    ImGui::TextWrapped("Choose a Digimon to find every parent pair that produces it in the game's DNA table. "
+                       "Parent pairs are shown once, even if reversing their order gives the same result.");
+    digi_combo("child Digimon", &child, fchild, 0x3FF, true);
+    target = DevData_Digi(child);
+    if (target == NULL) {
+        return;
+    }
+    if (!target->hasBase) {
+        ImGui::TextDisabled("0x%03X %s has no DIGIMNDT species data, so it cannot be a DNA result.", child, target->name);
+        return;
+    }
+
+    if (results_for_child != child) {
+        rows.resize(0);
+        results_for_child = child;
+        for (int i = 0; i < DevData_DigiCount(); i++) {
+            const DevDigi *a = DevData_DigiAt(i);
+
+            if (!a->hasBase || a->rank == 0) {
+                continue;
+            }
+            for (int j = i; j < DevData_DigiCount(); j++) {
+                const DevDigi *b = DevData_DigiAt(j);
+                int level, result;
+                DnaParentPair pair;
+
+                if (!b->hasBase || b->rank == 0) {
+                    continue;
+                }
+                result = DevData_DnaResult(a->id, b->id, &level);
+                if (result != child) {
+                    result = DevData_DnaResult(b->id, a->id, &level);
+                    if (result != child) {
+                        continue;
+                    }
+                    pair.first = b->id;
+                    pair.second = a->id;
+                } else {
+                    pair.first = a->id;
+                    pair.second = b->id;
+                }
+                pair.level = level;
+                rows.push_back(pair);
+            }
+        }
+    }
+
+    ImGui::Text("%d parent combination%s", rows.Size, rows.Size == 1 ? "" : "s");
+    if (rows.Size == 0) {
+        ImGui::TextDisabled("No DNA parent combinations produce this Digimon.");
+        return;
+    }
+    if (ImGui::BeginTable("dna_children", 3, k_list_flags, ImVec2(0, list_height(false)))) {
+        ImGui::TableSetupScrollFreeze(0, 1);
+        ImGui::TableSetupColumn("parent A");
+        ImGui::TableSetupColumn("parent B");
+        ImGui::TableSetupColumn("starts at level");
+        ImGui::TableHeadersRow();
+        ImGuiListClipper clip;
+        clip.Begin(rows.Size);
+        while (clip.Step()) {
+            for (int i = clip.DisplayStart; i < clip.DisplayEnd; i++) {
+                const DnaParentPair &pair = rows[i];
+                const DevDigi *a = DevData_Digi(pair.first);
+                const DevDigi *b = DevData_Digi(pair.second);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text("0x%03X %s (%s)", pair.first, DevData_DigiName(pair.first), DevData_RankName(a->rank));
+                ImGui::TableNextColumn();
+                ImGui::Text("0x%03X %s (%s)", pair.second, DevData_DigiName(pair.second), DevData_RankName(b->rank));
+                ImGui::TableNextColumn();
+                ImGui::Text("%d", pair.level);
+            }
+        }
+        ImGui::EndTable();
+    }
+}
+
 void panel_data(void) {
     if (!DevData_Ready()) {
         ImGui::TextDisabled("tables not loaded: dw2.pak not open yet or a file did not parse (see the log)");
@@ -1536,8 +1632,12 @@ void panel_data(void) {
             data_skills();
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("DNA", NULL, sub_flags("DNA"))) {
+        if (ImGui::BeginTabItem("DNA Parents", NULL, sub_flags("DNA Parents"))) {
             data_dna();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("DNA Children", NULL, sub_flags("DNA Children"))) {
+            data_dna_children();
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();
