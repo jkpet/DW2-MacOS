@@ -363,6 +363,18 @@ else()
     target_link_options(save_extension_test PRIVATE -Wl,--gc-sections)
 endif()
 
+# Dungeon item menus keep the retail byte-sized field while preserving extension IDs separately.
+add_executable(dungeon_item_id_test ${CMAKE_SOURCE_DIR}/tests/dungeon_item_id_test.c
+    ${CMAKE_SOURCE_DIR}/src/stag4000/itemselection.c)
+target_compile_options(dungeon_item_id_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
+target_compile_definitions(dungeon_item_id_test PRIVATE ${DW2_DEFS})
+target_include_directories(dungeon_item_id_test PRIVATE ${DW2_INCLUDES})
+if(APPLE)
+    target_link_options(dungeon_item_id_test PRIVATE -Wl,-dead_strip)
+else()
+    target_link_options(dungeon_item_id_test PRIVATE -Wl,--gc-sections)
+endif()
+
 # Native memory-card regression for reading a retail-sized save and growing it to the new format.
 add_executable(card_save_growth_test ${CMAKE_SOURCE_DIR}/tests/card_save_growth_test.c
     ${CMAKE_SOURCE_DIR}/psyq/libmcrd.c)

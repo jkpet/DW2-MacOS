@@ -348,7 +348,7 @@ typedef struct {
     /* 0x080 */ Stg40Ent48 *enemyList[10]; /* matching entries (Stg40_PlayerCheckEnemyInfo) */
     /* 0x0A8 */ s32 enemyCount;      /* count of enemyList */
     /* 0x0AC */ s32 enemyIndex;      /* index into enemyList */
-    /* 0x0B0 */ u8 itemIds[0x30]; /* item ids listed by Stg40_ItemMenuRefresh */
+    /* 0x0B0 */ u8 itemIds[0x30]; /* retail byte menu IDs; extension IDs live in itemselection.c */
     /* 0x0E0 */ u8 selItem;       /* item id counted by Stg40_PlayerShootObstacle */
     /* 0x0E1 */ u8 itemCount;
     /* 0x0E2 */ u8 cursor;       /* cursor, 0..itemCount-1 (Stg40_ItemMenuMoveCursor) */

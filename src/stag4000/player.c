@@ -5,6 +5,7 @@
 #include "stag4000/linkedmodel.h"
 #include "stag4000/floor.h"
 #include "stag4000/itemmenu.h"
+#include "stag4000/itemselection.h"
 #include "stag4000/msgwin.h"
 #include "stag4000/obj.h"
 #include "stag4000/player.h"
@@ -159,7 +160,7 @@ s32 Stg40_PlayerInteract(Actor *a0)
                     Task_SetState1(a0, 0x11);
                     Stg40_RootState->automapMode = 0;
                     Stg40_RootState->giftMenu = 0;
-                    Stg40_RootState->selItem = Stg40_RootState->itemIds[0];
+                    Stg40_ItemSelectionSetSelected(&Stg40_RootState->selItem, Stg40_ItemSelectionGet(0));
                 }
             }
             goto end;
@@ -837,7 +838,7 @@ void Stg40_PlayerEnemyInfo(Actor *a0) {
             } else {
                 Task_SetState1(a0, 0x11);
                 Stg40_RootState->giftMenu = 1;
-                Stg40_RootState->selItem = Stg40_RootState->itemIds[0];
+                Stg40_ItemSelectionSetSelected(&Stg40_RootState->selItem, Stg40_ItemSelectionGet(0));
             }
         }
         break;
@@ -961,7 +962,7 @@ void Stg40_PlayerShootGift(Actor *actor) {
         info = (Stg40EnemyParty *)target->params;
         msg = 0x1FD0050;
         if (info->giftsTaken < 9) {
-            s32 r = Item_GetCategory(Stg40_RootState->selItem);
+            s32 r = Item_GetCategory(Stg40_ItemSelectionGetSelected());
             s32 kind;
 
             if (r >= 0x25) {
@@ -977,14 +978,14 @@ void Stg40_PlayerShootGift(Actor *actor) {
                     s32 idx;
 
                     info->giftsTaken++;
-                    idx = Item_GetLevel(Stg40_RootState->selItem);
+                    idx = Item_GetLevel(Stg40_ItemSelectionGetSelected());
                     msg = 0x1FD004F;
                     info->giftPoints += Stg40_GiftPointsByLevel[idx - 1];
                 }
             }
         }
         Stg40_MsgWinOpen(1, msg, Digi_GetDefaultName(info->digiIds[0]),
-                      Item_GetNameText(Stg40_RootState->selItem));
+                      Item_GetNameText(Stg40_ItemSelectionGetSelected()));
         Task_NextState2(actor);
         break;
     }
@@ -1229,7 +1230,7 @@ void Stg40_PlayerShootObstacle(Actor *a0) {
     case 1:
         if (Stg40_ObjWaitAnimOrSkip(a0) == 1) {
             Stg40_ObjSetAnim(a0, 0x28);
-            if (Item_GetLevel(Stg40_RootState->selItem) >= e->params[1]) {
+            if (Item_GetLevel(Stg40_ItemSelectionGetSelected()) >= e->params[1]) {
                 Task_SetState1(t, 6);
                 msg = Stg40_ShootMsgIds[k * 2];
                 Task_SetState2(a0, 3);
@@ -1284,7 +1285,7 @@ void Stg40_ItemMenuRefresh(void) {
     }
     s0 = e3;
     while (s0 < s1) {
-        *p = Item_GetNameText(Stg40_RootState->itemIds[s0]);
+        *p = Item_GetNameText(Stg40_ItemSelectionGet(s0));
         s0++;
         p++;
     }
@@ -1293,7 +1294,7 @@ void Stg40_ItemMenuRefresh(void) {
         s3 |= 2;
     }
     Stg40_ItemMenuSetCursor(Stg40_RootState->cursor - Stg40_RootState->scrollTop, s1 - Stg40_RootState->scrollTop, s3);
-    dst[6] = Item_GetDescText(Stg40_RootState->itemIds[Stg40_RootState->cursor]);
+    dst[6] = Item_GetDescText(Stg40_ItemSelectionGet(Stg40_RootState->cursor));
     s1 = e1;
 }
 
@@ -1346,10 +1347,11 @@ void Stg40_PlayerItemMenu(Actor *a0) {
             Snd_PlayById(0xB, 0);
             Task_SetState2(a0, 4);
         } else if (Pad_State[0].cross > 0) {
-            Stg40_RootState->selItem = Stg40_RootState->itemIds[Stg40_RootState->cursor];
-            if (ItemExtension_ConsumesOnUse(Stg40_RootState->selItem)) {
+            Stg40_ItemSelectionSetSelected(&Stg40_RootState->selItem,
+                                           Stg40_ItemSelectionGet(Stg40_RootState->cursor));
+            if (ItemExtension_ConsumesOnUse(Stg40_ItemSelectionGetSelected())) {
                 for (i = 0, bag = Save_GameStatePtr->bagItems; i < 0x30; i++, bag++) {
-                    if (*bag == Stg40_RootState->selItem) {
+                    if (*bag == Stg40_ItemSelectionGetSelected()) {
                         *bag = 0;
                         Item_CompactBag();
                         break;

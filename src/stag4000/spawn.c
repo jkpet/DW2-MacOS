@@ -12,6 +12,7 @@
 #include "stag4000/player.h"
 #include "stag4000/enemy.h"
 #include "stag4000/entity.h"
+#include "stag4000/itemselection.h"
 
 u8 Stg40_EnemyAiTable[] = {
     0x02, 0x00, 0x02, 0x01, 0x04, 0x02, 0x03, 0x02, 0x07, 0x02, 0x06, 0x02, 0x05, 0x02, 0x02, 0x03,
@@ -656,6 +657,7 @@ s32 Stg40_ListUsableItems(Stg40ItemReq *a) {
     u16 *items;
 
     Stg40_RootState->itemCount = 0;
+    Stg40_ItemSelectionReset();
     switch (Stg40_GetBeetlePart(a->partSlot)) {
     case -1:
         ret = a->msgBase;
@@ -670,7 +672,8 @@ s32 Stg40_ListUsableItems(Stg40ItemReq *a) {
             if (key != -1) {
                 for (i = 0, bag = items; i < 0x30; i++, bag++) {
                     if (*bag != 0 && key == Item_GetCategory(*bag)) {
-                        Stg40_RootState->itemIds[Stg40_RootState->itemCount] = *bag;
+                        Stg40_ItemSelectionSet(Stg40_RootState->itemIds,
+                                               Stg40_RootState->itemCount, *bag);
                         Stg40_RootState->itemCount++;
                     }
                 }
