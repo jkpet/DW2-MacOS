@@ -22,6 +22,11 @@ added yet; `giveItem("InfMissile", 1)` in the opt-in Lua console is the test hoo
 bug tier. It clears all three nest types and memory bugs, and has `consumeOnUse = 0` so it can be used
 repeatedly. `giveItem("InfZap", 1)` in the opt-in Lua console is the test hook.
 
+`Digibeam` is a level-5 gift in category `0x25`, which the dungeon recognizes as attracting any
+Digimon type. It is included in the gift selection menu and has `consumeOnUse = 0` so it can be
+reused indefinitely. Each accepted gift awards the highest gift-points tier. `giveItem("Digibeam", 1)`
+in the opt-in Lua console is the test hook.
+
 ## Save representation
 
 The retail `GameState` and three-slot save-list layout remain unchanged. Custom bag, storage, and

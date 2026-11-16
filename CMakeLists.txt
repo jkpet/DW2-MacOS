@@ -342,7 +342,7 @@ endif()
 # Source-defined item catalog entries are appended without changing the disc item data.
 add_executable(item_extension_test ${CMAKE_SOURCE_DIR}/tests/item_extension_test.c
     ${CMAKE_SOURCE_DIR}/src/main/itemextension.c ${CMAKE_SOURCE_DIR}/src/main/gamedata.c
-    ${CMAKE_SOURCE_DIR}/src/main/itemeffect.c)
+    ${CMAKE_SOURCE_DIR}/src/main/itemeffect.c ${CMAKE_SOURCE_DIR}/src/stag4000/player.c)
 target_compile_options(item_extension_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
 target_compile_definitions(item_extension_test PRIVATE ${DW2_DEFS})
 target_include_directories(item_extension_test PRIVATE ${DW2_INCLUDES})

@@ -3,6 +3,7 @@
 #include "common.h"
 #include "main/156C.h"
 #include "main/itemextension.h"
+#include "stag4000/stag4000.h"
 
 s32 Item_Use(s32 itemId, s32 bagSlot, s32 target, s32 record);
 extern DungState *Dung_StatePtr;
@@ -44,7 +45,7 @@ s32 Digi_AddExp(s32 exp, s32 amount) {
     return exp + amount;
 }
 
-s32 Digi_GetType(s32 digiId) {
+u8 Digi_GetType(s32 digiId) {
     (void)digiId;
     return 0;
 }
@@ -76,6 +77,7 @@ static int check(int ok, const char *name) {
 int main(void) {
     const ItemExtension *item;
     const ItemExtension *zap;
+    const ItemExtension *beam;
     const u8 *name;
     const u8 *description;
     GameState state = { 0 };
@@ -148,6 +150,30 @@ int main(void) {
                               Test_DungState.status.memBugCount == 0 &&
                               zapState.bagItems[0] == zapId && sRemoveFromBagCalls == 0,
                           "InfZap can be reused to clear maximum-tier bugs");
+    }
+
+    beam = ItemExtension_FindByKey(0x44494749u);
+    failures += check(beam != NULL, "Digibeam is registered by its stable key");
+    failures += check(sizeof(Stg40ItemReq) == 0x10,
+                      "gift-category expansion preserves the dungeon request record size");
+    if (beam != NULL) {
+        s32 beamId = beam->runtimeId;
+        s32 i;
+        int categoryAllowed = 0;
+
+        for (i = 0; i < 5; i++) {
+            if (Stg40_GiftGunReq.itemCategories[i] == Item_GetCategory(beamId)) {
+                categoryAllowed = 1;
+            }
+        }
+        failures += check(Item_GetCategory(beamId) == 0x25,
+                          "Digibeam uses the universal gift category");
+        failures += check(Item_GetLevel(beamId) == 5,
+                          "Digibeam awards the top gift-points tier");
+        failures += check(!ItemExtension_ConsumesOnUse(beamId),
+                          "Digibeam can be reused indefinitely");
+        failures += check(categoryAllowed,
+                          "Digibeam appears in the dungeon gift selection list");
     }
 
     state.bagItems[0] = 0xFE;

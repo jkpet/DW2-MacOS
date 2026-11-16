@@ -380,11 +380,10 @@ typedef struct {
     /* 0x18C */ s16 hazardTypeCount;     /* spawned object count, max 12 */
 } Stg40B60;
 
-/* Argument of Stg40_ListUsableItems: an event id, up to 4 item-category keys (-1 = unused), a result base. */
+/* Argument of Stg40_ListUsableItems: an event id, up to 5 item-category keys (-1 = unused), a result base. */
 typedef struct {
     /* 0x0 */ s16 partSlot;
-    /* 0x2 */ s16 itemCategories[4];
-    u8 _padA[0x02];
+    /* 0x2 */ s16 itemCategories[5];
     /* 0xC */ s32 msgBase;
 } Stg40ItemReq;
 

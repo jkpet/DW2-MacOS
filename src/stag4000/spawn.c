@@ -666,7 +666,7 @@ s32 Stg40_ListUsableItems(Stg40ItemReq *a) {
         ret = a->msgBase + 1;
         break;
     default:
-        for (j = 0; j < 4; j++) {
+        for (j = 0; j < 5; j++) {
             key = a->itemCategories[j];
             items = Save_GameStatePtr->bagItems;
             if (key != -1) {

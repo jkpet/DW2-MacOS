@@ -44,6 +44,21 @@ static ItemExtension extensions[] = {
         .encodedName = { 0 },
         .encodedDescription = { 0 },
     },
+    {
+        .key = 0x44494749u, /* "DIGI" */
+        .price = 0,
+        .category = 0x25, /* Universal gift category, accepted for every Digimon type. */
+        .level = 5,       /* Highest gift-points tier. */
+        .bodyMask = 0,
+        .consumeOnUse = 0,
+        .effect = { 0, 0, 0 },
+        .name = "Digibeam",
+        .description = "Top tier gift for any Digimon.",
+        .runtimeId = 0,
+        .tableEntry = { 0 },
+        .encodedName = { 0 },
+        .encodedDescription = { 0 },
+    },
 };
 
 static int initialized;
