@@ -15,6 +15,7 @@
 #include "stag2000/labskills.h"
 #include "stag2000/labpair.h"
 #include "stag2000/dna.h"
+#include "main/itemextension.h"
 #include "stag2000/shadow.h"
 #include "stag2000/labjogbg.h"
 #include "stag2000/labdigimodel.h"
@@ -67,7 +68,7 @@ void Stg20_BuildUpgradeList(Actor *a) {
     s32 id;
     s32 v;
     s32 lead;
-    u8 *name;
+    const u8 *name;
 
     for (i = 0; i < 6; i++) {
         for (j = 0; j < 0x18; j++) {
@@ -82,7 +83,7 @@ void Stg20_BuildUpgradeList(Actor *a) {
         id = Save_GameState.slotItems[Stg20_UpgradeSlots[i]];
         w->recs[i].item = id;
         if (id != 0) {
-            name = P32(u8, Item_GetNameText(id));
+            name = ItemExtension_GetTextPointerOrRam(Item_GetNameText(id));
             j = 0;
             while (*name != 0xFF) {
                 w->recs[i].name[j++] = *name++;

@@ -62,6 +62,10 @@ const ItemExtension *ItemExtension_At(s32 index);
 s32 ItemExtension_Count(void);
 s32 ItemExtension_GetTextHandle(s32 id, s32 description);
 const u8 *ItemExtension_GetTextPointer(s32 handle);
+static inline const u8 *ItemExtension_GetTextPointerOrRam(s32 handle) {
+    const u8 *text = ItemExtension_GetTextPointer(handle);
+    return text != NULL ? text : P32(u8, handle);
+}
 s32 ItemExtension_GetCatalogCount(void);
 s32 ItemExtension_GetIdAtIndex(s32 index);
 s32 ItemExtension_GetTableIndex(s32 id, s32 vanillaCount);

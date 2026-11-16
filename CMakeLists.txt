@@ -458,7 +458,8 @@ if(APPLE)
 
     # Native regression for restoring packed item-name pointers in vendor list loading.
     add_executable(shop_item_name_pointer_test ${CMAKE_SOURCE_DIR}/tests/shop_item_name_pointer_test.c
-        ${CMAKE_SOURCE_DIR}/src/stag2000/shoplist.c ${CMAKE_SOURCE_DIR}/src/stag2000/partsupgrade.c)
+        ${CMAKE_SOURCE_DIR}/src/stag2000/shoplist.c ${CMAKE_SOURCE_DIR}/src/stag2000/partsupgrade.c
+        ${CMAKE_SOURCE_DIR}/src/main/itemextension.c)
     target_compile_options(shop_item_name_pointer_test PRIVATE ${DW2_GAME_FLAGS} -ffunction-sections -fdata-sections)
     target_compile_definitions(shop_item_name_pointer_test PRIVATE ${DW2_DEFS})
     target_include_directories(shop_item_name_pointer_test PRIVATE ${DW2_INCLUDES})

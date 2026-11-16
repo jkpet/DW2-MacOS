@@ -192,7 +192,7 @@ void Stg20_LoadShopBuyList(Actor *a, s32 id) {
     Stg20ShopListWork *w = (Stg20ShopListWork *)a->work;
     s32 i;
     s32 j;
-    u8 *name;
+    const u8 *name;
     u8 *list = (u8 *)Cd_GetFileEntry(id + 0x3CF0000);
 
     w->count = 0;
@@ -208,7 +208,7 @@ void Stg20_LoadShopBuyList(Actor *a, s32 id) {
             break;
         }
         Stg20_ShopItems.items[i] = list[i];
-        name = P32(u8, Item_GetNameText(list[i]));
+        name = ItemExtension_GetTextPointerOrRam(Item_GetNameText(list[i]));
         for (j = 0; j < 10; j++) {
             if (*name == 0xFF) {
                 break;
@@ -229,7 +229,7 @@ void Stg20_LoadShopSellList(Actor *a) {
     Stg20ShopListWork *w = (Stg20ShopListWork *)a->work;
     s32 i;
     s32 j;
-    u8 *name;
+    const u8 *name;
     u16 *list = &Save_GameState.slotItems[29];
     s32 k;
 
@@ -246,7 +246,7 @@ void Stg20_LoadShopSellList(Actor *a) {
             break;
         }
         Stg20_ShopItems.items[k] = list[i];
-        name = P32(u8, Item_GetNameText(list[i]));
+        name = ItemExtension_GetTextPointerOrRam(Item_GetNameText(list[i]));
         for (j = 0; j < 10; j++) {
             if (*name == 0xFF) {
                 break;
