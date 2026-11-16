@@ -6,6 +6,7 @@
 #include "stag4000/stag4000.h"
 
 s32 Item_Use(s32 itemId, s32 bagSlot, s32 target, s32 record);
+void Menu_UseBugZapItem(Actor *actor);
 extern DungState *Dung_StatePtr;
 
 static ItemTableEntry vanillaItems[] = {
@@ -13,10 +14,12 @@ static ItemTableEntry vanillaItems[] = {
     { .u0.field_0 = 0x030400FF },
     { .u0.id = 0 },
 };
+static s32 sLastCdFileEntryKey;
 
 EntA0 *Cd_GetFileEntry(arg0)
 s32 arg0;
 {
+    sLastCdFileEntryKey = arg0;
     return (EntA0 *)(arg0 == 0x45E0000 ? vanillaItems : NULL);
 }
 
@@ -29,7 +32,40 @@ DungState Test_DungState;
 DungState *Dung_StatePtr = &Test_DungState;
 u_char *Ps1_Ram;
 GameState *Save_GameStatePtr;
+MenuCtx Test_MenuCtx;
+MenuCtx *Menu_Ctx = &Test_MenuCtx;
 static s32 sRemoveFromBagCalls;
+static s32 sNoBugZapMessageCount;
+
+void Text_OpenPacked(void *slot, s32 text, u32 style, Halves pos) {
+    (void)slot;
+    (void)text;
+    (void)style;
+    (void)pos;
+    if (sLastCdFileEntryKey == 0x1FD00A0) {
+        sNoBugZapMessageCount++;
+    }
+}
+
+void Text_OpenDesc(void *slot, TextDesc *desc) {
+    (void)slot;
+    (void)desc;
+}
+
+void Text_Close(s32 *slot) {
+    (void)slot;
+}
+
+s32 Bug_GetMaxMemBugLevel(void) {
+    s32 best = 0;
+    s32 i;
+    for (i = 0; i < Test_DungState.status.memBugCount; i++) {
+        if (best < Test_DungState.status.memBugLevels[i]) {
+            best = Test_DungState.status.memBugLevels[i];
+        }
+    }
+    return best;
+}
 
 s32 Beetle_GetPart(s32 part) {
     (void)part;
@@ -150,6 +186,38 @@ int main(void) {
                               Test_DungState.status.memBugCount == 0 &&
                               zapState.bagItems[0] == zapId && sRemoveFromBagCalls == 0,
                           "InfZap can be reused to clear maximum-tier bugs");
+
+        Test_MenuCtx.itemId = (s16)zapId;
+        Test_MenuCtx.bagSlot = 0;
+        {
+            Actor actor = { 0 };
+            MenuItemUseWork work = { 0 };
+            actor.work = (ActorWork *)&work;
+            sNoBugZapMessageCount = 0;
+            Menu_UseBugZapItem(&actor);
+            failures += check(sNoBugZapMessageCount == 1,
+                              "the no-BugZap message appears when dungeon bug status is empty");
+        }
+        {
+            s32 nestType;
+            for (nestType = 0; nestType < 3; nestType++) {
+                Actor actor = { 0 };
+                MenuItemUseWork work = { 0 };
+                Test_DungState.status.bugLevels[0] = 0;
+                Test_DungState.status.bugLevels[1] = 0;
+                Test_DungState.status.bugLevels[2] = 0;
+                Test_DungState.status.memBugCount = 0;
+                Test_DungState.status.bugLevels[nestType] = 3;
+                actor.work = (ActorWork *)&work;
+                sNoBugZapMessageCount = 0;
+                Menu_UseBugZapItem(&actor);
+                failures += check(Test_DungState.status.bugLevels[0] == 0 &&
+                                      Test_DungState.status.bugLevels[1] == 0 &&
+                                      Test_DungState.status.bugLevels[2] == 0 &&
+                                      sNoBugZapMessageCount == 0,
+                                  "InfZap clears each active nest through the menu without the no-BugZap message");
+            }
+        }
     }
 
     beam = ItemExtension_FindByKey(0x44494749u);

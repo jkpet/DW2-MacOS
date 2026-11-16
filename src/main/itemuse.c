@@ -27,6 +27,21 @@ void Menu_SetItemUseMode(Actor *a, s16 arg);
 void Menu_ItemUseTask(Actor *a0);
 void Menu_ItemUseDraw(Actor *actor);
 
+#if DW2_DEV
+static void Menu_DebugInfZap(const char *phase, s32 itemId, s32 effectType, s32 amount,
+                             s32 bug0, s32 bug1, s32 bug2, s32 memCount, s32 result) {
+    if (result < 0) {
+        ((int (*)(const char *, ...))printf)(
+            "[DEBUG-INFZAP] %s item=%d effect=%d amount=%d bugs=%d,%d,%d mem=%d\n",
+            phase, itemId, effectType, amount, bug0, bug1, bug2, memCount);
+    } else {
+        ((int (*)(const char *, ...))printf)(
+            "[DEBUG-INFZAP] %s item=%d effect=%d amount=%d bugs=%d,%d,%d mem=%d result=%d\n",
+            phase, itemId, effectType, amount, bug0, bug1, bug2, memCount, result);
+    }
+}
+#endif
+
 TaskDesc Menu_ItemUseDesc = {
     (TaskInitFn)Menu_SetItemUseMode, Menu_ItemUseTask, Task_DefaultDestroy, Menu_ItemUseDraw, 0xA0, 4,
 };
@@ -104,7 +119,23 @@ void Menu_UseBugZapItem(Actor *a0) {
         Text_OpenDesc(&w->msgText, (TextDesc *)&st);
         break;
     case 0x10:
+#if DW2_DEV
+        Menu_DebugInfZap("before", (s32)Menu_Ctx->itemId, (s32)rec->digiId,
+                         (s32)((ItemEffect *)Item_GetEffectRec(Menu_Ctx->itemId))->amount,
+                         (s32)Dung_StatePtr->status.bugLevels[0],
+                         (s32)Dung_StatePtr->status.bugLevels[1],
+                         (s32)Dung_StatePtr->status.bugLevels[2],
+                         (s32)Dung_StatePtr->status.memBugCount, -1);
+#endif
         r = Item_Use(Menu_Ctx->itemId, Menu_Ctx->bagSlot, 0, 0);
+#if DW2_DEV
+        Menu_DebugInfZap("after", (s32)Menu_Ctx->itemId, (s32)rec->digiId,
+                         (s32)((ItemEffect *)Item_GetEffectRec(Menu_Ctx->itemId))->amount,
+                         (s32)Dung_StatePtr->status.bugLevels[0],
+                         (s32)Dung_StatePtr->status.bugLevels[1],
+                         (s32)Dung_StatePtr->status.bugLevels[2],
+                         (s32)Dung_StatePtr->status.memBugCount, r);
+#endif
         if (r == 0) {
             Text_OpenPacked(&w->msgText, (s32)Cd_GetFileEntry(0x1FD00A0), 0x81, *pos);
             goto end;
