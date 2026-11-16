@@ -4,6 +4,9 @@
 #include "main/156C.h"
 #include "main/itemextension.h"
 
+s32 Item_Use(s32 itemId, s32 bagSlot, s32 target, s32 record);
+extern DungState *Dung_StatePtr;
+
 static ItemTableEntry vanillaItems[] = {
     { .u0.field_0 = 0x020300FE },
     { .u0.field_0 = 0x030400FF },
@@ -19,6 +22,39 @@ s32 arg0;
 sptr Cd_GetFileOrNull(s32 key) {
     (void)key;
     return 0;
+}
+
+DungState Test_DungState;
+DungState *Dung_StatePtr = &Test_DungState;
+u_char *Ps1_Ram;
+GameState *Save_GameStatePtr;
+static s32 sRemoveFromBagCalls;
+
+s32 Beetle_GetPart(s32 part) {
+    (void)part;
+    return 0;
+}
+
+void Beetle_SetPartBroken(s32 part, s32 broken) {
+    (void)part;
+    (void)broken;
+}
+
+s32 Digi_AddExp(s32 exp, s32 amount) {
+    return exp + amount;
+}
+
+s32 Digi_GetType(s32 digiId) {
+    (void)digiId;
+    return 0;
+}
+
+s32 Digi_ScaleExpGain(s32 amount) { return amount; }
+s32 Rand_Next(void) { return 0; }
+
+void Item_RemoveFromBag(s32 slot) {
+    (void)slot;
+    sRemoveFromBagCalls++;
 }
 
 s32 Item_GetNameText(s32 id);
@@ -39,9 +75,11 @@ static int check(int ok, const char *name) {
 
 int main(void) {
     const ItemExtension *item;
+    const ItemExtension *zap;
     const u8 *name;
     const u8 *description;
     GameState state = { 0 };
+    GameState zapState = { 0 };
     ItemExtensionInventorySave inventory, restored;
     u8 inventory_bytes[ITEM_EXTENSION_SAVE_MAX_BYTES];
     u16 inventory_length;
@@ -72,6 +110,45 @@ int main(void) {
     failures += check(description != NULL && description[0] == 0x0D && description[1] == 0x28,
                       "source description is encoded for the retail text renderer");
     failures += check(ItemExtension_GetTextPointer(0x12345678) == NULL, "unrelated text handles pass through");
+
+    zap = ItemExtension_FindByKey(0x494E465Au);
+    failures += check(zap != NULL, "InfZap is registered by its stable key");
+    if (zap != NULL) {
+        s32 zapId = zap->runtimeId;
+
+        zapState.bagItems[0] = (u16)zapId;
+        Test_DungState.status.bugLevels[0] = 1;
+        Test_DungState.status.bugLevels[1] = 2;
+        Test_DungState.status.bugLevels[2] = 3;
+        Test_DungState.status.memBugCount = 3;
+        Test_DungState.status.memBugLevels[0] = 1;
+        Test_DungState.status.memBugLevels[1] = 2;
+        Test_DungState.status.memBugLevels[2] = 3;
+        sRemoveFromBagCalls = 0;
+
+        failures += check(Item_Use(zapId, 0, 0, 0) == 1,
+                          "InfZap clears all nest types and memory bugs through the universal zap effect");
+        failures += check(Test_DungState.status.bugLevels[0] == 0 &&
+                              Test_DungState.status.bugLevels[1] == 0 &&
+                              Test_DungState.status.bugLevels[2] == 0 &&
+                              Test_DungState.status.memBugCount == 0,
+                          "InfZap clears every nest and memory-bug tier");
+        failures += check(zapState.bagItems[0] == zapId && sRemoveFromBagCalls == 0,
+                          "using InfZap leaves it in the bag");
+
+        Test_DungState.status.bugLevels[0] = 3;
+        Test_DungState.status.bugLevels[1] = 3;
+        Test_DungState.status.bugLevels[2] = 3;
+        Test_DungState.status.memBugCount = 1;
+        Test_DungState.status.memBugLevels[0] = 3;
+        failures += check(Item_Use(zapId, 0, 0, 0) == 1 &&
+                              Test_DungState.status.bugLevels[0] == 0 &&
+                              Test_DungState.status.bugLevels[1] == 0 &&
+                              Test_DungState.status.bugLevels[2] == 0 &&
+                              Test_DungState.status.memBugCount == 0 &&
+                              zapState.bagItems[0] == zapId && sRemoveFromBagCalls == 0,
+                          "InfZap can be reused to clear maximum-tier bugs");
+    }
 
     state.bagItems[0] = 0xFE;
     state.bagItems[1] = (u16)id;

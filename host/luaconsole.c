@@ -242,7 +242,7 @@ static int lua_help(lua_State *state) {
     output_text("addExp(id, amount) adjusts EXP (0..99,999,999); addMaxLevel(id, amount) adjusts max level.");
     output_text("addMaxHP/MP(id, amount), addAttack/Defense/Speed(id, amount) adjust a unique owned Digimon's stats (0..9999).");
     output_text("Increasing max HP/MP does not heal/refill; lowering it caps current HP/MP at the new maximum.");
-    output_text("giveItem(name, count) adds a source-defined item for testing (e.g. giveItem('InfMissile', 1)).");
+    output_text("giveItem(name, count) adds a source-defined item for testing (e.g. giveItem('InfMissile', 1), giveItem('InfZap', 1)).");
     output_text("addDigimon(name, speciesId) adds a level-1 Digimon to the server with its species skill and average level-1 encounter stats.");
     output_text("addAbility(speciesId, abilityId) adds a skill to the unique owned Digimon with that species ID.");
     output_text("printDigimonSpeciesList(searchTerm?) and printAbilityList(searchTerm?) list known IDs; search is case-insensitive.");

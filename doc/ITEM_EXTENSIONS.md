@@ -18,6 +18,10 @@ level to obstacle tier. The existing missile-gun part requirement still applies.
 `consumeOnUse = 0`, so selecting it does not remove it from the bag. No acquisition reward has been
 added yet; `giveItem("InfMissile", 1)` in the opt-in Lua console is the test hook.
 
+`InfZap` uses the game's universal bug-zap effect (`effectType = 0x10`) with a threshold above every
+bug tier. It clears all three nest types and memory bugs, and has `consumeOnUse = 0` so it can be used
+repeatedly. `giveItem("InfZap", 1)` in the opt-in Lua console is the test hook.
+
 ## Save representation
 
 The retail `GameState` and three-slot save-list layout remain unchanged. Custom bag, storage, and

@@ -29,6 +29,21 @@ static ItemExtension extensions[] = {
         .encodedName = { 0 },
         .encodedDescription = { 0 },
     },
+    {
+        .key = 0x494E465Au, /* "INFZ" */
+        .price = 0,
+        .category = 0,
+        .level = 0,
+        .bodyMask = 0,
+        .consumeOnUse = 0,
+        .effect = { .useType = 5, .effectType = 0x10, .amount = 0x7FFF },
+        .name = "InfZap",
+        .description = "Zaps all nests and memory bugs at every tier.",
+        .runtimeId = 0,
+        .tableEntry = { 0 },
+        .encodedName = { 0 },
+        .encodedDescription = { 0 },
+    },
 };
 
 static int initialized;

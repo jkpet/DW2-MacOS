@@ -373,6 +373,16 @@ int main(void) {
                   Save_GameState.bagItems[1] == item->runtimeId,
               "source item grant is applied on the game thread");
     }
+    LuaConsole_Submit("giveItem('InfZap', 1)");
+    LuaConsole_Apply();
+    {
+        const ItemExtension *item = ItemExtension_FindByKey(0x494E465Au);
+        LuaConsole_CopyOutput(output, sizeof(output));
+        check(strstr(output, "giveItem: source item is unavailable") == NULL,
+              "InfZap is available through the source-item grant hook");
+        check(item != NULL && Save_GameState.bagItems[2] == item->runtimeId,
+              "InfZap grant is applied to the bag on the game thread");
+    }
     LuaConsole_Submit("giveItem('UnknownItem', 1)");
     LuaConsole_CopyOutput(output, sizeof(output));
     check(strstr(output, "unknown source item") != NULL, "unknown source item grant is rejected");
